@@ -1,28 +1,40 @@
-import type { IInjectable } from "@boardmeister/marshal"
+import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
-import type { Herald } from "@boardmeister/herald"
-import type React from "react"
-import type styled from "styled-components";
+import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
+import { Event } from "@boardmeister/antetype"
+import type { ModulesEvent } from "@boardmeister/antetype"
+import Illustrator from "@src/module";
 
 interface IInjected extends Record<string, object> {
   minstrel: Minstrel;
   herald: Herald;
-  react: typeof React;
-  styled: typeof styled;
 }
 
-const Skeleton: IInjectable = class {
+export class AntetypeIllustrator {
+  #module: (typeof Illustrator)|null = null;
   injected?: IInjected;
-
   static inject: Record<string, string> = {
-    minstrel: 'boardmeister/minstrel:latest',
-    herald: 'boardmeister/herald:latest',
-    react: 'react/react:latest',
-    styled: 'react/styled:latest',
+    minstrel: 'boardmeister/minstrel',
+    herald: 'boardmeister/herald',
   }
   inject(injections: IInjected): void {
     this.injected = injections;
   }
+
+  async register(event: CustomEvent<ModulesEvent>): Promise<void> {
+    const { modules, canvas } = event.detail;
+    if (!this.#module) {
+      const module = this.injected!.minstrel.getResourceUrl(this as Module, 'module.js');
+      this.#module = (await import(module)).default;
+    }
+    modules['illustrator'] = new this.#module!(canvas);
+  }
+
+  static subscriptions: Subscriptions = {
+    [Event.MODULES]: 'register',
+  }
 }
 
-export default Skeleton;
+const EnAntetypeIllustrator: IInjectable&ISubscriber = AntetypeIllustrator;
+
+export default EnAntetypeIllustrator;

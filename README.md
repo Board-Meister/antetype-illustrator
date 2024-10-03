@@ -1,2 +1,2 @@
-# module-skeleton
-Example module, to be reused when creating new common modules
+# antetype illustrator
+An additional module for antetype package for writing shapes on canvas 
