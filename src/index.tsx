@@ -3,31 +3,31 @@ import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import { Event } from "@boardmeister/antetype"
 import type { ModulesEvent } from "@boardmeister/antetype"
-import Illustrator from "@src/module";
+import type Illustrator from "@src/module";
 
-interface IInjected extends Record<string, object> {
+export interface IInjected extends Record<string, object> {
   minstrel: Minstrel;
   herald: Herald;
 }
 
 export class AntetypeIllustrator {
   #module: (typeof Illustrator)|null = null;
-  injected?: IInjected;
+  #injected?: IInjected;
   static inject: Record<string, string> = {
     minstrel: 'boardmeister/minstrel',
     herald: 'boardmeister/herald',
   }
   inject(injections: IInjected): void {
-    this.injected = injections;
+    this.#injected = injections;
   }
 
   async register(event: CustomEvent<ModulesEvent>): Promise<void> {
     const { modules, canvas } = event.detail;
     if (!this.#module) {
-      const module = this.injected!.minstrel.getResourceUrl(this as Module, 'module.js');
+      const module = this.#injected!.minstrel.getResourceUrl(this as Module, 'module.js');
       this.#module = (await import(module)).default;
     }
-    modules['illustrator'] = new this.#module!(canvas);
+    modules.illustrator = new this.#module!(canvas, modules, this.#injected!);
   }
 
   static subscriptions: Subscriptions = {

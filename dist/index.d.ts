@@ -133,19 +133,18 @@ declare class Minstrel {
 	component<T>(module: Module, suffix: string, scope?: Record<string, any>): React$1.FC<T>;
 	asset(module: Module, suffix: string): string;
 }
-declare type Module$1 = Record<string, Function> | Object;
-declare type Modules = Record<string, Module$1>;
 interface ModulesEvent {
 	modules: Modules;
 	canvas: HTMLCanvasElement | null;
 }
-interface IInjected extends Record<string, object> {
+declare type Module$1 = Record<string, Function> | Object;
+declare type Modules = Record<string, Module$1>;
+export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;
 	herald: Herald;
 }
 export declare class AntetypeIllustrator {
 	#private;
-	injected?: IInjected;
 	static inject: Record<string, string>;
 	inject(injections: IInjected): void;
 	register(event: CustomEvent<ModulesEvent>): Promise<void>;

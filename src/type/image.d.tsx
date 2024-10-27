@@ -1,0 +1,35 @@
+import { IBaseDef, ISize, XValue } from "@boardmeister/antetype";
+import { FillTypes } from "@src/type/polygon.d";
+
+export type ImageFit = 'stretch'|'crop'|'default';
+export type VerticalAlignType = 'top'|'bottom'|'center';
+export type HorizontalAlignType = 'left'|'right'|'center';
+
+export interface IImageAlign {
+  vertical: VerticalAlignType;
+  horizontal: HorizontalAlignType;
+}
+
+export interface IOutline {
+  thickness: XValue;
+  fill: FillTypes;
+}
+
+export interface IOvercolor {
+  fill: FillTypes
+}
+
+export interface IImageArg<T = never> {
+  size: ISize,
+  fit?: ImageFit;
+  overcolor?: IOvercolor;
+  outline?: IOutline;
+  align?: IImageAlign;
+  fitTo?: 'auto'|'height'|'width';
+  src: string|((def: IImageDef<T>) => Promise<string>)|HTMLImageElement;
+};
+
+export interface IImageDef<T = never> extends IBaseDef<T> {
+  image: IImageArg<T>;
+  timeout?: number;
+}
