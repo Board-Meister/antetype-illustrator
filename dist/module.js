@@ -63,22 +63,22 @@ var Actions = {
   },
   default: (ctx, x, y) => Actions.line(ctx, x, y)
 };
-function ResolvePolygonAction(ctx, action) {
+function ResolvePolygonAction(ctx, action, x, y) {
   const objSwitch = {
     fill: (action2) => {
       Actions.fill(ctx, action2.args);
     },
     line: (action2) => {
-      Actions.line(ctx, action2.args.x, action2.args.y);
+      Actions.line(ctx, action2.args.x + x, action2.args.y + y);
     },
     curve: (action2) => Actions.curve(
       ctx,
-      action2.args.cp1x,
-      action2.args.cp1y,
-      action2.args.cp2x,
-      action2.args.cp2y,
-      action2.args.x,
-      action2.args.y
+      action2.args.cp1x + x,
+      action2.args.cp1y + y,
+      action2.args.cp2x + x,
+      action2.args.cp2y + y,
+      action2.args.x + x,
+      action2.args.y + y
     ),
     stroke: (action2) => Actions.stroke(
       ctx,
@@ -87,8 +87,8 @@ function ResolvePolygonAction(ctx, action) {
       action2.args.lineJoin ?? "round",
       action2.args.miterLimit ?? 2
     ),
-    begin: (action2) => Actions.begin(ctx, action2.args.x, action2.args.y),
-    move: (action2) => Actions.move(ctx, action2.args.x, action2.args.y),
+    begin: (action2) => Actions.begin(ctx, action2.args.x + x, action2.args.y + y),
+    move: (action2) => Actions.move(ctx, action2.args.x + x, action2.args.y + y),
     close: () => Actions.close(ctx)
   };
   if (!action.means) {
@@ -133,7 +133,7 @@ var imageIsBeingLoaded = (image) => {
   return image === IMAGE_LOADING_STATUS;
 };
 var loadImage = async (def, src, modules) => {
-  const image = new Image(), { timeout = 3e4 } = def;
+  const image = new Image(), { image: { timeout = 3e4 } } = def;
   image.crossOrigin = "anonymous";
   image.src = src;
   const promise = new Promise((resolve) => {
@@ -324,6 +324,189 @@ var getImageHorizontalDiff = (align, width, asWidth) => {
 // ../../tool/antetype/dist/index.js
 var t = ((e) => (e.STRUCTURE = "antetype.structure", e.DRAW = "antetype.draw", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e))(t || {});
 
+// src/action/text.tsx
+var ResolveTextAction = async (ctx, def) => {
+  let { x, y } = def.start;
+  const { h } = def.text.size;
+  ctx.save();
+  const { lines: texts, fontSize, lineHeight, width: columnWidth, columns } = await prepare(def, ctx), linesAmount = Math.ceil(texts.length / columns.amount);
+  if (isSafari()) {
+    y -= fontSize * 0.2;
+  }
+  const transY = calcVerticalMove(h, lineHeight, texts, def.text.align?.vertical || "top");
+  let lines = [], previousColumnsLines = 0;
+  while ((lines = texts.splice(0, linesAmount)).length) {
+    lines.forEach((text, i) => {
+      const nextLine = lines[i + 1] || texts[0] || [""];
+      const isLast = i + 1 == lines.length || nextLine[0] == "" || text[0][text[0].length - 1] == "\n";
+      const verticalMove = transY + (text[1] - previousColumnsLines) * lineHeight;
+      fillText(ctx, text[0], def, x, y, columnWidth, verticalMove, isLast);
+    });
+    previousColumnsLines += lines[lines.length - 1][1] + 1;
+    x += columns.gap + columnWidth;
+  }
+  ctx.restore();
+};
+var fillText = (ctx, text, def, x, y, width, transY, isLast) => {
+  const { color = "#000", outline = null } = def.text;
+  const horizontal = def.text.align?.horizontal || "left";
+  if (horizontal != "left") {
+    ({ text, x } = alignHorizontally(ctx, horizontal, text, width, isLast, x));
+  }
+  if (transY > 0) {
+    y = y + transY;
+  }
+  ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
+  if (outline) {
+    outlineText(ctx, outline, text, x, y, width);
+  }
+  ctx.fillText(text, x, y, width);
+};
+var outlineText = (ctx, outline, text, x, y, width) => {
+  ctx.strokeStyle = generateFill(outline.fill.type, outline.fill.style);
+  ctx.lineWidth = outline.thickness;
+  ctx.lineJoin = outline.lineJoin ?? "round";
+  ctx.miterLimit = outline.miterLimit ?? 2;
+  ctx.strokeText(text, x, y, width);
+};
+var alignHorizontally = (ctx, horizontal, text, width, isLast, x) => {
+  const metrics = ctx.measureText(text);
+  const realWidth = metrics.width;
+  if (horizontal == "center") {
+    const transX = (width - realWidth) / 2;
+    if (transX > 0) {
+      x = x + transX;
+    }
+  } else if (horizontal == "right") {
+    x = x + width - realWidth;
+  } else if (horizontal == "justify" && !isLast) {
+    text = justifyText(text, metrics, width, ctx);
+  }
+  return { text, x };
+};
+var justifyText = (text, metrics, width, ctx) => {
+  if (metrics.width >= width) {
+    return text;
+  }
+  const words = text.split(" "), spacingMeasure = ctx.measureText(getSpaceChart()), spacings = Math.floor((width - metrics.width) / spacingMeasure.width), amount = spacings / (words.length - 1);
+  for (let j = 0; j < words.length - 1; j++) {
+    words[j] += getSpaceChart().repeat(amount);
+  }
+  return words.join(" ");
+};
+var calcVerticalMove = (height, lineHeight, lines, vAlign) => {
+  if (!height || lines.length * lineHeight >= height) {
+    return 0;
+  }
+  const diff = height - lines.length * lineHeight;
+  if (vAlign === "center") {
+    return diff / 2;
+  }
+  if (vAlign === "bottom") {
+    return diff;
+  }
+  return 0;
+};
+var prepare = async (def, ctx) => {
+  const { size: { w }, textBaseline = "top" } = def.text;
+  let { value: text } = def.text;
+  const columns = def.text.columns ?? { amount: 1, gap: 0 };
+  const width = calcColumnWidth(w, columns);
+  ctx.font = prepareFontShorthand(def, ctx);
+  text = addSpacing(def, text);
+  ctx.textBaseline = textBaseline;
+  const lines = getTextLines(def, text, ctx, width);
+  const fontSize = getFontSize(def);
+  return {
+    lines,
+    fontSize,
+    lineHeight: def.text.lineHeight ?? fontSize,
+    width,
+    columns
+  };
+};
+var getTextLines = (def, text, ctx, width) => {
+  if (!def.text.wrap) {
+    return [[text, 0]];
+  }
+  const rows = [];
+  let words = text.split(/[^\S\r\n]/), line = "", i = 0;
+  while (words.length > 0) {
+    const newLinePos = words[0].search(/[\r\n]/);
+    if (newLinePos !== -1) {
+      const newLine = words[0].substring(0, newLinePos);
+      rows.push([(line + " " + newLine).trim() + "\n", i]);
+      line = "";
+      i++;
+      words[0] = words[0].substring(newLinePos + 1);
+      continue;
+    }
+    const metrics = ctx.measureText(line + words[0]);
+    if (metrics.width > width) {
+      if (line.length > 0) {
+        rows.push([line.trim(), i]);
+        i++;
+      }
+      line = "";
+    }
+    line += " " + words[0];
+    words = words.splice(1);
+  }
+  if (line.length > 0) {
+    rows.push([line.replace(/^\s+/, ""), i]);
+  }
+  return rows;
+};
+var addSpacing = (def, text) => {
+  if (!def.text.spacing) {
+    return text;
+  }
+  return text.split("").join(getSpaceChart().repeat(def.text.spacing));
+};
+var getSpaceChart = () => String.fromCharCode(8202);
+var getFontSize = (def) => Number(def.text.font?.size || 10);
+var prepareFontShorthand = (def, ctx) => {
+  const { font = null } = def.text;
+  if (!font) {
+    return ctx.font;
+  }
+  const fontSize = getFontSize(def) + "px ";
+  const fontFamily = (font.family || "serif") + " ";
+  const fontWeight = (font.weight ?? 100) + " ";
+  let fontSh = "";
+  if (font.style) {
+    fontSh += font.style + " ";
+  }
+  if (font.variant) {
+    fontSh += font.variant + " ";
+  }
+  fontSh += fontWeight;
+  if (font.stretch) {
+    fontSh += font.stretch + " ";
+  }
+  fontSh += fontSize;
+  if (font.height) {
+    fontSh += "/" + font.height + " ";
+  }
+  return fontSh + fontFamily;
+};
+var calcColumnWidth = (rWidth, columns) => {
+  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
+};
+var isSafari = () => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
+
+// src/action/group.tsx
+var ResolveGroupAction = async (ctx, modules, group) => {
+  ctx.save();
+  ctx.translate(group.start.x, group.start.y);
+  for (const layer of group.layout) {
+    await modules.system.draw(layer);
+  }
+  ctx.restore();
+};
+
 // src/module.tsx
 var Illustrator = class {
   #canvas;
@@ -353,7 +536,9 @@ var Illustrator = class {
           const typeToAction = {
             clear: this.clear.bind(this),
             polygon: this.polygon.bind(this),
-            image: this.image.bind(this)
+            image: this.image.bind(this),
+            text: this.text.bind(this),
+            group: this.group.bind(this)
           };
           const el = typeToAction[element.type];
           if (typeof el == "function") {
@@ -374,19 +559,25 @@ var Illustrator = class {
       this.#canvas.height
     );
   }
-  polygon({ steps, start: { x, y } }) {
+  async group(def) {
+    await ResolveGroupAction(this.#ctx, this.#modules, def);
+  }
+  async polygon({ steps, start: { x, y } }) {
     const ctx = this.#ctx;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, y);
-    steps.forEach((step) => {
-      ResolvePolygonAction(ctx, step);
-    });
+    for (const step of steps) {
+      await ResolvePolygonAction(ctx, step, x, y);
+    }
     ctx.closePath();
     ctx.restore();
   }
   async image(def) {
     return ResolveImageAction(this.#ctx, this.#modules, def);
+  }
+  async text(def) {
+    await ResolveTextAction(this.#ctx, def);
   }
 };
 export {

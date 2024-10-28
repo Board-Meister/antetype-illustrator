@@ -78,22 +78,24 @@ type Actions = { [K in keyof PActionTypes]: (action: PActions<K>) => void }
 export function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
   ctx: CanvasRenderingContext2D,
   action: PActions<K>,
+  x: XValue,
+  y: YValue,
 ): void {
   const objSwitch: Actions = {
     fill: (action: IFill): void => {
       Actions.fill(ctx, action.args)
     },
     line: (action: ILine): void => {
-      Actions.line(ctx, action.args.x, action.args.y)
+      Actions.line(ctx, action.args.x + x, action.args.y + y)
     },
     curve: (action: ICurve): void => Actions.curve(
       ctx,
-      action.args.cp1x,
-      action.args.cp1y,
-      action.args.cp2x,
-      action.args.cp2y,
-      action.args.x,
-      action.args.y,
+      action.args.cp1x + x,
+      action.args.cp1y + y,
+      action.args.cp2x + x,
+      action.args.cp2y + y,
+      action.args.x + x,
+      action.args.y + y,
     ),
     stroke: (action: IStroke): void => Actions.stroke(
       ctx,
@@ -102,8 +104,8 @@ export function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
       action.args.lineJoin ?? 'round',
       action.args.miterLimit ?? 2,
     ),
-    begin: (action: IBegin): void => Actions.begin(ctx, action.args.x, action.args.y),
-    move: (action: IMove): void => Actions.move(ctx, action.args.x, action.args.y),
+    begin: (action: IBegin): void => Actions.begin(ctx, action.args.x + x, action.args.y + y),
+    move: (action: IMove): void => Actions.move(ctx, action.args.x + x, action.args.y + y),
     close: (): void => Actions.close(ctx),
   };
 

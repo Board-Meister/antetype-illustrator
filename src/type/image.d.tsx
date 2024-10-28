@@ -20,7 +20,8 @@ export interface IOvercolor {
 }
 
 export interface IImageArg<T = never> {
-  size: ISize,
+  timeout?: number;
+  size: ISize;
   fit?: ImageFit;
   overcolor?: IOvercolor;
   outline?: IOutline;
@@ -31,5 +32,4 @@ export interface IImageArg<T = never> {
 
 export interface IImageDef<T = never> extends IBaseDef<T> {
   image: IImageArg<T>;
-  timeout?: number;
 }

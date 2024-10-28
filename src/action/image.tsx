@@ -36,17 +36,17 @@ export const ResolveImageAction = async (
   void loadImage(def, source, modules);
 }
 
-const imageTimeoutReached = (image: any): boolean => {
+const imageTimeoutReached = (image: unknown): boolean => {
   return image === IMAGE_TIMEOUT_STATUS;
 }
 
-const imageIsBeingLoaded = (image: any): boolean => {
+const imageIsBeingLoaded = (image: unknown): boolean => {
   return image === IMAGE_LOADING_STATUS;
 }
 
 const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
   const image = new Image(),
-    { timeout = 30000 } = def
+    { image: { timeout = 30000 } } = def
   ;
   image.crossOrigin = 'anonymous';
   image.src = src;

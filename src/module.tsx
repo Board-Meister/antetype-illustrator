@@ -5,6 +5,10 @@ import { ResolveImageAction } from "@src/action/image";
 import type { Modules, DrawEvent } from "@boardmeister/antetype";
 import { IInjected } from "@src/index";
 import { Event } from "@boardmeister/antetype"
+import { ITextDef } from "@src/type/text.d";
+import { ResolveTextAction } from "@src/action/text";
+import { ResolveGroupAction } from "@src/action/group";
+import { IGroupDef } from "@src/type/group.d";
 
 export interface IIllustrator {
   polygon: (def: IPolygonDef) => void;
@@ -45,6 +49,8 @@ export default class Illustrator implements IIllustrator {
             clear: this.clear.bind(this),
             polygon: this.polygon.bind(this),
             image: this.image.bind(this),
+            text: this.text.bind(this),
+            group: this.group.bind(this),
           };
 
           const el = typeToAction[element.type]
@@ -69,15 +75,19 @@ export default class Illustrator implements IIllustrator {
     );
   }
 
-  polygon({ steps, start: { x, y } }: IPolygonDef): void {
+  async group(def: IGroupDef): Promise<void> {
+    await ResolveGroupAction(this.#ctx, this.#modules, def);
+  }
+
+  async polygon({ steps, start: { x, y } }: IPolygonDef): Promise<void> {
     const ctx = this.#ctx;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, y);
 
-    steps.forEach(step => {
-      ResolvePolygonAction(ctx, step);
-    });
+    for (const step of steps) {
+      await ResolvePolygonAction(ctx, step, x, y);
+    }
 
     ctx.closePath();
     ctx.restore();
@@ -85,5 +95,9 @@ export default class Illustrator implements IIllustrator {
 
   async image(def: IImageDef): Promise<void> {
     return ResolveImageAction(this.#ctx, this.#modules, def);
+  }
+
+  async text(def: ITextDef): Promise<void> {
+    await ResolveTextAction(this.#ctx, def);
   }
 }
