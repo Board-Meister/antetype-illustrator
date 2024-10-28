@@ -6,6 +6,7 @@ export const ResolveGroupAction = async (
   modules: Modules,
   group: IGroupDef,
 ): Promise<void> => {
+  console.log('group', group)
   ctx.save();
   ctx.translate(group.start.x, group.start.y);
   for (const layer of group.layout) {

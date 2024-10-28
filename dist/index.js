@@ -4,6 +4,7 @@ var t = ((e) => (e.STRUCTURE = "antetype.structure", e.DRAW = "antetype.draw", e
 // src/index.tsx
 var AntetypeIllustrator = class {
   #module = null;
+  #instance = null;
   #injected;
   static inject = {
     minstrel: "boardmeister/minstrel",
@@ -18,10 +19,28 @@ var AntetypeIllustrator = class {
       const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
       this.#module = (await import(module)).default;
     }
-    modules.illustrator = new this.#module(canvas, modules, this.#injected);
+    this.#instance = modules.illustrator = new this.#module(canvas, modules);
+  }
+  draw(event) {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction = {
+      clear: this.#instance.clear.bind(this.#instance),
+      polygon: this.#instance.polygon.bind(this.#instance),
+      image: this.#instance.image.bind(this.#instance),
+      text: this.#instance.text.bind(this.#instance),
+      group: this.#instance.group.bind(this.#instance)
+    };
+    const el = typeToAction[element.type];
+    if (typeof el == "function") {
+      el(element);
+    }
   }
   static subscriptions = {
-    [t.MODULES]: "register"
+    [t.MODULES]: "register",
+    [t.DRAW]: "draw"
   };
 };
 var EnAntetypeIllustrator = AntetypeIllustrator;

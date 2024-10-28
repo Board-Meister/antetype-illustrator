@@ -78,7 +78,7 @@ type EventHandler = (event: CustomEvent) => Promise<void> | void;
 type Subscriptions = Record<string, AmbiguousSubscription>;
 interface Subscription {
 	method: string | EventHandler;
-	priority: number;
+	priority?: number;
 	constraint?: string | Module | null;
 	index?: number;
 }
@@ -105,6 +105,10 @@ declare class Herald {
 	batch(events: IEventRegistration[]): () => void;
 	register(event: string, subscription: AmbiguousSubscription, constraint?: string | Module | null, sort?: boolean, symbol?: symbol | null): () => void;
 	unregister(event: string, symbol: symbol): void;
+	/**
+	 * Clears all subscriptions to chosen events
+	 */
+	clear(clearEvents: string[]): void;
 }
 type PathProps = JSX.IntrinsicAttributes & RouteProps;
 interface INavItem {
@@ -133,12 +137,26 @@ declare class Minstrel {
 	component<T>(module: Module, suffix: string, scope?: Record<string, any>): React$1.FC<T>;
 	asset(module: Module, suffix: string): string;
 }
+interface DrawEvent {
+	element: IBaseDef;
+}
 interface ModulesEvent {
 	modules: Modules;
 	canvas: HTMLCanvasElement | null;
 }
 declare type Module$1 = Record<string, Function> | Object;
 declare type Modules = Record<string, Module$1>;
+declare type XValue = number;
+declare type YValue = XValue;
+interface IStart {
+	x: XValue;
+	y: YValue;
+}
+interface IBaseDef<T = never> {
+	start: IStart;
+	type: string;
+	data?: T;
+}
 export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;
 	herald: Herald;
@@ -148,6 +166,7 @@ export declare class AntetypeIllustrator {
 	static inject: Record<string, string>;
 	inject(injections: IInjected): void;
 	register(event: CustomEvent<ModulesEvent>): Promise<void>;
+	draw(event: CustomEvent<DrawEvent>): void;
 	static subscriptions: Subscriptions;
 }
 declare const EnAntetypeIllustrator: IInjectable & ISubscriber;

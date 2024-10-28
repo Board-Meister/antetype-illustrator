@@ -109,6 +109,7 @@ var ResolveImageAction = async (ctx, modules, def) => {
   const src = def.image.src;
   const source = typeof src == "function" ? await src(def) : src;
   const cachedImage = typeof source == "string" ? loadedImages[source] : null;
+  console.log("image", src);
   if (imageTimeoutReached(cachedImage) || imageIsBeingLoaded(cachedImage)) {
     return;
   }
@@ -133,6 +134,7 @@ var imageIsBeingLoaded = (image) => {
   return image === IMAGE_LOADING_STATUS;
 };
 var loadImage = async (def, src, modules) => {
+  console.log("load image");
   const image = new Image(), { image: { timeout = 3e4 } } = def;
   image.crossOrigin = "anonymous";
   image.src = src;
@@ -140,19 +142,19 @@ var loadImage = async (def, src, modules) => {
     const timeoutTimer = setTimeout(() => {
       loadedImages[src] = IMAGE_TIMEOUT_STATUS;
       resolve();
-      void modules.system.redraw();
+      void modules.system.redrawDebounce();
     }, timeout);
     image.onerror = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = IMAGE_ERROR_STATUS;
       resolve();
-      void modules.system.redraw();
+      void modules.system.redrawDebounce();
     };
     image.onload = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = image;
       resolve();
-      void modules.system.redraw();
+      void modules.system.redrawDebounce();
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
@@ -320,9 +322,6 @@ var getImageHorizontalDiff = (align, width, asWidth) => {
   }
   return (width - asWidth) / 2;
 };
-
-// ../../tool/antetype/dist/index.js
-var t = ((e) => (e.STRUCTURE = "antetype.structure", e.DRAW = "antetype.draw", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e))(t || {});
 
 // src/action/text.tsx
 var ResolveTextAction = async (ctx, def) => {
@@ -499,6 +498,7 @@ var isSafari = () => {
 
 // src/action/group.tsx
 var ResolveGroupAction = async (ctx, modules, group) => {
+  console.log("group", group);
   ctx.save();
   ctx.translate(group.start.x, group.start.y);
   for (const layer of group.layout) {
@@ -511,42 +511,14 @@ var ResolveGroupAction = async (ctx, modules, group) => {
 var Illustrator = class {
   #canvas;
   #modules;
-  #injected;
   #ctx;
-  constructor(canvas, modules, injected) {
+  constructor(canvas, modules) {
     if (!canvas) {
       throw new Error("[Antetype Illustrator] Provided canvas is empty");
     }
     this.#canvas = canvas;
     this.#modules = modules;
     this.#ctx = this.#canvas.getContext("2d");
-    this.#injected = injected;
-    this.registerDrawEvents();
-  }
-  /**
-   * @TODO verify that we don't have to unregister our events. In theory this is a singleton but let's make sure
-   *       that it works as intended
-   */
-  registerDrawEvents() {
-    this.#injected.herald.batch([
-      {
-        event: t.DRAW,
-        subscription: (event) => {
-          const { element } = event.detail;
-          const typeToAction = {
-            clear: this.clear.bind(this),
-            polygon: this.polygon.bind(this),
-            image: this.image.bind(this),
-            text: this.text.bind(this),
-            group: this.group.bind(this)
-          };
-          const el = typeToAction[element.type];
-          if (typeof el == "function") {
-            el(element);
-          }
-        }
-      }
-    ]);
   }
   reset() {
     this.#canvas.width += 0;

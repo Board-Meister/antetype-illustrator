@@ -15,6 +15,7 @@ export const ResolveImageAction = async (
   const src = def.image.src;
   const source = typeof src == 'function' ? await src(def) : src;
   const cachedImage = typeof source == 'string' ? loadedImages[source] : null;
+  console.log('image', src)
   if (imageTimeoutReached(cachedImage) || imageIsBeingLoaded(cachedImage)) {
     return;
   }
@@ -45,6 +46,7 @@ const imageIsBeingLoaded = (image: unknown): boolean => {
 }
 
 const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
+  console.log('load image')
   const image = new Image(),
     { image: { timeout = 30000 } } = def
   ;
@@ -55,21 +57,21 @@ const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise
     const timeoutTimer = setTimeout(() => {
       loadedImages[src] = IMAGE_TIMEOUT_STATUS;
       resolve();
-      void (modules.system as ISystemModule).redraw();
+      void (modules.system as ISystemModule).redrawDebounce();
     }, timeout);
 
     image.onerror = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = IMAGE_ERROR_STATUS;
       resolve();
-      void (modules.system as ISystemModule).redraw();
+      void (modules.system as ISystemModule).redrawDebounce();
     };
 
     image.onload = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = image;
       resolve();
-      void (modules.system as ISystemModule).redraw();
+      void (modules.system as ISystemModule).redrawDebounce();
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
