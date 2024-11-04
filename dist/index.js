@@ -1,6 +1,17 @@
 // ../../tool/antetype/dist/index.js
 var t = ((e) => (e.STRUCTURE = "antetype.structure", e.DRAW = "antetype.draw", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e))(t || {});
 
+// src/action/image.tsx
+var IMAGE_ERROR_STATUS = Symbol("error");
+var IMAGE_TIMEOUT_STATUS = Symbol("timeout");
+var IMAGE_LOADING_STATUS = Symbol("loading");
+
+// src/type/event.d.tsx
+var Event = /* @__PURE__ */ ((Event2) => {
+  Event2["CALC"] = "antetype.illustrator.calc";
+  return Event2;
+})(Event || {});
+
 // src/index.tsx
 var AntetypeIllustrator = class {
   #module = null;
@@ -19,9 +30,9 @@ var AntetypeIllustrator = class {
       const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
       this.#module = (await import(module)).default;
     }
-    this.#instance = modules.illustrator = new this.#module(canvas, modules);
+    this.#instance = modules.illustrator = new this.#module(canvas, modules, this.#injected);
   }
-  draw(event) {
+  async draw(event) {
     if (!this.#instance) {
       return;
     }
@@ -35,7 +46,7 @@ var AntetypeIllustrator = class {
     };
     const el = typeToAction[element.type];
     if (typeof el == "function") {
-      el(element);
+      await el(element);
     }
   }
   static subscriptions = {
@@ -47,5 +58,6 @@ var EnAntetypeIllustrator = AntetypeIllustrator;
 var src_default = EnAntetypeIllustrator;
 export {
   AntetypeIllustrator,
+  Event,
   src_default as default
 };

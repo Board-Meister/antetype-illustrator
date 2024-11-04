@@ -63,33 +63,66 @@ var Actions = {
   },
   default: (ctx, x, y) => Actions.line(ctx, x, y)
 };
-function ResolvePolygonAction(ctx, action, x, y) {
+async function ResolvePolygonAction(ctx, action, x, y, modules) {
+  const illustrator = modules.illustrator;
   const objSwitch = {
-    fill: (action2) => {
+    fill: async (action2) => {
       Actions.fill(ctx, action2.args);
     },
-    line: (action2) => {
-      Actions.line(ctx, action2.args.x + x, action2.args.y + y);
+    line: async (action2) => {
+      const { x: aX, y: aY } = await illustrator.calc({
+        layerType: "polygon-line",
+        purpose: "position",
+        values: { x: action2.args.x, y: action2.args.y }
+      });
+      Actions.line(ctx, aX + x, aY + y);
     },
-    curve: (action2) => Actions.curve(
-      ctx,
-      action2.args.cp1x + x,
-      action2.args.cp1y + y,
-      action2.args.cp2x + x,
-      action2.args.cp2y + y,
-      action2.args.x + x,
-      action2.args.y + y
-    ),
-    stroke: (action2) => Actions.stroke(
-      ctx,
-      action2.args.thickness ?? 5,
-      action2.args.fill ?? "#000",
-      action2.args.lineJoin ?? "round",
-      action2.args.miterLimit ?? 2
-    ),
-    begin: (action2) => Actions.begin(ctx, action2.args.x + x, action2.args.y + y),
-    move: (action2) => Actions.move(ctx, action2.args.x + x, action2.args.y + y),
-    close: () => Actions.close(ctx)
+    curve: async (action2) => {
+      const { x: aX, y: aY, cp1x, cp1y, cp2x, cp2y } = await illustrator.calc({
+        layerType: "polygon-curve",
+        purpose: "position",
+        values: {
+          cp1x: action2.args.cp1x,
+          cp1y: action2.args.cp1y,
+          cp2x: action2.args.cp2x,
+          cp2y: action2.args.cp2y,
+          x: action2.args.x,
+          y: action2.args.y
+        }
+      });
+      Actions.curve(ctx, cp1x + x, cp1y + y, cp2x + x, cp2y + y, aX + x, aY + y);
+    },
+    stroke: async (action2) => {
+      const { thickness } = await illustrator.calc({
+        layerType: "polygon-stroke",
+        purpose: "thickness",
+        values: { thickness: action2.args.thickness ?? 5 }
+      });
+      Actions.stroke(
+        ctx,
+        thickness,
+        action2.args.fill ?? "#000",
+        action2.args.lineJoin ?? "round",
+        action2.args.miterLimit ?? 2
+      );
+    },
+    begin: async (action2) => {
+      const { x: aX, y: aY } = await illustrator.calc({
+        layerType: "polygon-begin",
+        purpose: "position",
+        values: { x: action2.args.x, y: action2.args.y }
+      });
+      Actions.begin(ctx, aX + x, aY + y);
+    },
+    move: async (action2) => {
+      const { x: aX, y: aY } = await illustrator.calc({
+        layerType: "polygon-move",
+        purpose: "position",
+        values: { x: action2.args.x, y: action2.args.y }
+      });
+      Actions.move(ctx, aX + x, aY + y);
+    },
+    close: async () => Actions.close(ctx)
   };
   if (!action.means) {
     action.means = "line";
@@ -97,7 +130,7 @@ function ResolvePolygonAction(ctx, action, x, y) {
   if (!objSwitch[action.means]) {
     return;
   }
-  objSwitch[action.means](action);
+  await objSwitch[action.means](action);
 }
 
 // src/action/image.tsx
@@ -109,15 +142,15 @@ var ResolveImageAction = async (ctx, modules, def) => {
   const src = def.image.src;
   const source = typeof src == "function" ? await src(def) : src;
   const cachedImage = typeof source == "string" ? loadedImages[source] : null;
-  console.log("image", src);
   if (imageTimeoutReached(cachedImage) || imageIsBeingLoaded(cachedImage)) {
     return;
   }
   if (source instanceof Image || cachedImage instanceof Image) {
-    void drawImage(
+    await drawImage(
       ctx,
       source instanceof Image ? source : cachedImage,
-      def
+      def,
+      modules
     );
     return;
   }
@@ -134,43 +167,55 @@ var imageIsBeingLoaded = (image) => {
   return image === IMAGE_LOADING_STATUS;
 };
 var loadImage = async (def, src, modules) => {
-  console.log("load image");
-  const image = new Image(), { image: { timeout = 3e4 } } = def;
+  const image = new Image(), { image: { timeout = 3e4 } } = def, view = modules.system.view;
   image.crossOrigin = "anonymous";
   image.src = src;
   const promise = new Promise((resolve) => {
     const timeoutTimer = setTimeout(() => {
       loadedImages[src] = IMAGE_TIMEOUT_STATUS;
       resolve();
-      void modules.system.redrawDebounce();
+      void view.redrawDebounce();
     }, timeout);
     image.onerror = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = IMAGE_ERROR_STATUS;
       resolve();
-      void modules.system.redrawDebounce();
+      void view.redrawDebounce();
     };
     image.onload = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = image;
       resolve();
-      void modules.system.redrawDebounce();
+      void view.redrawDebounce();
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
   await promise;
 };
-var drawImage = async (ctx, source, def) => {
+var drawImage = async (ctx, source, def, modules) => {
   const { image, start } = def;
   ctx.save();
-  const { w, h } = image.size;
+  let { w, h } = image.size;
+  let { x, y } = start;
+  ({ w, h } = await modules.illustrator.calc({
+    layerType: "image",
+    purpose: "size",
+    values: { w, h }
+  }));
+  ({ x, y } = await modules.illustrator.calc({
+    layerType: "image",
+    purpose: "position",
+    values: { x, y }
+  }));
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
     image.fit ?? "default",
     source.width,
     source.height,
     w,
     h
-  ), leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), topDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight), x = start.x + leftDiff, y = start.y + topDiff;
+  ), leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), topDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
+  x += leftDiff;
+  y += topDiff;
   if (image.fit === "crop") {
     source = await cropImage(source, def);
   }
@@ -324,11 +369,31 @@ var getImageHorizontalDiff = (align, width, asWidth) => {
 };
 
 // src/action/text.tsx
-var ResolveTextAction = async (ctx, def) => {
+var ResolveTextAction = async (ctx, def, modules) => {
   let { x, y } = def.start;
-  const { h } = def.text.size;
+  let { h, w } = def.text.size;
+  const illustrator = modules.illustrator;
+  ({ w, h } = await illustrator.calc({
+    layerType: "text",
+    purpose: "size",
+    values: { w, h }
+  }));
+  ({ x, y } = await illustrator.calc({
+    layerType: "text",
+    purpose: "position",
+    values: { x, y }
+  }));
+  const { fontSize, gap } = await illustrator.calc({
+    layerType: "text",
+    purpose: "prepare",
+    values: { fontSize: getFontSize(def), gap: def.text.columns?.gap }
+  });
   ctx.save();
-  const { lines: texts, fontSize, lineHeight, width: columnWidth, columns } = await prepare(def, ctx), linesAmount = Math.ceil(texts.length / columns.amount);
+  const { lines: texts, lineHeight, width: columnWidth, columns } = prepare(def, ctx, {
+    width: w,
+    fontSize,
+    columns: { gap, amount: def.text.columns?.amount ?? 0 }
+  }), linesAmount = Math.ceil(texts.length / columns.amount);
   if (isSafari()) {
     y -= fontSize * 0.2;
   }
@@ -406,21 +471,19 @@ var calcVerticalMove = (height, lineHeight, lines, vAlign) => {
   }
   return 0;
 };
-var prepare = async (def, ctx) => {
-  const { size: { w }, textBaseline = "top" } = def.text;
+var prepare = (def, ctx, pass) => {
+  const { width, columns, fontSize } = pass, { textBaseline = "top" } = def.text;
   let { value: text } = def.text;
-  const columns = def.text.columns ?? { amount: 1, gap: 0 };
-  const width = calcColumnWidth(w, columns);
-  ctx.font = prepareFontShorthand(def, ctx);
+  ctx.font = prepareFontShorthand(def, ctx, fontSize);
+  const colWidth = calcColumnWidth(width, columns);
   text = addSpacing(def, text);
   ctx.textBaseline = textBaseline;
-  const lines = getTextLines(def, text, ctx, width);
-  const fontSize = getFontSize(def);
+  const lines = getTextLines(def, text, ctx, colWidth);
   return {
     lines,
     fontSize,
     lineHeight: def.text.lineHeight ?? fontSize,
-    width,
+    width: colWidth,
     columns
   };
 };
@@ -463,13 +526,13 @@ var addSpacing = (def, text) => {
   return text.split("").join(getSpaceChart().repeat(def.text.spacing));
 };
 var getSpaceChart = () => String.fromCharCode(8202);
-var getFontSize = (def) => Number(def.text.font?.size || 10);
-var prepareFontShorthand = (def, ctx) => {
+var getFontSize = (def) => def.text.font?.size || 10;
+var prepareFontShorthand = (def, ctx, size) => {
   const { font = null } = def.text;
   if (!font) {
     return ctx.font;
   }
-  const fontSize = getFontSize(def) + "px ";
+  const fontSize = size + "px ";
   const fontFamily = (font.family || "serif") + " ";
   const fontWeight = (font.weight ?? 100) + " ";
   let fontSh = "";
@@ -498,11 +561,15 @@ var isSafari = () => {
 
 // src/action/group.tsx
 var ResolveGroupAction = async (ctx, modules, group) => {
-  console.log("group", group);
   ctx.save();
-  ctx.translate(group.start.x, group.start.y);
+  const { x, y } = await modules.illustrator.calc({
+    layerType: "group",
+    purpose: "position",
+    values: { x: group.start.x, y: group.start.y }
+  });
+  ctx.translate(x, y);
   for (const layer of group.layout) {
-    await modules.system.draw(layer);
+    await modules.system.view.draw(layer);
   }
   ctx.restore();
 };
@@ -512,12 +579,14 @@ var Illustrator = class {
   #canvas;
   #modules;
   #ctx;
-  constructor(canvas, modules) {
+  #injected;
+  constructor(canvas, modules, injected) {
     if (!canvas) {
       throw new Error("[Antetype Illustrator] Provided canvas is empty");
     }
     this.#canvas = canvas;
     this.#modules = modules;
+    this.#injected = injected;
     this.#ctx = this.#canvas.getContext("2d");
   }
   reset() {
@@ -538,9 +607,14 @@ var Illustrator = class {
     const ctx = this.#ctx;
     ctx.save();
     ctx.beginPath();
+    ({ x, y } = await this.calc({
+      layerType: "polygon",
+      purpose: "position",
+      values: { x, y }
+    }));
     ctx.moveTo(x, y);
     for (const step of steps) {
-      await ResolvePolygonAction(ctx, step, x, y);
+      await ResolvePolygonAction(ctx, step, x, y, this.#modules);
     }
     ctx.closePath();
     ctx.restore();
@@ -549,7 +623,12 @@ var Illustrator = class {
     return ResolveImageAction(this.#ctx, this.#modules, def);
   }
   async text(def) {
-    await ResolveTextAction(this.#ctx, def);
+    await ResolveTextAction(this.#ctx, def, this.#modules);
+  }
+  async calc(def) {
+    const event = new CustomEvent("antetype.illustrator.calc" /* CALC */, { detail: def });
+    await this.#injected.herald.dispatch(event);
+    return event.detail.values;
   }
 };
 export {

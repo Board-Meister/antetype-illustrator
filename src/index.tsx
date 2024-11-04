@@ -2,7 +2,7 @@ import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import { Event } from "@boardmeister/antetype"
-import type {  DrawEvent, ModulesEvent } from "@boardmeister/antetype"
+import type { DrawEvent, ModulesEvent } from "@boardmeister/antetype"
 import type Illustrator from "@src/module";
 
 export interface IInjected extends Record<string, object> {
@@ -28,10 +28,10 @@ export class AntetypeIllustrator {
       const module = this.#injected!.minstrel.getResourceUrl(this as Module, 'module.js');
       this.#module = (await import(module)).default;
     }
-    this.#instance = modules.illustrator = new this.#module!(canvas, modules);
+    this.#instance = modules.illustrator = new this.#module!(canvas, modules, this.#injected!);
   }
 
-  draw(event: CustomEvent<DrawEvent>): void {
+  async draw(event: CustomEvent<DrawEvent>): Promise<void> {
     if (!this.#instance) {
       return;
     }
@@ -46,7 +46,7 @@ export class AntetypeIllustrator {
 
     const el = typeToAction[element.type]
     if (typeof el == 'function') {
-      el(element);
+      await el(element);
     }
   }
 
@@ -58,4 +58,6 @@ export class AntetypeIllustrator {
 
 const EnAntetypeIllustrator: IInjectable&ISubscriber = AntetypeIllustrator;
 
+export { IIllustrator } from '@src/module';
+export { Event, ICalcEvent } from '@src/type/event.d';
 export default EnAntetypeIllustrator;

@@ -1,9 +1,10 @@
+import type { Modules, XValue, YValue } from "@boardmeister/antetype";
 import {
   FillStyle,
   IBegin, IClose, ICurve, IFill, IFillDefault, IFillLinear, ILine, IMove, IStroke, LineJoin,
 } from "@src/type/polygon.d";
-import { XValue, YValue } from "@boardmeister/antetype";
 import { generateFill } from "@src/shared";
+import { IIllustrator } from "@src/module";
 
 export const Actions = {
   line: (ctx: CanvasRenderingContext2D, x: XValue, y: YValue): void => {
@@ -75,38 +76,77 @@ type PActions<K extends keyof PActionTypes = keyof PActionTypes>
 
 type Actions = { [K in keyof PActionTypes]: (action: PActions<K>) => void }
 
-export function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
+export async function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
   ctx: CanvasRenderingContext2D,
   action: PActions<K>,
   x: XValue,
   y: YValue,
-): void {
+  modules: Modules,
+): Promise<void> {
+  const illustrator = modules.illustrator as IIllustrator;
   const objSwitch: Actions = {
-    fill: (action: IFill): void => {
+    fill: async (action: IFill): Promise<void> => {
       Actions.fill(ctx, action.args)
     },
-    line: (action: ILine): void => {
-      Actions.line(ctx, action.args.x + x, action.args.y + y)
+    line: async (action: ILine): Promise<void> => {
+      const { x: aX, y: aY } = await illustrator.calc<{ x: number, y: number }>({
+        layerType: 'polygon-line',
+        purpose: 'position',
+        values: { x: action.args.x, y: action.args.y },
+      });
+
+      Actions.line(ctx, aX + x, aY + y)
     },
-    curve: (action: ICurve): void => Actions.curve(
-      ctx,
-      action.args.cp1x + x,
-      action.args.cp1y + y,
-      action.args.cp2x + x,
-      action.args.cp2y + y,
-      action.args.x + x,
-      action.args.y + y,
-    ),
-    stroke: (action: IStroke): void => Actions.stroke(
-      ctx,
-      action.args.thickness ?? 5,
-      action.args.fill ?? '#000',
-      action.args.lineJoin ?? 'round',
-      action.args.miterLimit ?? 2,
-    ),
-    begin: (action: IBegin): void => Actions.begin(ctx, action.args.x + x, action.args.y + y),
-    move: (action: IMove): void => Actions.move(ctx, action.args.x + x, action.args.y + y),
-    close: (): void => Actions.close(ctx),
+    curve: async (action: ICurve): Promise<void> => {
+      const { x: aX, y: aY, cp1x, cp1y, cp2x, cp2y }
+        = await illustrator.calc<{
+          cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number
+        }>({
+          layerType: 'polygon-curve',
+          purpose: 'position',
+          values: {
+            cp1x: action.args.cp1x, cp1y: action.args.cp1y, cp2x: action.args.cp2x, cp2y: action.args.cp2y,
+            x: action.args.x, y: action.args.y,
+          },
+        })
+      ;
+
+      Actions.curve(ctx, cp1x + x, cp1y + y, cp2x + x, cp2y + y, aX + x, aY + y);
+    },
+    stroke: async (action: IStroke): Promise<void> => {
+      const { thickness } = await illustrator.calc<{ thickness: number }>({
+        layerType: 'polygon-stroke',
+        purpose: 'thickness',
+        values: { thickness: action.args.thickness ?? 5 },
+      });
+
+      Actions.stroke(
+        ctx,
+        thickness,
+        action.args.fill ?? '#000',
+        action.args.lineJoin ?? 'round',
+        action.args.miterLimit ?? 2,
+      );
+    },
+    begin: async (action: IBegin): Promise<void> => {
+      const { x: aX, y: aY } = await illustrator.calc<{ x: number, y: number }>({
+        layerType: 'polygon-begin',
+        purpose: 'position',
+        values: { x: action.args.x, y: action.args.y },
+      });
+
+      Actions.begin(ctx, aX + x, aY + y)
+    },
+    move: async (action: IMove): Promise<void> => {
+      const { x: aX, y: aY } = await illustrator.calc<{ x: number, y: number }>({
+        layerType: 'polygon-move',
+        purpose: 'position',
+        values: { x: action.args.x, y: action.args.y },
+      });
+
+      Actions.move(ctx, aX + x, aY + y)
+    },
+    close: async (): Promise<void> => Actions.close(ctx),
   };
 
   if (!action.means) {
@@ -117,5 +157,5 @@ export function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
     return;
   }
 
-  objSwitch[action.means](action);
+  await objSwitch[action.means](action);
 }

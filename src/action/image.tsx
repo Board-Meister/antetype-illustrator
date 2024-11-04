@@ -1,6 +1,7 @@
+import type { Modules, ISystemModule } from "@boardmeister/antetype";
 import { HorizontalAlignType, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
-import { Modules, ISystemModule } from "@boardmeister/antetype";
 import { generateFill } from "@src/shared";
+import { IIllustrator } from "@src/module";
 
 const IMAGE_ERROR_STATUS = Symbol('error');
 const IMAGE_TIMEOUT_STATUS = Symbol('timeout');
@@ -15,16 +16,16 @@ export const ResolveImageAction = async (
   const src = def.image.src;
   const source = typeof src == 'function' ? await src(def) : src;
   const cachedImage = typeof source == 'string' ? loadedImages[source] : null;
-  console.log('image', src)
   if (imageTimeoutReached(cachedImage) || imageIsBeingLoaded(cachedImage)) {
     return;
   }
 
   if (source instanceof Image || cachedImage instanceof Image) {
-    void drawImage(
+    await drawImage(
       ctx,
       source instanceof Image ? source : cachedImage as HTMLImageElement,
       def,
+      modules,
     );
     return;
   }
@@ -46,9 +47,9 @@ const imageIsBeingLoaded = (image: unknown): boolean => {
 }
 
 const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
-  console.log('load image')
   const image = new Image(),
-    { image: { timeout = 30000 } } = def
+    { image: { timeout = 30000 } } = def,
+    view = (modules.system as ISystemModule).view
   ;
   image.crossOrigin = 'anonymous';
   image.src = src;
@@ -57,21 +58,21 @@ const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise
     const timeoutTimer = setTimeout(() => {
       loadedImages[src] = IMAGE_TIMEOUT_STATUS;
       resolve();
-      void (modules.system as ISystemModule).redrawDebounce();
+      void view.redrawDebounce();
     }, timeout);
 
     image.onerror = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = IMAGE_ERROR_STATUS;
       resolve();
-      void (modules.system as ISystemModule).redrawDebounce();
+      void view.redrawDebounce();
     };
 
     image.onload = () => {
       clearTimeout(timeoutTimer);
       loadedImages[src] = image;
       resolve();
-      void (modules.system as ISystemModule).redrawDebounce();
+      void view.redrawDebounce();
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
@@ -82,11 +83,26 @@ const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise
 const drawImage = async (
   ctx: CanvasRenderingContext2D,
   source: HTMLImageElement,
-  def: IImageDef
+  def: IImageDef,
+  modules: Modules,
 ): Promise<void> => {
   const { image, start } = def;
   ctx.save();
-  const { w, h } = image.size;
+  let { w, h } = image.size;
+  let { x, y } = start;
+
+  ({ w, h } = await (modules.illustrator as IIllustrator).calc<{ h: number, w: number }>({
+    layerType: 'image',
+    purpose: 'size',
+    values: { w, h },
+  }));
+
+  ({ x, y } = await (modules.illustrator as IIllustrator).calc<{ x: number, y: number }>({
+    layerType: 'image',
+    purpose: 'position',
+    values: { x, y },
+  }));
+
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
       image.fit ?? 'default',
       source.width,
@@ -95,10 +111,11 @@ const drawImage = async (
       h,
     ),
     leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
-    topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight),
-    x = start.x + leftDiff,
-    y = start.y + topDiff
+    topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
   ;
+
+  x += leftDiff;
+  y += topDiff;
 
   if (image.fit === 'crop') {
     source = await cropImage(source, def)
