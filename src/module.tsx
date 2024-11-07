@@ -1,22 +1,23 @@
-import type { Modules } from "@boardmeister/antetype";
-import { ResolvePolygonAction } from "@src/action/polygon";
+import type { Modules, IStart } from "@boardmeister/antetype";
+import { Event, ICalcEvent } from "@boardmeister/antetype-workspace";
+import { ResolveCalcPolygon, ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonDef } from "@src/type/polygon.d";
 import { IImageDef } from "@src/type/image.d";
-import { ResolveImageAction } from "@src/action/image";
+import { ResolveImageAction, ResolveImageCalc } from "@src/action/image";
 import { ITextDef } from "@src/type/text.d";
-import { ResolveTextAction } from "@src/action/text";
-import { ResolveGroupAction } from "@src/action/group";
+import { ResolveTextAction, ResolveTextCalc } from "@src/action/text";
+import { ResolveGroupAction, ResolveGroupCalc } from "@src/action/group";
 import { IGroupDef } from "@src/type/group.d";
 import { IInjected } from "@src/index";
-import { Event, ICalcEvent } from "@src/type/event.d";
+// import { Event, ICalcEvent } from "@src/type/event.d";
 
 export interface IIllustrator {
   reset: () => void;
   clear: () => void;
-  group: (def: IGroupDef) => Promise<void>;
+  group: (def: IGroupDef) => void;
   polygon: (def: IPolygonDef) => void;
-  image: (def: IImageDef) => Promise<void>;
-  text: (def: ITextDef) => Promise<void>;
+  image: (def: IImageDef) => void;
+  text: (def: ITextDef) => void;
   calc: <T extends Record<string, any>>(def: ICalcEvent) => Promise<T>;
 }
 
@@ -53,35 +54,54 @@ export default class Illustrator implements IIllustrator {
     );
   }
 
-  async group(def: IGroupDef): Promise<void> {
-    await ResolveGroupAction(this.#ctx, this.#modules, def);
+  async groupCalc(def: IGroupDef): Promise<void> {
+    await ResolveGroupCalc(this.#modules, def);
   }
 
-  async polygon({ steps, start: { x, y } }: IPolygonDef): Promise<void> {
+  group(def: IGroupDef): void {
+    ResolveGroupAction(this.#ctx, this.#modules, def);
+  }
+
+  async polygonCalc(def: IPolygonDef): Promise<void> {
+    def.start = await this.calc<IStart>({
+      layerType: 'polygon',
+      purpose: 'position',
+      values: def.start,
+    });
+    console.log(def)
+    for (const step of def.steps) {
+      await ResolveCalcPolygon(step, this.#modules);
+    }
+  }
+
+  polygon({ steps, start: { x, y } }: IPolygonDef): void {
     const ctx = this.#ctx;
     ctx.save();
     ctx.beginPath();
-    ({ x, y } = await this.calc<{ x: number, y: number }>({
-      layerType: 'polygon',
-      purpose: 'position',
-      values: { x, y },
-    }));
     ctx.moveTo(x, y);
 
     for (const step of steps) {
-      await ResolvePolygonAction(ctx, step, x, y, this.#modules);
+      ResolvePolygonAction(ctx, step, x, y);
     }
 
     ctx.closePath();
     ctx.restore();
   }
 
-  async image(def: IImageDef): Promise<void> {
-    return ResolveImageAction(this.#ctx, this.#modules, def);
+  async imageCalc(def: IImageDef): Promise<void> {
+    await ResolveImageCalc(this.#modules, def);
   }
 
-  async text(def: ITextDef): Promise<void> {
-    await ResolveTextAction(this.#ctx, def, this.#modules);
+  image(def: IImageDef): void {
+    ResolveImageAction(this.#ctx, def);
+  }
+
+  async textCalc(def: ITextDef): Promise<void> {
+    await ResolveTextCalc(def, this.#modules);
+  }
+
+  text(def: ITextDef): void {
+    ResolveTextAction(this.#ctx, def);
   }
 
   async calc<T extends Record<string, any> = Record<string, any>>(def: ICalcEvent): Promise<T> {

@@ -1,5 +1,6 @@
 import { IBaseDef, ISize, XValue } from "@boardmeister/antetype";
 import { FillTypes } from "@src/type/polygon.d";
+import { CalculatedImage } from "@src/action/image";
 
 export type ImageFit = 'stretch'|'crop'|'default';
 export type VerticalAlignType = 'top'|'bottom'|'center';
@@ -20,6 +21,7 @@ export interface IOvercolor {
 }
 
 export interface IImageArg<T = never> {
+  calculated?: CalculatedImage|symbol;
   timeout?: number;
   size: ISize;
   fit?: ImageFit;

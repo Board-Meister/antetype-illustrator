@@ -5,49 +5,50 @@ import { IIllustrator } from "@src/module";
 
 declare type TextLines = { 0: string, 1: number }[];
 
-interface IPreparePass {
-  width: number,
-  fontSize: number,
-  columns: ITextColumns,
+export const ResolveTextCalc = async (
+  def: ITextDef,
+  modules: Modules,
+): Promise<ITextDef> => {
+  const illustrator = modules.illustrator as IIllustrator;
+  def.text.size = await illustrator.calc<{ h: number, w: number }>({
+    layerType: 'text',
+    purpose: 'size',
+    values: def.text.size,
+  });
+
+  def.start = await illustrator.calc<{ x: number, y: number }>({
+    layerType: 'text',
+    purpose: 'position',
+    values: def.start,
+  });
+
+  const { fontSize, gap } = await illustrator.calc<{ fontSize: number, gap: number }>({
+    layerType: 'text',
+    purpose: 'prepare',
+    values: { fontSize: getFontSize(def), gap: def.text.columns?.gap || 0 },
+  });
+
+  def.text.columns = def.text.columns ?? { amount: 1, gap: 0 };
+  def.text.columns.gap = gap;
+
+  def.text.font = def.text.font ?? {};
+  def.text.font.size = fontSize;
+
+  return def;
 }
 
 /*
  * More text effects https://stackoverflow.com/a/55790112/11495586
  */
-export const ResolveTextAction = async (
+export const ResolveTextAction = (
   ctx: CanvasRenderingContext2D,
   def: ITextDef,
-  modules: Modules,
-): Promise<void> => {
+): void => {
   let { x, y } = def.start;
-  let { h, w } = def.text.size;
-  const illustrator = modules.illustrator as IIllustrator;
-
-  ({ w, h } = await illustrator.calc<{ h: number, w: number }>({
-    layerType: 'text',
-    purpose: 'size',
-    values: { w, h },
-  }));
-
-  ({ x, y } = await illustrator.calc<{ x: number, y: number }>({
-    layerType: 'text',
-    purpose: 'position',
-    values: { x, y },
-  }));
-
-  const { fontSize, gap } = await illustrator.calc<{ fontSize: number, gap: number }>({
-    layerType: 'text',
-    purpose: 'prepare',
-    values: { fontSize: getFontSize(def), gap: def.text.columns?.gap },
-  });
-
+  const { h, w } = def.text.size;
   ctx.save();
 
-  const { lines: texts, lineHeight, width: columnWidth, columns } = prepare(def, ctx, {
-      width: w,
-      fontSize,
-      columns: { gap, amount: def.text.columns?.amount ?? 0 },
-    }),
+  const { lines: texts, lineHeight, width: columnWidth, columns, fontSize } = prepare(def, ctx, w),
     linesAmount = Math.ceil(texts.length/columns.amount)
   ;
 
@@ -196,9 +197,10 @@ interface IPreparedTextProperties {
 const prepare = (
   def: ITextDef,
   ctx: CanvasRenderingContext2D,
-  pass: IPreparePass,
+  width: number,
 ): IPreparedTextProperties => {
-  const { width, columns, fontSize, } = pass,
+  const columns = def.text.columns ?? { gap: 0, amount: 1 },
+    fontSize = getFontSize(def),
     { textBaseline = 'top' } = def.text
   ;
   let { value: text } = def.text;
@@ -275,12 +277,12 @@ const getFontSize = (def: ITextDef): any => def.text.font?.size || 10;
 
 // Order when joining: font-style* font-variant* font-weight* font-stretch* font-size/line-height* font-family
 // values with "*" are optional
-const prepareFontShorthand = (def: ITextDef, ctx: CanvasRenderingContext2D, size: number): string => {
+const prepareFontShorthand = (def: ITextDef, ctx: CanvasRenderingContext2D, fontSize: string): string => {
   const { font = null } = def.text;
   if (!font) {
     return ctx.font;
   }
-  const fontSize = size + 'px ';
+  fontSize = fontSize + 'px ';
   const fontFamily = (font.family || 'serif') + ' ';
   // Safari default it bold (?), so we have to always include weight
   const fontWeight = (font.weight ?? 100) + ' ';

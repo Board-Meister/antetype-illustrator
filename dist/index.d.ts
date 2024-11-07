@@ -103,6 +103,7 @@ declare class Herald {
 	static inject: Record<string, string>;
 	inject(injections: IInjection): void;
 	dispatch(event: CustomEvent): Promise<void>;
+	dispatchSync(event: CustomEvent): void;
 	batch(events: IEventRegistration[]): () => void;
 	register(event: string, subscription: AmbiguousSubscription, constraint?: string | Module | null, sort?: boolean, symbol?: symbol | null): () => void;
 	unregister(event: string, symbol: symbol): void;
@@ -137,6 +138,9 @@ declare class Minstrel {
 interface DrawEvent {
 	element: IBaseDef;
 }
+interface CalcEvent {
+	element: IBaseDef;
+}
 interface ModulesEvent {
 	modules: Modules;
 	canvas: HTMLCanvasElement | null;
@@ -157,6 +161,11 @@ interface IBaseDef<T = never> {
 	start: IStart;
 	type: string;
 	data?: T;
+}
+interface ICalcEvent<T extends Record<string, any> = Record<string, any>> {
+	purpose: string;
+	layerType: string;
+	values: T;
 }
 declare type LineJoin = "round" | "bevel" | "miter";
 declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;
@@ -238,6 +247,17 @@ interface IPolygonDef<T = never> extends IBaseDef<T> {
 	steps: PolygonActions[];
 	fill: FillStyle;
 }
+interface IImageCoords {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+declare class CalculatedImage {
+	image: HTMLImageElement;
+	coords: IImageCoords;
+	constructor(image: HTMLImageElement, coords: IImageCoords);
+}
 type ImageFit = "stretch" | "crop" | "default";
 type VerticalAlignType = "top" | "bottom" | "center";
 type HorizontalAlignType = "left" | "right" | "center";
@@ -253,6 +273,7 @@ interface IOvercolor {
 	fill: FillTypes;
 }
 interface IImageArg<T = never> {
+	calculated?: CalculatedImage | symbol;
 	timeout?: number;
 	size: ISize;
 	fit?: ImageFit;
@@ -279,7 +300,7 @@ interface ITextFont {
 	style?: StandardLonghandProperties["fontStyle"];
 	family?: StandardLonghandProperties["fontFamily"];
 	weight?: StandardLonghandProperties["fontWeight"];
-	size?: StandardLonghandProperties["fontSize"];
+	size?: StandardLonghandProperties["fontSize"] | number;
 	stretch?: StandardLonghandProperties["fontStretch"];
 	variant?: StandardLonghandProperties["fontVariant"];
 	height?: StandardLonghandProperties["lineHeight"];
@@ -309,22 +330,22 @@ interface ITextDef extends IBaseDef {
 interface IGroupDef extends IBaseDef {
 	layout: IBaseDef[];
 }
-declare enum Event$1 {
-	CALC = "antetype.illustrator.calc"
-}
-export interface ICalcEvent<T extends Record<string, any> = Record<string, any>> {
-	purpose: string;
-	layerType: string;
-	values: T;
-}
 export interface IIllustrator {
 	reset: () => void;
 	clear: () => void;
-	group: (def: IGroupDef) => Promise<void>;
+	group: (def: IGroupDef) => void;
 	polygon: (def: IPolygonDef) => void;
-	image: (def: IImageDef) => Promise<void>;
-	text: (def: ITextDef) => Promise<void>;
+	image: (def: IImageDef) => void;
+	text: (def: ITextDef) => void;
 	calc: <T extends Record<string, any>>(def: ICalcEvent) => Promise<T>;
+}
+declare enum Event$1 {
+	CALC = "antetype.illustrator.calc"
+}
+interface ICalcEvent$1<T extends Record<string, any> = Record<string, any>> {
+	purpose: string;
+	layerType: string;
+	values: T;
 }
 export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;
@@ -336,6 +357,7 @@ export declare class AntetypeIllustrator {
 	inject(injections: IInjected): void;
 	register(event: CustomEvent<ModulesEvent>): Promise<void>;
 	draw(event: CustomEvent<DrawEvent>): Promise<void>;
+	calc(event: CustomEvent<CalcEvent>): Promise<void>;
 	static subscriptions: Subscriptions;
 }
 declare const EnAntetypeIllustrator: IInjectable & ISubscriber;
@@ -343,6 +365,7 @@ declare const EnAntetypeIllustrator: IInjectable & ISubscriber;
 export {
 	EnAntetypeIllustrator as default,
 	Event$1 as Event,
+	ICalcEvent$1 as ICalcEvent,
 };
 
 export {};

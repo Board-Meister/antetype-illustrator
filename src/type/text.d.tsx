@@ -19,7 +19,7 @@ export interface ITextFont {
   style?: StandardLonghandProperties['fontStyle'];
   family?: StandardLonghandProperties['fontFamily'];
   weight?: StandardLonghandProperties['fontWeight'];
-  size?: StandardLonghandProperties['fontSize'];
+  size?: StandardLonghandProperties['fontSize']|number;
   stretch?: StandardLonghandProperties['fontStretch'];
   variant?: StandardLonghandProperties['fontVariant'];
   height?: StandardLonghandProperties['lineHeight'];

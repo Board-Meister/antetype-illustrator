@@ -2,7 +2,7 @@ import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import { Event } from "@boardmeister/antetype"
-import type { DrawEvent, ModulesEvent } from "@boardmeister/antetype"
+import type { DrawEvent, ModulesEvent, CalcEvent } from "@boardmeister/antetype"
 import type Illustrator from "@src/module";
 
 export interface IInjected extends Record<string, object> {
@@ -50,9 +50,28 @@ export class AntetypeIllustrator {
     }
   }
 
+  async calc(event: CustomEvent<CalcEvent>): Promise<void> {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction: Record<string, Function> = {
+      polygon: this.#instance.polygonCalc.bind(this.#instance),
+      image: this.#instance.imageCalc.bind(this.#instance),
+      text: this.#instance.textCalc.bind(this.#instance),
+      group: this.#instance.groupCalc.bind(this.#instance),
+    };
+
+    const el = typeToAction[element.type]
+    if (typeof el == 'function') {
+      await el(element);
+    }
+  }
+
   static subscriptions: Subscriptions = {
     [Event.MODULES]: 'register',
     [Event.DRAW]: 'draw',
+    [Event.CALC]: 'calc',
   }
 }
 

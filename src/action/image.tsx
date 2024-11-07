@@ -6,102 +6,70 @@ import { IIllustrator } from "@src/module";
 const IMAGE_ERROR_STATUS = Symbol('error');
 const IMAGE_TIMEOUT_STATUS = Symbol('timeout');
 const IMAGE_LOADING_STATUS = Symbol('loading');
-const loadedImages: Record<string, HTMLImageElement|symbol> = {};
 
-export const ResolveImageAction = async (
-  ctx: CanvasRenderingContext2D,
+const loadedImages: Record<string, CalculatedImage|symbol> = {};
+
+interface IImageCoords {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export class CalculatedImage {
+  image: HTMLImageElement;
+  coords: IImageCoords;
+
+  constructor(
+    image: HTMLImageElement,
+    coords: IImageCoords
+  ) {
+    this.image = image;
+    this.coords = coords;
+  }
+}
+
+export const ResolveImageCalc = async (
   modules: Modules,
-  def: IImageDef
+  def: IImageDef,
 ): Promise<void> => {
-  const src = def.image.src;
-  const source = typeof src == 'function' ? await src(def) : src;
-  const cachedImage = typeof source == 'string' ? loadedImages[source] : null;
-  if (imageTimeoutReached(cachedImage) || imageIsBeingLoaded(cachedImage)) {
+  def.image.size = await (modules.illustrator as IIllustrator).calc<IImageDef['image']['size']>({
+    layerType: 'image',
+    purpose: 'size',
+    values: def.image.size,
+  });
+
+  def.start = await (modules.illustrator as IIllustrator).calc<IImageDef['start']>({
+    layerType: 'image',
+    purpose: 'position',
+    values: def.start,
+  });
+
+  if (def.image.src instanceof Image) {
+    def.image.calculated = await calculateImage(def.image.src, def);
     return;
   }
 
-  if (source instanceof Image || cachedImage instanceof Image) {
-    await drawImage(
-      ctx,
-      source instanceof Image ? source : cachedImage as HTMLImageElement,
-      def,
-      modules,
-    );
+  if (typeof def.image.src != 'string') {
     return;
   }
 
+  const source = def.image.src;
   if (typeof source != 'string' || (!source.startsWith('http') && !source.startsWith('/'))) {
     console.warn('Image `' + source + '` has invalid source');
     return;
   }
 
+  console.log('-- move to load', source)
   void loadImage(def, source, modules);
 }
 
-const imageTimeoutReached = (image: unknown): boolean => {
-  return image === IMAGE_TIMEOUT_STATUS;
-}
-
-const imageIsBeingLoaded = (image: unknown): boolean => {
-  return image === IMAGE_LOADING_STATUS;
-}
-
-const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
-  const image = new Image(),
-    { image: { timeout = 30000 } } = def,
-    view = (modules.system as ISystemModule).view
+const calculateImage = async (source: HTMLImageElement, def: IImageDef): Promise<CalculatedImage> => {
+  const image = def.image,
+    { w, h } =  image.size
   ;
-  image.crossOrigin = 'anonymous';
-  image.src = src;
-
-  const promise = new Promise<void>(resolve => {
-    const timeoutTimer = setTimeout(() => {
-      loadedImages[src] = IMAGE_TIMEOUT_STATUS;
-      resolve();
-      void view.redrawDebounce();
-    }, timeout);
-
-    image.onerror = () => {
-      clearTimeout(timeoutTimer);
-      loadedImages[src] = IMAGE_ERROR_STATUS;
-      resolve();
-      void view.redrawDebounce();
-    };
-
-    image.onload = () => {
-      clearTimeout(timeoutTimer);
-      loadedImages[src] = image;
-      resolve();
-      void view.redrawDebounce();
-    };
-  });
-  loadedImages[src] = IMAGE_LOADING_STATUS;
-
-  await promise;
-}
-
-const drawImage = async (
-  ctx: CanvasRenderingContext2D,
-  source: HTMLImageElement,
-  def: IImageDef,
-  modules: Modules,
-): Promise<void> => {
-  const { image, start } = def;
-  ctx.save();
-  let { w, h } = image.size;
-  let { x, y } = start;
-
-  ({ w, h } = await (modules.illustrator as IIllustrator).calc<{ h: number, w: number }>({
-    layerType: 'image',
-    purpose: 'size',
-    values: { w, h },
-  }));
-
-  ({ x, y } = await (modules.illustrator as IIllustrator).calc<{ x: number, y: number }>({
-    layerType: 'image',
-    purpose: 'position',
-    values: { x, y },
-  }));
+  console.trace('-!-', 'calc image', image)
+  let { x, y } = def.start;
 
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
       image.fit ?? 'default',
@@ -129,10 +97,120 @@ const drawImage = async (
     source = await outlineImage(source, def, asWidth, asHeight)
   }
 
-  ctx.drawImage(source, x, y, asWidth, asHeight);
-
-  ctx.restore();
+  return new CalculatedImage(
+    source,
+    {
+      x, y,
+      width: asWidth,
+      height: asHeight,
+    }
+  );
 }
+
+export const ResolveImageAction = async (
+  ctx: CanvasRenderingContext2D,
+  def: IImageDef,
+): Promise<void> => {
+  const image = def.image.calculated;
+  console.log('--', image)
+  if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image)) {
+    console.log('--', 'not loaded')
+    return;
+  }
+
+  if (!(image instanceof CalculatedImage)) {
+    // await drawImage(
+    //   ctx,
+    //   source instanceof Image ? source : cachedImage as HTMLImageElement,
+    //   def,
+    // );
+    return;
+  }
+  const { x, y, width, height } = image.coords;
+  ctx.drawImage(image.image, x, y, width, height);
+}
+
+const imageTimeoutReached = (image: unknown): boolean => {
+  return image === IMAGE_TIMEOUT_STATUS;
+}
+
+const imageIsBeingLoaded = (image: unknown): boolean => {
+  return image === IMAGE_LOADING_STATUS;
+}
+
+const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
+  const image = new Image(),
+    { image: { timeout = 30000 } } = def,
+    view = (modules.system as ISystemModule).view
+  ;
+  image.crossOrigin = 'anonymous';
+  image.src = src;
+
+  const promise = new Promise<void>(resolve => {
+    const timeoutTimer = setTimeout(() => {
+      def.image.calculated = IMAGE_TIMEOUT_STATUS;
+      resolve();
+    }, timeout);
+
+    image.onerror = () => {
+      clearTimeout(timeoutTimer);
+      def.image.calculated = IMAGE_ERROR_STATUS;
+      resolve();
+    };
+
+    image.onload = async () => {
+      clearTimeout(timeoutTimer);
+      def.image.calculated = await calculateImage(image, def);
+      resolve();
+      console.log('redraw debounce')
+      void view.redrawDebounce();
+    };
+  });
+  loadedImages[src] = IMAGE_LOADING_STATUS;
+
+  await promise;
+}
+
+// const drawImage = async (
+//   ctx: CanvasRenderingContext2D,
+//   source: HTMLImageElement,
+//   def: IImageDef,
+// ): Promise<void> => {
+//   const { image, start } = def;
+//   ctx.save();
+//   const { w, h } = image.size;
+//   let { x, y } = start;
+//
+//   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
+//       image.fit ?? 'default',
+//       source.width,
+//       source.height,
+//       w,
+//       h,
+//     ),
+//     leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
+//     topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
+//   ;
+//
+//   x += leftDiff;
+//   y += topDiff;
+//
+//   if (image.fit === 'crop') {
+//     source = await cropImage(source, def)
+//   }
+//
+//   if (image.overcolor) {
+//     source = await overcolorImage(source, def, asWidth, asHeight)
+//   }
+//
+//   if (image.outline) {
+//     source = await outlineImage(source, def, asWidth, asHeight)
+//   }
+//
+//   ctx.drawImage(source, x, y, asWidth, asHeight);
+//
+//   ctx.restore();
+// }
 
 const overcolorImage = async (
   image: HTMLImageElement,
@@ -221,8 +299,6 @@ const outlineImage = async (
 
     dArr = newDArr;
   }
-
-
 
   canvas.setAttribute('width', String(asWidth + thickness*2));
   canvas.setAttribute('height', String(asHeight + thickness*2));
