@@ -1,5 +1,5 @@
 import type { Modules, ISystemModule } from "@boardmeister/antetype";
-import { HorizontalAlignType, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
+import { HorizontalAlignType, IImageArg, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
 import { generateFill } from "@src/shared";
 import { IIllustrator } from "@src/module";
 
@@ -7,7 +7,14 @@ const IMAGE_ERROR_STATUS = Symbol('error');
 const IMAGE_TIMEOUT_STATUS = Symbol('timeout');
 const IMAGE_LOADING_STATUS = Symbol('loading');
 
+interface CachedImage {
+  image: HTMLImageElement;
+  width: number;
+  height: number;
+}
+
 const loadedImages: Record<string, CalculatedImage|symbol> = {};
+const cachedBySettings: Record<string, CachedImage> = {};
 
 interface IImageCoords {
   x: number;
@@ -33,10 +40,10 @@ export const ResolveImageCalc = async (
   modules: Modules,
   def: IImageDef,
 ): Promise<void> => {
-  def.image.size = await (modules.illustrator as IIllustrator).calc<IImageDef['image']['size']>({
+  def.size = await (modules.illustrator as IIllustrator).calc<IImageDef['size']>({
     layerType: 'image',
     purpose: 'size',
-    values: def.image.size,
+    values: def.size,
   });
 
   def.start = await (modules.illustrator as IIllustrator).calc<IImageDef['start']>({
@@ -45,8 +52,16 @@ export const ResolveImageCalc = async (
     values: def.start,
   });
 
+  const cacheKey = getImageCacheKey(def.image, def.size.w, def.size.h),
+    cached = cachedBySettings[cacheKey]
+  ;
+  if (cached) {
+    def.image.calculated = calculateFromCache(def, cached);
+    return;
+  }
+
   if (def.image.src instanceof Image) {
-    def.image.calculated = await calculateImage(def.image.src, def);
+    def.image.calculated = await calculateImage(def, def.image.src, cacheKey);
     return;
   }
 
@@ -60,21 +75,64 @@ export const ResolveImageCalc = async (
     return;
   }
 
-  console.log('-- move to load', source)
-  void loadImage(def, source, modules);
+  /**
+   * Unexpected behaviour.
+   * Tested in Firefox only for now.
+   * When requesting multiple (30+) images at the load time it is more efficient and has better UX to actually
+   * block draw until all of them are loaded - loading them all at once takes longer than one by one.
+   */
+  await loadImage(def, source, modules);
 }
 
-const calculateImage = async (source: HTMLImageElement, def: IImageDef): Promise<CalculatedImage> => {
+const calculateFromCache = (
+  def: IImageDef,
+  cached: CachedImage,
+): CalculatedImage => {
   const image = def.image,
-    { w, h } =  image.size
+    { w, h } =  def.size
   ;
-  console.trace('-!-', 'calc image', image)
   let { x, y } = def.start;
 
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
       image.fit ?? 'default',
-      source.width,
-      source.height,
+      cached.width,
+      cached.height,
+      w,
+      h,
+    ),
+    leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
+    topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
+  ;
+
+  x += leftDiff;
+  y += topDiff;
+
+  return new CalculatedImage(
+    cached.image,
+    {
+      x, y,
+      width: asWidth,
+      height: asHeight,
+    }
+  );
+}
+
+const calculateImage = async (
+  def: IImageDef,
+  source: HTMLImageElement,
+  cacheKey: string|null = null,
+): Promise<CalculatedImage> => {
+  const image = def.image,
+    { w, h } =  def.size,
+    sWidth = source.width,
+    sHeight = source.height
+  ;
+  let { x, y } = def.start;
+
+  const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
+      image.fit ?? 'default',
+      sWidth,
+      sHeight,
       w,
       h,
     ),
@@ -97,6 +155,11 @@ const calculateImage = async (source: HTMLImageElement, def: IImageDef): Promise
     source = await outlineImage(source, def, asWidth, asHeight)
   }
 
+  cachedBySettings[cacheKey ?? getImageCacheKey(def.image, def.size.w, def.size.h)] = {
+    image: source,
+    width: sWidth,
+    height: sHeight,
+  };
   return new CalculatedImage(
     source,
     {
@@ -112,18 +175,11 @@ export const ResolveImageAction = async (
   def: IImageDef,
 ): Promise<void> => {
   const image = def.image.calculated;
-  console.log('--', image)
   if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image)) {
-    console.log('--', 'not loaded')
     return;
   }
 
   if (!(image instanceof CalculatedImage)) {
-    // await drawImage(
-    //   ctx,
-    //   source instanceof Image ? source : cachedImage as HTMLImageElement,
-    //   def,
-    // );
     return;
   }
   const { x, y, width, height } = image.coords;
@@ -137,6 +193,9 @@ const imageTimeoutReached = (image: unknown): boolean => {
 const imageIsBeingLoaded = (image: unknown): boolean => {
   return image === IMAGE_LOADING_STATUS;
 }
+
+const getImageCacheKey = (image: IImageArg, width: number, height: number): string =>
+  JSON.stringify({ ...image, timeout: 0, calculated: 0, width, height });
 
 const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
   const image = new Image(),
@@ -160,9 +219,8 @@ const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise
 
     image.onload = async () => {
       clearTimeout(timeoutTimer);
-      def.image.calculated = await calculateImage(image, def);
+      def.image.calculated = await calculateImage(def, image);
       resolve();
-      console.log('redraw debounce')
       void view.redrawDebounce();
     };
   });
@@ -170,47 +228,6 @@ const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise
 
   await promise;
 }
-
-// const drawImage = async (
-//   ctx: CanvasRenderingContext2D,
-//   source: HTMLImageElement,
-//   def: IImageDef,
-// ): Promise<void> => {
-//   const { image, start } = def;
-//   ctx.save();
-//   const { w, h } = image.size;
-//   let { x, y } = start;
-//
-//   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
-//       image.fit ?? 'default',
-//       source.width,
-//       source.height,
-//       w,
-//       h,
-//     ),
-//     leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
-//     topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
-//   ;
-//
-//   x += leftDiff;
-//   y += topDiff;
-//
-//   if (image.fit === 'crop') {
-//     source = await cropImage(source, def)
-//   }
-//
-//   if (image.overcolor) {
-//     source = await overcolorImage(source, def, asWidth, asHeight)
-//   }
-//
-//   if (image.outline) {
-//     source = await outlineImage(source, def, asWidth, asHeight)
-//   }
-//
-//   ctx.drawImage(source, x, y, asWidth, asHeight);
-//
-//   ctx.restore();
-// }
 
 const overcolorImage = async (
   image: HTMLImageElement,
@@ -350,12 +367,8 @@ const canvasToWebp = async (canvas: HTMLCanvasElement, dft: HTMLImageElement): P
   });
 }
 
-/**
- * @TODO verify performance as I can see a possibility to save cropped images (but it would a very space heavy process)
- *       but if there isn't any visible improvements I don't think its worth effort and taken space
- */
 const cropImage = async (image: HTMLImageElement, def: IImageDef): Promise<HTMLImageElement> => {
-  const { w: width, h: height } = def.image.size;
+  const { w: width, h: height } = def.size;
   let fitTo = def.image.fitTo ?? 'auto',
     x = 0,
     y = 0

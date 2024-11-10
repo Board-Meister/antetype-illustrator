@@ -1,6 +1,20 @@
 // ../antetype-workspace/dist/index.js
-var t = ((e) => (e.STRUCTURE = "antetype.structure", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e))(t || {});
+var Event = /* @__PURE__ */ ((Event22) => {
+  Event22["STRUCTURE"] = "antetype.structure";
+  Event22["DRAW"] = "antetype.draw";
+  Event22["CALC"] = "antetype.calc";
+  Event22["MIDDLE"] = "antetype.structure.middle";
+  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
+  Event22["CENTER"] = "antetype.structure.center";
+  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
+  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
+  Event22["BAR_TOP"] = "antetype.structure.bar.top";
+  Event22["MODULES"] = "antetype.modules";
+  return Event22;
+})(Event || {});
+var cloned = Symbol("cloned");
 var Workspace = class {
+  #maxDepth = 50;
   #canvas;
   #modules;
   #ctx;
@@ -70,24 +84,35 @@ var Workspace = class {
     let calculation = "";
     operation.split(" ").forEach((expression) => {
       expression = expression.trim();
-      const last = expression[expression.length - 1], secondToLast = expression[expression.length - 2], result2 = (unitsTranslator[secondToLast + last] || unitsTranslator.default)(expression);
-      calculation += String(isNaN(result2) ? 0 : result2);
+      const last = expression[expression.length - 1], secondToLast = expression[expression.length - 2];
+      let result2 = (unitsTranslator[secondToLast + last] || unitsTranslator.default)(expression);
+      if (typeof result2 == "number") {
+        result2 = this.#decimal(result2);
+      }
+      calculation += String(result2);
     });
     const result = eval(calculation);
     if (result == void 0) {
       return NaN;
     }
-    return result;
+    return this.#decimal(result);
+  }
+  #decimal(number, precision = 2) {
+    return +number.toFixed(precision);
   }
   #getSystem() {
     return this.#modules.system;
   }
   #getSettings() {
     const height2 = this.#ctx.canvas.offsetHeight;
-    return this.#getSystem().setting.get("workspace") ?? {
-      height: height2,
-      width: height2 * 0.707070707
-    };
+    const set = this.#getSystem().setting.get("workspace") ?? {};
+    if (typeof set.height != "number") {
+      set.height = height2;
+    }
+    if (typeof set.width != "number") {
+      set.width = height2 * 0.707070707;
+    }
+    return set;
   }
   #getSize() {
     const ratio = this.#getSettings().width / this.#getSettings().height;
@@ -105,29 +130,45 @@ var Workspace = class {
     return typeof value === "object" && !Array.isArray(value) && value !== null;
   }
   async functionToNumber(data) {
-    return await this.#iterateResolveAndCloneObject(data);
+    return await this.#iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
   }
-  async #iterateResolveAndCloneObject(object) {
+  async #iterateResolveAndCloneObject(object, recursive, depth = 0) {
+    if (recursive.has(object)) {
+      return recursive.get(object);
+    }
+    if (object[cloned]) {
+      return object;
+    }
     const clone = {};
+    recursive.set(object, clone);
+    clone[cloned] = true;
+    if (this.#maxDepth <= depth + 1) {
+      console.error("We've reach limit depth!", object);
+      throw new Error("limit reached");
+    }
     await Promise.all(Object.keys(object).map(async (key) => {
       let result2 = await this.#resolve(object, key);
       if (this.#isObject(result2)) {
-        result2 = await this.#iterateResolveAndCloneObject(result2);
+        result2 = await this.#iterateResolveAndCloneObject(result2, recursive, depth + 1);
       } else if (Array.isArray(result2)) {
-        result2 = await this.#iterateResolveAndCloneArray(result2);
+        result2 = await this.#iterateResolveAndCloneArray(result2, recursive, depth + 1);
       }
       clone[key] = result2;
     }));
     return clone;
   }
-  async #iterateResolveAndCloneArray(object) {
+  async #iterateResolveAndCloneArray(object, recursive, depth = 0) {
     const clone = [];
+    if (this.#maxDepth <= depth + 1) {
+      console.error("We've reach limit depth!", object);
+      throw new Error("limit reached");
+    }
     await Promise.all(Object.keys(object).map(async (key) => {
       let result2 = await this.#resolve(object, key);
       if (this.#isObject(result2)) {
-        result2 = await this.#iterateResolveAndCloneObject(result2);
+        result2 = await this.#iterateResolveAndCloneObject(result2, recursive, depth + 1);
       } else if (Array.isArray(result2)) {
-        result2 = await this.#iterateResolveAndCloneArray(result2);
+        result2 = await this.#iterateResolveAndCloneArray(result2, recursive, depth + 1);
       }
       clone.push(result2);
     }));
@@ -135,15 +176,13 @@ var Workspace = class {
   }
   async #resolve(object, key) {
     const value = object[key];
-    const resolved = typeof value == "function" ? await value(this.#modules, object) : value;
-    const calculated = this.calc(resolved);
-    return isNaN(resolved) ? resolved : calculated;
+    return typeof value == "function" ? await value(this.#modules, this.#ctx, object) : value;
   }
 };
-var Event = /* @__PURE__ */ ((Event2) => {
-  Event2["CALC"] = "antetype.workspace.calc";
-  return Event2;
-})(Event || {});
+var Event2 = /* @__PURE__ */ ((Event3) => {
+  Event3["CALC"] = "antetype.workspace.calc";
+  return Event3;
+})(Event2 || {});
 var AntetypeWorkspace = class {
   #module = null;
   #instance = null;
@@ -197,14 +236,14 @@ var AntetypeWorkspace = class {
       "antetype.workspace.calc"
       /* CALC */
     ]: "calc",
-    [t.CALC]: [
+    [Event.CALC]: [
       {
         method: "functionToNumber",
         priority: -255
       }
     ],
-    [t.MODULES]: "register",
-    [t.DRAW]: [
+    [Event.MODULES]: "register",
+    [Event.DRAW]: [
       {
         method: "draw",
         priority: 10
@@ -386,6 +425,7 @@ var IMAGE_ERROR_STATUS = Symbol("error");
 var IMAGE_TIMEOUT_STATUS = Symbol("timeout");
 var IMAGE_LOADING_STATUS = Symbol("loading");
 var loadedImages = {};
+var cachedBySettings = {};
 var CalculatedImage = class {
   image;
   coords;
@@ -395,18 +435,23 @@ var CalculatedImage = class {
   }
 };
 var ResolveImageCalc = async (modules, def) => {
-  def.image.size = await modules.illustrator.calc({
+  def.size = await modules.illustrator.calc({
     layerType: "image",
     purpose: "size",
-    values: def.image.size
+    values: def.size
   });
   def.start = await modules.illustrator.calc({
     layerType: "image",
     purpose: "position",
     values: def.start
   });
+  const cacheKey = getImageCacheKey(def.image, def.size.w, def.size.h), cached = cachedBySettings[cacheKey];
+  if (cached) {
+    def.image.calculated = calculateFromCache(def, cached);
+    return;
+  }
   if (def.image.src instanceof Image) {
-    def.image.calculated = await calculateImage(def.image.src, def);
+    def.image.calculated = await calculateImage(def, def.image.src, cacheKey);
     return;
   }
   if (typeof def.image.src != "string") {
@@ -417,17 +462,37 @@ var ResolveImageCalc = async (modules, def) => {
     console.warn("Image `" + source + "` has invalid source");
     return;
   }
-  console.log("-- move to load", source);
-  void loadImage(def, source, modules);
+  await loadImage(def, source, modules);
 };
-var calculateImage = async (source, def) => {
-  const image = def.image, { w, h } = image.size;
-  console.trace("-!-", "calc image", image);
+var calculateFromCache = (def, cached) => {
+  const image = def.image, { w, h } = def.size;
   let { x, y } = def.start;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
     image.fit ?? "default",
-    source.width,
-    source.height,
+    cached.width,
+    cached.height,
+    w,
+    h
+  ), leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), topDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
+  x += leftDiff;
+  y += topDiff;
+  return new CalculatedImage(
+    cached.image,
+    {
+      x,
+      y,
+      width: asWidth,
+      height: asHeight
+    }
+  );
+};
+var calculateImage = async (def, source, cacheKey = null) => {
+  const image = def.image, { w, h } = def.size, sWidth = source.width, sHeight = source.height;
+  let { x, y } = def.start;
+  const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
+    image.fit ?? "default",
+    sWidth,
+    sHeight,
     w,
     h
   ), leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), topDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
@@ -442,6 +507,11 @@ var calculateImage = async (source, def) => {
   if (image.outline) {
     source = await outlineImage(source, def, asWidth, asHeight);
   }
+  cachedBySettings[cacheKey ?? getImageCacheKey(def.image, def.size.w, def.size.h)] = {
+    image: source,
+    width: sWidth,
+    height: sHeight
+  };
   return new CalculatedImage(
     source,
     {
@@ -454,9 +524,7 @@ var calculateImage = async (source, def) => {
 };
 var ResolveImageAction = async (ctx, def) => {
   const image = def.image.calculated;
-  console.log("--", image);
   if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image)) {
-    console.log("--", "not loaded");
     return;
   }
   if (!(image instanceof CalculatedImage)) {
@@ -471,6 +539,7 @@ var imageTimeoutReached = (image) => {
 var imageIsBeingLoaded = (image) => {
   return image === IMAGE_LOADING_STATUS;
 };
+var getImageCacheKey = (image, width2, height2) => JSON.stringify({ ...image, timeout: 0, calculated: 0, width: width2, height: height2 });
 var loadImage = async (def, src, modules) => {
   const image = new Image(), { image: { timeout = 3e4 } } = def, view = modules.system.view;
   image.crossOrigin = "anonymous";
@@ -487,9 +556,8 @@ var loadImage = async (def, src, modules) => {
     };
     image.onload = async () => {
       clearTimeout(timeoutTimer);
-      def.image.calculated = await calculateImage(image, def);
+      def.image.calculated = await calculateImage(def, image);
       resolve();
-      console.log("redraw debounce");
       void view.redrawDebounce();
     };
   });
@@ -585,7 +653,7 @@ var canvasToWebp = async (canvas, dft) => {
   });
 };
 var cropImage = async (image, def) => {
-  const { w: width2, h: height2 } = def.image.size;
+  const { w: width2, h: height2 } = def.size;
   let fitTo = def.image.fitTo ?? "auto", x = 0, y = 0;
   if (fitTo === "auto") {
     fitTo = height2 > width2 ? "height" : "width";
@@ -639,10 +707,10 @@ var getImageHorizontalDiff = (align, width2, asWidth) => {
 // src/action/text.tsx
 var ResolveTextCalc = async (def, modules) => {
   const illustrator = modules.illustrator;
-  def.text.size = await illustrator.calc({
+  def.size = await illustrator.calc({
     layerType: "text",
     purpose: "size",
-    values: def.text.size
+    values: def.size
   });
   def.start = await illustrator.calc({
     layerType: "text",
@@ -662,7 +730,7 @@ var ResolveTextCalc = async (def, modules) => {
 };
 var ResolveTextAction = (ctx, def) => {
   let { x, y } = def.start;
-  const { h, w } = def.text.size;
+  const { h, w } = def.size;
   ctx.save();
   const { lines: texts, lineHeight, width: columnWidth, columns, fontSize } = prepare(def, ctx, w), linesAmount = Math.ceil(texts.length / columns.amount);
   if (isSafari()) {
@@ -831,19 +899,118 @@ var isSafari = () => {
 };
 
 // src/action/group.tsx
-var ResolveGroupCalc = async (modules, group) => {
-  group.start = await modules.illustrator.calc({
+var ResolveGroupCalc = async (modules, def) => {
+  const { group } = def;
+  def.size = await modules.illustrator.calc({
+    layerType: "group",
+    purpose: "size",
+    values: def.size ?? { w: 0, h: 0 }
+  });
+  def.size.w ??= NaN;
+  def.size.h ??= NaN;
+  def.start = await modules.illustrator.calc({
     layerType: "group",
     purpose: "position",
-    values: group.start
+    values: def.start ?? { x: 0, y: 0 }
   });
-  group.layout = await modules.system.view.recalc(group.layout);
+  def.start.y ??= 0;
+  def.start.x ??= 0;
+  const initSettings = modules.system.setting.get("workspace");
+  const previousWorkspaceSettings = initSettings ?? void 0;
+  if (!isNaN(def.size.w) || !isNaN(def.size.h)) {
+    const settings = initSettings ?? {};
+    if (!isNaN(def.size.h)) {
+      settings.height = Math.floor(def.size.h);
+    }
+    if (!isNaN(def.size.w)) {
+      settings.width = Math.floor(def.size.w);
+    }
+    modules.system.setting.set("workspace", settings);
+  }
+  def.layout = await modules.system.view.recalc(def);
+  group.gap = await modules.illustrator.calc({
+    layerType: "group",
+    purpose: "gap",
+    values: group.gap ?? { vertical: 0, horizontal: 0 }
+  });
+  group.gap.vertical ??= 0;
+  group.gap.horizontal ??= 0;
+  group.interaction ??= "fixed";
+  modules.system.setting.set("workspace", previousWorkspaceSettings);
 };
-var ResolveGroupAction = (ctx, modules, group) => {
+var ResolveGroupAction = (ctx, modules, def) => {
+  const { group, start } = def;
+  if (def.layout.length === 0) {
+    return;
+  }
   ctx.save();
-  ctx.translate(group.start.x, group.start.y);
-  modules.system.view.redraw(group.layout);
+  ctx.translate(start.x, start.y);
+  if (group.interaction === "fixed") {
+    modules.system.view.redraw(def.layout);
+  } else {
+    drawLayersRelatively(ctx, modules, def);
+  }
   ctx.restore();
+};
+var getRowsHeight = (def, rows) => {
+  let height2 = 0;
+  const horizontal = def.group.gap.horizontal;
+  rows.forEach((row) => {
+    height2 += row.height + horizontal;
+  });
+  return height2 - horizontal;
+};
+var getRowsWidth = (rows) => {
+  let width2 = 0;
+  rows.forEach((row) => {
+    width2 += row.width;
+  });
+  return width2;
+};
+var drawLayersRelatively = (ctx, modules, def) => {
+  const { group } = def;
+  const { vertical, horizontal } = group.gap;
+  const rows = separateIntoRows(def, def.layout);
+  if (group.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
+    ctx.beginPath();
+    ctx.rect(
+      def.start.x,
+      def.start.y,
+      isNaN(def.size.w) ? getRowsWidth(rows) : def.size.w,
+      isNaN(def.size.h) ? getRowsHeight(def, rows) : def.size.h
+    );
+    ctx.clip();
+  }
+  let currentHeight = 0;
+  let xShift = 0;
+  rows.forEach((row) => {
+    row.layers.forEach((layer) => {
+      ctx.save();
+      ctx.translate(xShift, currentHeight);
+      modules.system.view.draw(layer.def);
+      ctx.restore();
+      xShift += layer.def.size.w + vertical;
+    });
+    xShift = 0;
+    currentHeight += row.height + horizontal;
+  });
+};
+var separateIntoRows = (def, layout) => {
+  const { size } = def;
+  const rows = [];
+  const generateRow = () => ({ height: 0, width: 0, layers: [] });
+  let row = generateRow();
+  layout.forEach((layer, i) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i != 0 && def.group.direction === "column") {
+      rows.push(row);
+      row = generateRow();
+    }
+    row.layers.push({ x: row.width, def: layer });
+    if (row.height < layer.size.h) row.height = layer.size.h;
+    row.width += layer.size.w + def.group.gap.vertical;
+  });
+  rows.push(row);
+  return rows;
 };
 
 // src/module.tsx
@@ -884,7 +1051,6 @@ var Illustrator = class {
       purpose: "position",
       values: def.start
     });
-    console.log(def);
     for (const step of def.steps) {
       await ResolveCalcPolygon(step, this.#modules2);
     }
@@ -913,7 +1079,7 @@ var Illustrator = class {
     ResolveTextAction(this.#ctx2, def);
   }
   async calc(def) {
-    const event = new CustomEvent(Event.CALC, { detail: def });
+    const event = new CustomEvent(Event2.CALC, { detail: def });
     await this.#injected.herald.dispatch(event);
     return event.detail.values;
   }

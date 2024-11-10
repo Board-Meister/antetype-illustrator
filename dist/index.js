@@ -1,21 +1,35 @@
 // ../../tool/antetype/dist/index.js
-var Event = /* @__PURE__ */ ((Event22) => {
-  Event22["STRUCTURE"] = "antetype.structure";
-  Event22["DRAW"] = "antetype.draw";
-  Event22["CALC"] = "antetype.calc";
-  Event22["MIDDLE"] = "antetype.structure.middle";
-  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
-  Event22["CENTER"] = "antetype.structure.center";
-  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
-  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
-  Event22["BAR_TOP"] = "antetype.structure.bar.top";
-  Event22["MODULES"] = "antetype.modules";
-  return Event22;
+var Event = /* @__PURE__ */ ((Event23) => {
+  Event23["STRUCTURE"] = "antetype.structure";
+  Event23["DRAW"] = "antetype.draw";
+  Event23["CALC"] = "antetype.calc";
+  Event23["MIDDLE"] = "antetype.structure.middle";
+  Event23["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
+  Event23["CENTER"] = "antetype.structure.center";
+  Event23["COLUMN_LEFT"] = "antetype.structure.column.left";
+  Event23["COLUMN_RIGHT"] = "antetype.structure.column.right";
+  Event23["BAR_TOP"] = "antetype.structure.bar.top";
+  Event23["MODULES"] = "antetype.modules";
+  return Event23;
 })(Event || {});
 
 // ../antetype-workspace/dist/index.js
-var t = ((e) => (e.STRUCTURE = "antetype.structure", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e))(t || {});
+var Event2 = /* @__PURE__ */ ((Event222) => {
+  Event222["STRUCTURE"] = "antetype.structure";
+  Event222["DRAW"] = "antetype.draw";
+  Event222["CALC"] = "antetype.calc";
+  Event222["MIDDLE"] = "antetype.structure.middle";
+  Event222["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
+  Event222["CENTER"] = "antetype.structure.center";
+  Event222["COLUMN_LEFT"] = "antetype.structure.column.left";
+  Event222["COLUMN_RIGHT"] = "antetype.structure.column.right";
+  Event222["BAR_TOP"] = "antetype.structure.bar.top";
+  Event222["MODULES"] = "antetype.modules";
+  return Event222;
+})(Event2 || {});
+var cloned = Symbol("cloned");
 var Workspace = class {
+  #maxDepth = 50;
   #canvas;
   #modules;
   #ctx;
@@ -85,24 +99,35 @@ var Workspace = class {
     let calculation = "";
     operation.split(" ").forEach((expression) => {
       expression = expression.trim();
-      const last = expression[expression.length - 1], secondToLast = expression[expression.length - 2], result2 = (unitsTranslator[secondToLast + last] || unitsTranslator.default)(expression);
-      calculation += String(isNaN(result2) ? 0 : result2);
+      const last = expression[expression.length - 1], secondToLast = expression[expression.length - 2];
+      let result2 = (unitsTranslator[secondToLast + last] || unitsTranslator.default)(expression);
+      if (typeof result2 == "number") {
+        result2 = this.#decimal(result2);
+      }
+      calculation += String(result2);
     });
     const result = eval(calculation);
     if (result == void 0) {
       return NaN;
     }
-    return result;
+    return this.#decimal(result);
+  }
+  #decimal(number, precision = 2) {
+    return +number.toFixed(precision);
   }
   #getSystem() {
     return this.#modules.system;
   }
   #getSettings() {
     const height2 = this.#ctx.canvas.offsetHeight;
-    return this.#getSystem().setting.get("workspace") ?? {
-      height: height2,
-      width: height2 * 0.707070707
-    };
+    const set = this.#getSystem().setting.get("workspace") ?? {};
+    if (typeof set.height != "number") {
+      set.height = height2;
+    }
+    if (typeof set.width != "number") {
+      set.width = height2 * 0.707070707;
+    }
+    return set;
   }
   #getSize() {
     const ratio = this.#getSettings().width / this.#getSettings().height;
@@ -120,29 +145,45 @@ var Workspace = class {
     return typeof value === "object" && !Array.isArray(value) && value !== null;
   }
   async functionToNumber(data) {
-    return await this.#iterateResolveAndCloneObject(data);
+    return await this.#iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
   }
-  async #iterateResolveAndCloneObject(object) {
+  async #iterateResolveAndCloneObject(object, recursive, depth = 0) {
+    if (recursive.has(object)) {
+      return recursive.get(object);
+    }
+    if (object[cloned]) {
+      return object;
+    }
     const clone = {};
+    recursive.set(object, clone);
+    clone[cloned] = true;
+    if (this.#maxDepth <= depth + 1) {
+      console.error("We've reach limit depth!", object);
+      throw new Error("limit reached");
+    }
     await Promise.all(Object.keys(object).map(async (key) => {
       let result2 = await this.#resolve(object, key);
       if (this.#isObject(result2)) {
-        result2 = await this.#iterateResolveAndCloneObject(result2);
+        result2 = await this.#iterateResolveAndCloneObject(result2, recursive, depth + 1);
       } else if (Array.isArray(result2)) {
-        result2 = await this.#iterateResolveAndCloneArray(result2);
+        result2 = await this.#iterateResolveAndCloneArray(result2, recursive, depth + 1);
       }
       clone[key] = result2;
     }));
     return clone;
   }
-  async #iterateResolveAndCloneArray(object) {
+  async #iterateResolveAndCloneArray(object, recursive, depth = 0) {
     const clone = [];
+    if (this.#maxDepth <= depth + 1) {
+      console.error("We've reach limit depth!", object);
+      throw new Error("limit reached");
+    }
     await Promise.all(Object.keys(object).map(async (key) => {
       let result2 = await this.#resolve(object, key);
       if (this.#isObject(result2)) {
-        result2 = await this.#iterateResolveAndCloneObject(result2);
+        result2 = await this.#iterateResolveAndCloneObject(result2, recursive, depth + 1);
       } else if (Array.isArray(result2)) {
-        result2 = await this.#iterateResolveAndCloneArray(result2);
+        result2 = await this.#iterateResolveAndCloneArray(result2, recursive, depth + 1);
       }
       clone.push(result2);
     }));
@@ -150,15 +191,13 @@ var Workspace = class {
   }
   async #resolve(object, key) {
     const value = object[key];
-    const resolved = typeof value == "function" ? await value(this.#modules, object) : value;
-    const calculated = this.calc(resolved);
-    return isNaN(resolved) ? resolved : calculated;
+    return typeof value == "function" ? await value(this.#modules, this.#ctx, object) : value;
   }
 };
-var Event2 = /* @__PURE__ */ ((Event22) => {
-  Event22["CALC"] = "antetype.workspace.calc";
-  return Event22;
-})(Event2 || {});
+var Event22 = /* @__PURE__ */ ((Event32) => {
+  Event32["CALC"] = "antetype.workspace.calc";
+  return Event32;
+})(Event22 || {});
 var AntetypeWorkspace = class {
   #module = null;
   #instance = null;
@@ -212,14 +251,14 @@ var AntetypeWorkspace = class {
       "antetype.workspace.calc"
       /* CALC */
     ]: "calc",
-    [t.CALC]: [
+    [Event2.CALC]: [
       {
         method: "functionToNumber",
         priority: -255
       }
     ],
-    [t.MODULES]: "register",
-    [t.DRAW]: [
+    [Event2.MODULES]: "register",
+    [Event2.DRAW]: [
       {
         method: "draw",
         priority: 10

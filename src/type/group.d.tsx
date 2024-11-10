@@ -1,5 +1,16 @@
-import { IBaseDef } from "@boardmeister/antetype";
+import { IParentDef } from "@boardmeister/antetype";
 
-export interface IGroupDef extends IBaseDef {
-  layout: IBaseDef[];
+interface IGroupArgs {
+  clip?: boolean;
+  interaction?: 'fixed'|'static';
+  direction?: 'row'|'column';
+  wrap?: boolean;
+  gap?: {
+    vertical?: number;
+    horizontal?: number;
+  }
+}
+
+export interface IGroupDef extends IParentDef {
+  group: IGroupArgs;
 }

@@ -145,8 +145,12 @@ interface ModulesEvent {
 	modules: Modules;
 	canvas: HTMLCanvasElement | null;
 }
-declare type Module$1 = Record<string, Function> | Object;
-declare type Modules = Record<string, Module$1>;
+interface Module$1 {
+}
+interface Modules {
+	[key: string]: Module$1;
+	system: ISystemModule;
+}
 declare type XValue = number;
 declare type YValue = XValue;
 interface IStart {
@@ -157,10 +161,41 @@ interface ISize {
 	w: XValue;
 	h: YValue;
 }
+interface IHierarchy {
+	parent: IParentDef;
+	position: number;
+}
 interface IBaseDef<T = never> {
+	[key: symbol]: boolean;
+	hierarchy?: IHierarchy;
 	start: IStart;
+	size: ISize;
 	type: string;
 	data?: T;
+}
+interface IParentDef extends IBaseDef {
+	layout: IBaseDef[];
+}
+interface ISystemModule extends Module$1 {
+	view: {
+		recalc: (parent: IParentDef) => Promise<IBaseDef[]>;
+		redraw: (layout: IBaseDef[]) => void;
+		redrawDebounce: () => void;
+		calc: (element: IBaseDef, parent: IParentDef, position: number) => Promise<IBaseDef>;
+		draw: (element: IBaseDef) => Promise<void>;
+		reloadStructure: () => Promise<void>;
+		reload: () => void;
+	};
+	policies: {
+		markAsLayer: (layer: IBaseDef) => IBaseDef;
+		isLayer: (layer: Record<symbol, any>) => boolean;
+	};
+	setting: {
+		[symbol: symbol]: Record<string, any>;
+		set: (name: string, value: unknown) => void;
+		get: <T = unknown>(name: string) => T | null;
+		has: (name: string) => boolean;
+	};
 }
 interface ICalcEvent<T extends Record<string, any> = Record<string, any>> {
 	purpose: string;
@@ -272,19 +307,18 @@ interface IOutline {
 interface IOvercolor {
 	fill: FillTypes;
 }
-interface IImageArg<T = never> {
+interface IImageArg {
 	calculated?: CalculatedImage | symbol;
 	timeout?: number;
-	size: ISize;
 	fit?: ImageFit;
 	overcolor?: IOvercolor;
 	outline?: IOutline;
 	align?: IImageAlign;
 	fitTo?: "auto" | "height" | "width";
-	src: string | ((def: IImageDef<T>) => Promise<string>) | HTMLImageElement;
+	src: string | HTMLImageElement;
 }
 interface IImageDef<T = never> extends IBaseDef<T> {
-	image: IImageArg<T>;
+	image: IImageArg;
 }
 declare type VerticalAlign = "center" | "top" | "bottom";
 declare type HorizontalAlign = "center" | "left" | "right" | "justify";
@@ -312,7 +346,6 @@ interface ITextOutline {
 	miterLimit?: number;
 }
 interface ITextArgs {
-	size: ISize;
 	value: string;
 	align?: ITextAlign;
 	columns?: ITextColumns;
@@ -327,10 +360,20 @@ interface ITextArgs {
 interface ITextDef extends IBaseDef {
 	text: ITextArgs;
 }
-interface IGroupDef extends IBaseDef {
-	layout: IBaseDef[];
+interface IGroupArgs {
+	clip?: boolean;
+	interaction?: "fixed" | "static";
+	direction?: "row" | "column";
+	wrap?: boolean;
+	gap?: {
+		vertical?: number;
+		horizontal?: number;
+	};
 }
-export interface IIllustrator {
+interface IGroupDef extends IParentDef {
+	group: IGroupArgs;
+}
+export interface IIllustrator extends Module$1 {
 	reset: () => void;
 	clear: () => void;
 	group: (def: IGroupDef) => void;

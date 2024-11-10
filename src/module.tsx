@@ -1,4 +1,4 @@
-import type { Modules, IStart } from "@boardmeister/antetype";
+import type { Modules, IStart, Module } from "@boardmeister/antetype";
 import { Event, ICalcEvent } from "@boardmeister/antetype-workspace";
 import { ResolveCalcPolygon, ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonDef } from "@src/type/polygon.d";
@@ -11,7 +11,7 @@ import { IGroupDef } from "@src/type/group.d";
 import { IInjected } from "@src/index";
 // import { Event, ICalcEvent } from "@src/type/event.d";
 
-export interface IIllustrator {
+export interface IIllustrator extends Module {
   reset: () => void;
   clear: () => void;
   group: (def: IGroupDef) => void;
@@ -68,7 +68,7 @@ export default class Illustrator implements IIllustrator {
       purpose: 'position',
       values: def.start,
     });
-    console.log(def)
+
     for (const step of def.steps) {
       await ResolveCalcPolygon(step, this.#modules);
     }

@@ -1,4 +1,4 @@
-import { IBaseDef, ISize, XValue } from "@boardmeister/antetype";
+import { IBaseDef, XValue } from "@boardmeister/antetype";
 import { StandardLonghandProperties } from 'csstype'
 import { FillStyle, FillTypes } from "@src/type/polygon.d";
 
@@ -33,7 +33,6 @@ export interface ITextOutline {
 }
 
 export interface ITextArgs {
-  size: ISize,
   value: string;
   align?: ITextAlign
   columns?: ITextColumns;

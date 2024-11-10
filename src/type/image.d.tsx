@@ -1,4 +1,4 @@
-import { IBaseDef, ISize, XValue } from "@boardmeister/antetype";
+import { IBaseDef, XValue } from "@boardmeister/antetype";
 import { FillTypes } from "@src/type/polygon.d";
 import { CalculatedImage } from "@src/action/image";
 
@@ -20,18 +20,17 @@ export interface IOvercolor {
   fill: FillTypes
 }
 
-export interface IImageArg<T = never> {
+export interface IImageArg {
   calculated?: CalculatedImage|symbol;
   timeout?: number;
-  size: ISize;
   fit?: ImageFit;
   overcolor?: IOvercolor;
   outline?: IOutline;
   align?: IImageAlign;
   fitTo?: 'auto'|'height'|'width';
-  src: string|((def: IImageDef<T>) => Promise<string>)|HTMLImageElement;
+  src: string|HTMLImageElement;
 };
 
 export interface IImageDef<T = never> extends IBaseDef<T> {
-  image: IImageArg<T>;
+  image: IImageArg;
 }

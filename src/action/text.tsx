@@ -10,13 +10,13 @@ export const ResolveTextCalc = async (
   modules: Modules,
 ): Promise<ITextDef> => {
   const illustrator = modules.illustrator as IIllustrator;
-  def.text.size = await illustrator.calc<{ h: number, w: number }>({
+  def.size = await illustrator.calc<ITextDef['size']>({
     layerType: 'text',
     purpose: 'size',
-    values: def.text.size,
+    values: def.size,
   });
 
-  def.start = await illustrator.calc<{ x: number, y: number }>({
+  def.start = await illustrator.calc<ITextDef['start']>({
     layerType: 'text',
     purpose: 'position',
     values: def.start,
@@ -45,7 +45,7 @@ export const ResolveTextAction = (
   def: ITextDef,
 ): void => {
   let { x, y } = def.start;
-  const { h, w } = def.text.size;
+  const { h, w } = def.size;
   ctx.save();
 
   const { lines: texts, lineHeight, width: columnWidth, columns, fontSize } = prepare(def, ctx, w),
