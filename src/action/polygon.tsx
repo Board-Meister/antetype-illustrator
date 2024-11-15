@@ -3,7 +3,7 @@ import {
   FillStyle,
   IBegin, IClose, ICurve, IFill, IFillDefault, IFillLinear, ILine, IMove, IStroke, LineJoin,
 } from "@src/type/polygon.d";
-import { generateFill } from "@src/shared";
+import { calcFill, generateFill } from "@src/shared";
 import { IIllustrator } from "@src/module";
 
 export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
@@ -13,7 +13,9 @@ export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
   const illustrator = modules.illustrator as IIllustrator;
   const objSwitch: Actions = {
     close: (): void => {},
-    fill: (): void => {},
+    fill: async (action: IFill): Promise<void> => {
+      await calcFill(illustrator, action.args);
+    },
     line: async (action: ILine): Promise<void> => {
       action.args = await illustrator.calc<ILine['args']>({
         layerType: 'polygon-line',

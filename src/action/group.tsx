@@ -25,19 +25,14 @@ export const ResolveGroupCalc = async (
   def.start.y ??= 0;
   def.start.x ??= 0;
 
-  const initSettings = modules.system.setting.get('workspace');
-  const previousWorkspaceSettings = initSettings ?? undefined;
-
-  if (!isNaN(def.size.w) || !isNaN(def.size.h)) {
-    const settings: IWorkspaceSettings = initSettings ?? {} as any;
-    if (!isNaN(def.size.h)) {
-      settings.height = Math.floor(def.size.h);
-    }
-    if (!isNaN(def.size.w)) {
-      settings.width = Math.floor(def.size.w);
-    }
-    modules.system.setting.set('workspace', settings);
-  }
+  /* Set relative sizes */
+  const settings = (modules.system.setting.get('workspace') ?? {}) as IWorkspaceSettings;
+  settings.relative ??= {};
+  const pRelHeight = settings.relative.height;
+  const pRelWidth = settings.relative.width;
+  if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
+  if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
+  modules.system.setting.set('workspace', settings);
 
   def.layout = await modules.system.view.recalc(def);
 
@@ -51,7 +46,8 @@ export const ResolveGroupCalc = async (
 
   group.interaction ??= 'fixed';
 
-  modules.system.setting.set('workspace', previousWorkspaceSettings);
+  settings.relative.height = pRelHeight;
+  settings.relative.width = pRelWidth;
 }
 
 export const ResolveGroupAction = (

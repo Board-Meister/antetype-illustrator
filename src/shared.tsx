@@ -1,5 +1,24 @@
-import { FillStyle, LeanerFillColor, LinearFillStyle } from "@src/type/polygon.d";
+import { FillStyle, FillTypes, LeanerFillColor, LinearFillStyle } from "@src/type/polygon.d";
 import { XValue, YValue } from '@boardmeister/antetype'
+import { IIllustrator } from "@src/module";
+
+export async function calcFill(illustrator: IIllustrator, fill: FillTypes): Promise<FillTypes> {
+  if (fill.type === 'linear') {
+    const style = fill.style as LinearFillStyle;
+    style.pos = await illustrator.calc<LinearFillStyle['pos']>({
+      layerType: 'polygon-fill-linear',
+      purpose: 'position',
+      values: style.pos,
+    });
+    style.size = await illustrator.calc<LinearFillStyle['size']>({
+      layerType: 'polygon-fill-linear',
+      purpose: 'size',
+      values: style.size,
+    });
+  }
+
+  return fill;
+}
 
 export function generateFill(type: 'default'|'linear', style: FillStyle|LinearFillStyle): FillStyle {
   const filTypes = {

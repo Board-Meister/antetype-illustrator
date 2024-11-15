@@ -52,6 +52,16 @@ export const ResolveImageCalc = async (
     values: def.start,
   });
 
+  if (def.image.outline?.thickness) {
+    def.image.outline.thickness = (await (modules.illustrator as IIllustrator).calc<{ thickness: number }>({
+      layerType: 'image',
+      purpose: 'thickness',
+      values: {
+        thickness: def.image.outline.thickness,
+      },
+    })).thickness;
+  }
+
   const cacheKey = getImageCacheKey(def.image, def.size.w, def.size.h),
     cached = cachedBySettings[cacheKey]
   ;
@@ -451,35 +461,3 @@ const getImageHorizontalDiff = (align: HorizontalAlignType, width: number, asWid
 
   return (width - asWidth)/2;
 }
-
-/**
- * @TODO transformations like this should be globally available, maybe separate repository?
- * It could work like this: At the beginning of each draw we would apply all transformations and at the end of the event
- * we would restore them.
- */
-// const transform = (layer, x, y, width, height): void => {
-//   const actions = {
-//     rotate: degree => {
-//       this.ctx.translate(x + width/2, y + height/2);
-//       this.ctx.rotate((degree * Math.PI) / 180);
-//       this.ctx.translate(-(x + width/2), -(y + height/2));
-//     },
-//     opacity: alpha => {
-//       this.ctx.globalAlpha = alpha;
-//     },
-//     filter: filter => {
-//       this.ctx.filter = filter;
-//     },
-//     default: e => {
-//       throw new Error('Not recognized action');
-//     },
-//   };
-//
-//   Object.keys(layer.transform).forEach(action => {
-//     let params = layer.transform[action];
-//     if (typeof params === 'function') {
-//       params = params(layer, this);
-//     }
-//     (actions[action] || actions.default)(...Array.isArray(params) ? params : [params]);
-//   });
-// }

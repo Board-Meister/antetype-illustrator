@@ -75,7 +75,8 @@ var Workspace = class {
       return NaN;
     }
     const convertUnitToNumber = (unit, suffixLen = 2) => Number(unit.slice(0, unit.length - suffixLen));
-    const { height, width } = this.#getSize();
+    const { height: aHeight, width: aWidth } = this.#getSize();
+    const { height, width } = this.#getSizeRelative();
     const unitsTranslator = {
       "px": (number) => {
         return convertUnitToNumber(number);
@@ -87,12 +88,10 @@ var Workspace = class {
         return convertUnitToNumber(number) / 100 * height;
       },
       "vh": (number) => {
-        const height2 = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-        return convertUnitToNumber(number) / 100 * height2;
+        return convertUnitToNumber(number) / 100 * aHeight;
       },
       "vw": (number) => {
-        const width2 = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        return convertUnitToNumber(number) / 100 * width2;
+        return convertUnitToNumber(number) / 100 * aWidth;
       },
       "default": (number) => number
     };
@@ -112,6 +111,9 @@ var Workspace = class {
     }
     return this.#decimal(result);
   }
+  async cloneDefinitions(data) {
+    return await this.#iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
+  }
   #decimal(number, precision = 2) {
     return +number.toFixed(precision);
   }
@@ -125,16 +127,30 @@ var Workspace = class {
       set.height = height2;
     }
     if (typeof set.width != "number") {
-      set.width = height2 * 0.707070707;
+      const a4Ratio = 0.707070707;
+      set.width = height2 * a4Ratio;
     }
     return set;
   }
   #getSize() {
-    const ratio = this.#getSettings().width / this.#getSettings().height;
+    const { width: aWidth2, height: aHeight2 } = this.#getSettings(), ratio = aWidth2 / aHeight2;
     let height2 = this.#ctx.canvas.offsetHeight, width2 = height2 * ratio;
     if (width2 > this.#ctx.canvas.offsetWidth) {
       width2 = this.#ctx.canvas.offsetWidth;
-      height2 = width2 * (this.#getSettings().height / this.#getSettings().width);
+      height2 = width2 * (height2 / width2);
+    }
+    return {
+      width: width2,
+      height: height2
+    };
+  }
+  #getSizeRelative() {
+    const settings = this.#getSettings(), { width: aWidth2, height: aHeight2 } = this.#getSize(), rWidth = settings.relative?.width ?? aWidth2, rHeight = settings.relative?.height ?? aHeight2;
+    const ratio = rWidth / rHeight;
+    let height2 = this.#ctx.canvas.offsetHeight, width2 = height2 * ratio;
+    if (width2 > this.#ctx.canvas.offsetWidth) {
+      width2 = this.#ctx.canvas.offsetWidth;
+      height2 = width2 * (rHeight / rWidth);
     }
     return {
       width: width2,
@@ -143,9 +159,6 @@ var Workspace = class {
   }
   #isObject(value) {
     return typeof value === "object" && !Array.isArray(value) && value !== null;
-  }
-  async functionToNumber(data) {
-    return await this.#iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
   }
   async #iterateResolveAndCloneObject(object, recursive, depth = 0) {
     if (recursive.has(object)) {
@@ -243,8 +256,14 @@ var AntetypeWorkspace = class {
       values[key] = this.#instance.calc(values[key]);
     }
   }
-  async functionToNumber(event) {
-    event.detail.element = await this.#instance.functionToNumber(event.detail.element);
+  /**
+   * @TODO Should this be moved to the core?
+   */
+  async cloneDefinitions(event) {
+    if (event.detail.element === null) {
+      return;
+    }
+    event.detail.element = await this.#instance.cloneDefinitions(event.detail.element);
   }
   static subscriptions = {
     [
@@ -253,7 +272,7 @@ var AntetypeWorkspace = class {
     ]: "calc",
     [Event2.CALC]: [
       {
-        method: "functionToNumber",
+        method: "cloneDefinitions",
         priority: -255
       }
     ],
@@ -261,7 +280,7 @@ var AntetypeWorkspace = class {
     [Event2.DRAW]: [
       {
         method: "draw",
-        priority: 10
+        priority: 255
       },
       {
         method: "setOrigin",
@@ -326,7 +345,7 @@ var AntetypeIllustrator = class {
     }
   }
   async calc(event) {
-    if (!this.#instance) {
+    if (!this.#instance || event.detail.element === null) {
       return;
     }
     const { element } = event.detail;

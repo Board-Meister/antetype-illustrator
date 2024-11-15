@@ -60,7 +60,8 @@ var Workspace = class {
       return NaN;
     }
     const convertUnitToNumber = (unit, suffixLen = 2) => Number(unit.slice(0, unit.length - suffixLen));
-    const { height, width } = this.#getSize();
+    const { height: aHeight, width: aWidth } = this.#getSize();
+    const { height, width } = this.#getSizeRelative();
     const unitsTranslator = {
       "px": (number) => {
         return convertUnitToNumber(number);
@@ -72,12 +73,10 @@ var Workspace = class {
         return convertUnitToNumber(number) / 100 * height;
       },
       "vh": (number) => {
-        const height2 = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-        return convertUnitToNumber(number) / 100 * height2;
+        return convertUnitToNumber(number) / 100 * aHeight;
       },
       "vw": (number) => {
-        const width2 = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        return convertUnitToNumber(number) / 100 * width2;
+        return convertUnitToNumber(number) / 100 * aWidth;
       },
       "default": (number) => number
     };
@@ -97,6 +96,9 @@ var Workspace = class {
     }
     return this.#decimal(result);
   }
+  async cloneDefinitions(data) {
+    return await this.#iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
+  }
   #decimal(number, precision = 2) {
     return +number.toFixed(precision);
   }
@@ -110,16 +112,30 @@ var Workspace = class {
       set.height = height2;
     }
     if (typeof set.width != "number") {
-      set.width = height2 * 0.707070707;
+      const a4Ratio = 0.707070707;
+      set.width = height2 * a4Ratio;
     }
     return set;
   }
   #getSize() {
-    const ratio = this.#getSettings().width / this.#getSettings().height;
+    const { width: aWidth2, height: aHeight2 } = this.#getSettings(), ratio = aWidth2 / aHeight2;
     let height2 = this.#ctx.canvas.offsetHeight, width2 = height2 * ratio;
     if (width2 > this.#ctx.canvas.offsetWidth) {
       width2 = this.#ctx.canvas.offsetWidth;
-      height2 = width2 * (this.#getSettings().height / this.#getSettings().width);
+      height2 = width2 * (height2 / width2);
+    }
+    return {
+      width: width2,
+      height: height2
+    };
+  }
+  #getSizeRelative() {
+    const settings = this.#getSettings(), { width: aWidth2, height: aHeight2 } = this.#getSize(), rWidth = settings.relative?.width ?? aWidth2, rHeight = settings.relative?.height ?? aHeight2;
+    const ratio = rWidth / rHeight;
+    let height2 = this.#ctx.canvas.offsetHeight, width2 = height2 * ratio;
+    if (width2 > this.#ctx.canvas.offsetWidth) {
+      width2 = this.#ctx.canvas.offsetWidth;
+      height2 = width2 * (rHeight / rWidth);
     }
     return {
       width: width2,
@@ -128,9 +144,6 @@ var Workspace = class {
   }
   #isObject(value) {
     return typeof value === "object" && !Array.isArray(value) && value !== null;
-  }
-  async functionToNumber(data) {
-    return await this.#iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
   }
   async #iterateResolveAndCloneObject(object, recursive, depth = 0) {
     if (recursive.has(object)) {
@@ -228,8 +241,14 @@ var AntetypeWorkspace = class {
       values[key] = this.#instance.calc(values[key]);
     }
   }
-  async functionToNumber(event) {
-    event.detail.element = await this.#instance.functionToNumber(event.detail.element);
+  /**
+   * @TODO Should this be moved to the core?
+   */
+  async cloneDefinitions(event) {
+    if (event.detail.element === null) {
+      return;
+    }
+    event.detail.element = await this.#instance.cloneDefinitions(event.detail.element);
   }
   static subscriptions = {
     [
@@ -238,7 +257,7 @@ var AntetypeWorkspace = class {
     ]: "calc",
     [Event.CALC]: [
       {
-        method: "functionToNumber",
+        method: "cloneDefinitions",
         priority: -255
       }
     ],
@@ -246,7 +265,7 @@ var AntetypeWorkspace = class {
     [Event.DRAW]: [
       {
         method: "draw",
-        priority: 10
+        priority: 255
       },
       {
         method: "setOrigin",
@@ -263,6 +282,22 @@ var EnAntetypeWorkspace = AntetypeWorkspace;
 var src_default = EnAntetypeWorkspace;
 
 // src/shared.tsx
+async function calcFill(illustrator, fill) {
+  if (fill.type === "linear") {
+    const style = fill.style;
+    style.pos = await illustrator.calc({
+      layerType: "polygon-fill-linear",
+      purpose: "position",
+      values: style.pos
+    });
+    style.size = await illustrator.calc({
+      layerType: "polygon-fill-linear",
+      purpose: "size",
+      values: style.size
+    });
+  }
+  return fill;
+}
 function generateFill(type, style) {
   const filTypes = {
     "default": (style2) => {
@@ -295,7 +330,8 @@ var ResolveCalcPolygon = async (action, modules) => {
   const objSwitch = {
     close: () => {
     },
-    fill: () => {
+    fill: async (action2) => {
+      await calcFill(illustrator, action2.args);
     },
     line: async (action2) => {
       action2.args = await illustrator.calc({
@@ -445,6 +481,15 @@ var ResolveImageCalc = async (modules, def) => {
     purpose: "position",
     values: def.start
   });
+  if (def.image.outline?.thickness) {
+    def.image.outline.thickness = (await modules.illustrator.calc({
+      layerType: "image",
+      purpose: "thickness",
+      values: {
+        thickness: def.image.outline.thickness
+      }
+    })).thickness;
+  }
   const cacheKey = getImageCacheKey(def.image, def.size.w, def.size.h), cached = cachedBySettings[cacheKey];
   if (cached) {
     def.image.calculated = calculateFromCache(def, cached);
@@ -717,15 +762,34 @@ var ResolveTextCalc = async (def, modules) => {
     purpose: "position",
     values: def.start
   });
-  const { fontSize, gap } = await illustrator.calc({
+  const {
+    outlineThickness,
+    fontSize,
+    gap,
+    lineHeight
+  } = await illustrator.calc({
     layerType: "text",
     purpose: "prepare",
-    values: { fontSize: getFontSize(def), gap: def.text.columns?.gap || 0 }
+    values: {
+      fontSize: getFontSize(def),
+      lineHeight: def.text.lineHeight ?? 0,
+      gap: def.text.columns?.gap ?? 0,
+      outlineThickness: def.text.outline?.thickness ?? 0
+    }
   });
+  if (def.text.lineHeight) {
+    def.text.lineHeight = lineHeight;
+  }
+  if (def.text.outline?.thickness) {
+    def.text.outline.thickness = outlineThickness;
+  }
   def.text.columns = def.text.columns ?? { amount: 1, gap: 0 };
   def.text.columns.gap = gap;
   def.text.font = def.text.font ?? {};
   def.text.font.size = fontSize;
+  if (typeof def.text.color.type == "string") {
+    await calcFill(illustrator, def.text.color);
+  }
   return def;
 };
 var ResolveTextAction = (ctx, def) => {
@@ -915,18 +979,13 @@ var ResolveGroupCalc = async (modules, def) => {
   });
   def.start.y ??= 0;
   def.start.x ??= 0;
-  const initSettings = modules.system.setting.get("workspace");
-  const previousWorkspaceSettings = initSettings ?? void 0;
-  if (!isNaN(def.size.w) || !isNaN(def.size.h)) {
-    const settings = initSettings ?? {};
-    if (!isNaN(def.size.h)) {
-      settings.height = Math.floor(def.size.h);
-    }
-    if (!isNaN(def.size.w)) {
-      settings.width = Math.floor(def.size.w);
-    }
-    modules.system.setting.set("workspace", settings);
-  }
+  const settings = modules.system.setting.get("workspace") ?? {};
+  settings.relative ??= {};
+  const pRelHeight = settings.relative.height;
+  const pRelWidth = settings.relative.width;
+  if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
+  if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
+  modules.system.setting.set("workspace", settings);
   def.layout = await modules.system.view.recalc(def);
   group.gap = await modules.illustrator.calc({
     layerType: "group",
@@ -936,7 +995,8 @@ var ResolveGroupCalc = async (modules, def) => {
   group.gap.vertical ??= 0;
   group.gap.horizontal ??= 0;
   group.interaction ??= "fixed";
-  modules.system.setting.set("workspace", previousWorkspaceSettings);
+  settings.relative.height = pRelHeight;
+  settings.relative.width = pRelWidth;
 };
 var ResolveGroupAction = (ctx, modules, def) => {
   const { group, start } = def;
@@ -1051,11 +1111,11 @@ var Illustrator = class {
       purpose: "position",
       values: def.start
     });
-    for (const step of def.steps) {
+    for (const step of def.polygon.steps) {
       await ResolveCalcPolygon(step, this.#modules2);
     }
   }
-  polygon({ steps, start: { x, y } }) {
+  polygon({ polygon: { steps }, start: { x, y } }) {
     const ctx = this.#ctx2;
     ctx.save();
     ctx.beginPath();

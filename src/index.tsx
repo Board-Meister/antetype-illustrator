@@ -51,7 +51,7 @@ export class AntetypeIllustrator {
   }
 
   async calc(event: CustomEvent<CalcEvent>): Promise<void> {
-    if (!this.#instance) {
+    if (!this.#instance || event.detail.element === null) {
       return;
     }
     const { element } = event.detail;

@@ -69,12 +69,12 @@ export default class Illustrator implements IIllustrator {
       values: def.start,
     });
 
-    for (const step of def.steps) {
+    for (const step of def.polygon.steps) {
       await ResolveCalcPolygon(step, this.#modules);
     }
   }
 
-  polygon({ steps, start: { x, y } }: IPolygonDef): void {
+  polygon({ polygon: { steps }, start: { x, y } }: IPolygonDef): void {
     const ctx = this.#ctx;
     ctx.save();
     ctx.beginPath();

@@ -71,8 +71,6 @@ export interface LinearFillStyle {
   colors: LeanerFillColor[]
 }
 
-export type FillTypes = IFillLinear|IFillDefault;
-
 export interface IFillLinear {
   type: 'linear';
   style: LinearFillStyle;
@@ -83,14 +81,17 @@ export interface IFillDefault {
   style: FillStyle;
 }
 
+export type FillTypes = IFillLinear|IFillDefault;
+
 export interface IFill {
   means: 'fill';
-  args: IFillDefault|IFillLinear
+  args: FillTypes
 }
 
 export type PolygonActions = ILine | ICurve | IStroke | IBegin | IMove | IClose | IFill;
 
 export interface IPolygonDef<T = never> extends IBaseDef<T> {
-  steps: PolygonActions[];
-  fill: FillStyle;
+  polygon: {
+    steps: PolygonActions[];
+  }
 }
