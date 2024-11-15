@@ -1,10 +1,11 @@
 import type { Modules } from "@boardmeister/antetype";
 import { IIllustrator } from "@src/module";
-import { IBegin, ICurve, IFill, ILine, IMove, IStroke } from "@src/type/polygon.d";
+import { IBegin, ICurve, IFill, ILine, IMove, IPolygonDef, IStroke } from "@src/type/polygon.d";
 import { calcFill } from "@src/shared";
 import { Actions, PActions, PolygonActionTypes } from "@src/action/polygon";
 
 export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
+  def: IPolygonDef,
   action: PActions<K>,
   modules: Modules,
 ): Promise<void> => {
@@ -20,6 +21,9 @@ export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
         purpose: 'position',
         values: action.args,
       });
+
+      updateSizeVectors(def, action.args.x, 'x');
+      updateSizeVectors(def, action.args.y, 'y');
     },
     curve: async (action: ICurve): Promise<void> => {
       action.args = await illustrator.calc<ICurve['args']>({
@@ -27,6 +31,12 @@ export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
         purpose: 'position',
         values: action.args,
       });
+
+      updateSizeVectors(def, action.args.x, 'x');
+      updateSizeVectors(def, action.args.cp1x, 'x');
+      updateSizeVectors(def, action.args.cp2x, 'x');
+      updateSizeVectors(def, action.args.y, 'y');
+      updateSizeVectors(def, action.args.cp2y, 'y');
     },
     stroke: async (action: IStroke): Promise<void> => {
       action.args.thickness = (await illustrator.calc<{ thickness: number }>({
@@ -41,6 +51,9 @@ export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
         purpose: 'position',
         values: action.args,
       });
+
+      updateSizeVectors(def, action.args.x, 'x');
+      updateSizeVectors(def, action.args.y, 'y');
     },
     move: async (action: IMove): Promise<void> => {
       action.args = await illustrator.calc<IMove['args']>({
@@ -60,4 +73,14 @@ export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
   }
 
   objSwitch[action.means](action);
+}
+
+const updateSizeVectors = (def: IPolygonDef, value: number, dir: 'x'|'y'): void => {
+  if (value < 0) {
+    const n = def.polygon.size.negative;
+    n[dir] = Math.min(n[dir], value);
+  } else {
+    const p = def.polygon.size.positive;
+    p[dir] = Math.max(p[dir], value);
+  }
 }

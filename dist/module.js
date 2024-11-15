@@ -682,7 +682,7 @@ var separateIntoRows = (def, layout) => {
 };
 
 // src/action/polygon.calc.tsx
-var ResolveCalcPolygon = async (action, modules) => {
+var ResolveCalcPolygon = async (def, action, modules) => {
   const illustrator = modules.illustrator;
   const objSwitch = {
     close: () => {
@@ -696,6 +696,8 @@ var ResolveCalcPolygon = async (action, modules) => {
         purpose: "position",
         values: action2.args
       });
+      updateSizeVectors(def, action2.args.x, "x");
+      updateSizeVectors(def, action2.args.y, "y");
     },
     curve: async (action2) => {
       action2.args = await illustrator.calc({
@@ -703,6 +705,11 @@ var ResolveCalcPolygon = async (action, modules) => {
         purpose: "position",
         values: action2.args
       });
+      updateSizeVectors(def, action2.args.x, "x");
+      updateSizeVectors(def, action2.args.cp1x, "x");
+      updateSizeVectors(def, action2.args.cp2x, "x");
+      updateSizeVectors(def, action2.args.y, "y");
+      updateSizeVectors(def, action2.args.cp2y, "y");
     },
     stroke: async (action2) => {
       action2.args.thickness = (await illustrator.calc({
@@ -717,6 +724,8 @@ var ResolveCalcPolygon = async (action, modules) => {
         purpose: "position",
         values: action2.args
       });
+      updateSizeVectors(def, action2.args.x, "x");
+      updateSizeVectors(def, action2.args.y, "y");
     },
     move: async (action2) => {
       action2.args = await illustrator.calc({
@@ -733,6 +742,15 @@ var ResolveCalcPolygon = async (action, modules) => {
     return;
   }
   objSwitch[action.means](action);
+};
+var updateSizeVectors = (def, value, dir) => {
+  if (value < 0) {
+    const n = def.polygon.size.negative;
+    n[dir] = Math.min(n[dir], value);
+  } else {
+    const p = def.polygon.size.positive;
+    p[dir] = Math.max(p[dir], value);
+  }
 };
 
 // src/action/image.calc.tsx
@@ -1119,8 +1137,12 @@ var Illustrator = class {
       purpose: "position",
       values: def.start
     });
+    def.polygon.size = {
+      negative: { x: 0, y: 0 },
+      positive: { x: 0, y: 0 }
+    };
     for (const step of def.polygon.steps) {
-      await ResolveCalcPolygon(step, this.#modules2);
+      await ResolveCalcPolygon(def, step, this.#modules2);
     }
   }
   polygon({ polygon: { steps }, start: { x, y } }) {

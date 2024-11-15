@@ -1,4 +1,4 @@
-import { IBaseDef, XValue, YValue } from "@boardmeister/antetype";
+import { IBaseDef, XValue, YValue, IStart } from "@boardmeister/antetype";
 
 export declare type LineJoin = "round"|"bevel"|"miter";
 export declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;
@@ -93,5 +93,9 @@ export type PolygonActions = ILine | ICurve | IStroke | IBegin | IMove | IClose 
 export interface IPolygonDef<T = never> extends IBaseDef<T> {
   polygon: {
     steps: PolygonActions[];
+    size: {
+      negative: IStart;
+      positive: IStart;
+    }
   }
 }

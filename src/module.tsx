@@ -71,9 +71,13 @@ export default class Illustrator implements IIllustrator {
       purpose: 'position',
       values: def.start,
     });
+    def.polygon.size = {
+      negative: { x: 0, y: 0 },
+      positive: { x: 0, y: 0 },
+    };
 
     for (const step of def.polygon.steps) {
-      await ResolveCalcPolygon(step, this.#modules);
+      await ResolveCalcPolygon(def, step, this.#modules);
     }
   }
 
