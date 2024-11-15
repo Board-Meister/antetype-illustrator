@@ -325,58 +325,6 @@ var generateLinearGradient = (colors, x, y, width2, height2) => {
 };
 
 // src/action/polygon.tsx
-var ResolveCalcPolygon = async (action, modules) => {
-  const illustrator = modules.illustrator;
-  const objSwitch = {
-    close: () => {
-    },
-    fill: async (action2) => {
-      await calcFill(illustrator, action2.args);
-    },
-    line: async (action2) => {
-      action2.args = await illustrator.calc({
-        layerType: "polygon-line",
-        purpose: "position",
-        values: action2.args
-      });
-    },
-    curve: async (action2) => {
-      action2.args = await illustrator.calc({
-        layerType: "polygon-curve",
-        purpose: "position",
-        values: action2.args
-      });
-    },
-    stroke: async (action2) => {
-      action2.args.thickness = (await illustrator.calc({
-        layerType: "polygon-stroke",
-        purpose: "thickness",
-        values: { thickness: action2.args.thickness ?? 5 }
-      })).thickness;
-    },
-    begin: async (action2) => {
-      action2.args = await illustrator.calc({
-        layerType: "polygon-begin",
-        purpose: "position",
-        values: action2.args
-      });
-    },
-    move: async (action2) => {
-      action2.args = await illustrator.calc({
-        layerType: "polygon-move",
-        purpose: "position",
-        values: action2.args
-      });
-    }
-  };
-  if (!action.means) {
-    action.means = "line";
-  }
-  if (!objSwitch[action.means]) {
-    return;
-  }
-  objSwitch[action.means](action);
-};
 var Actions = {
   line: (ctx, x, y) => {
     ctx.lineTo(x, y);
@@ -460,8 +408,6 @@ function ResolvePolygonAction(ctx, action, x, y) {
 var IMAGE_ERROR_STATUS = Symbol("error");
 var IMAGE_TIMEOUT_STATUS = Symbol("timeout");
 var IMAGE_LOADING_STATUS = Symbol("loading");
-var loadedImages = {};
-var cachedBySettings = {};
 var CalculatedImage = class {
   image;
   coords;
@@ -470,6 +416,328 @@ var CalculatedImage = class {
     this.coords = coords;
   }
 };
+var ResolveImageAction = async (ctx, def) => {
+  const image = def.image.calculated;
+  if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image)) {
+    return;
+  }
+  if (!(image instanceof CalculatedImage)) {
+    return;
+  }
+  const { x, y, width: width2, height: height2 } = image.coords;
+  ctx.drawImage(image.image, x, y, width2, height2);
+};
+var imageTimeoutReached = (image) => {
+  return image === IMAGE_TIMEOUT_STATUS;
+};
+var imageIsBeingLoaded = (image) => {
+  return image === IMAGE_LOADING_STATUS;
+};
+
+// src/action/text.tsx
+var getFontSize = (def) => def.text.font?.size || 10;
+var ResolveTextAction = (ctx, def) => {
+  let { x, y } = def.start;
+  const { h, w } = def.size;
+  ctx.save();
+  const { lines: texts, lineHeight, width: columnWidth, columns, fontSize } = prepare(def, ctx, w), linesAmount = Math.ceil(texts.length / columns.amount);
+  if (isSafari()) {
+    y -= fontSize * 0.2;
+  }
+  const transY = calcVerticalMove(h, lineHeight, texts, def.text.align?.vertical || "top");
+  let lines = [], previousColumnsLines = 0;
+  while ((lines = texts.splice(0, linesAmount)).length) {
+    lines.forEach((text, i) => {
+      const nextLine = lines[i + 1] || texts[0] || [""];
+      const isLast = i + 1 == lines.length || nextLine[0] == "" || text[0][text[0].length - 1] == "\n";
+      const verticalMove = transY + (text[1] - previousColumnsLines) * lineHeight;
+      fillText(ctx, text[0], def, x, y, columnWidth, verticalMove, isLast);
+    });
+    previousColumnsLines += lines[lines.length - 1][1] + 1;
+    x += columns.gap + columnWidth;
+  }
+  ctx.restore();
+};
+var fillText = (ctx, text, def, x, y, width2, transY, isLast) => {
+  const { color = "#000", outline = null } = def.text;
+  const horizontal = def.text.align?.horizontal || "left";
+  if (horizontal != "left") {
+    ({ text, x } = alignHorizontally(ctx, horizontal, text, width2, isLast, x));
+  }
+  if (transY > 0) {
+    y = y + transY;
+  }
+  ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
+  if (outline) {
+    outlineText(ctx, outline, text, x, y, width2);
+  }
+  ctx.fillText(text, x, y, width2);
+};
+var outlineText = (ctx, outline, text, x, y, width2) => {
+  ctx.strokeStyle = generateFill(outline.fill.type, outline.fill.style);
+  ctx.lineWidth = outline.thickness;
+  ctx.lineJoin = outline.lineJoin ?? "round";
+  ctx.miterLimit = outline.miterLimit ?? 2;
+  ctx.strokeText(text, x, y, width2);
+};
+var alignHorizontally = (ctx, horizontal, text, width2, isLast, x) => {
+  const metrics = ctx.measureText(text);
+  const realWidth = metrics.width;
+  if (horizontal == "center") {
+    const transX = (width2 - realWidth) / 2;
+    if (transX > 0) {
+      x = x + transX;
+    }
+  } else if (horizontal == "right") {
+    x = x + width2 - realWidth;
+  } else if (horizontal == "justify" && !isLast) {
+    text = justifyText(text, metrics, width2, ctx);
+  }
+  return { text, x };
+};
+var justifyText = (text, metrics, width2, ctx) => {
+  if (metrics.width >= width2) {
+    return text;
+  }
+  const words = text.split(" "), spacingMeasure = ctx.measureText(getSpaceChart()), spacings = Math.floor((width2 - metrics.width) / spacingMeasure.width), amount = spacings / (words.length - 1);
+  for (let j = 0; j < words.length - 1; j++) {
+    words[j] += getSpaceChart().repeat(amount);
+  }
+  return words.join(" ");
+};
+var calcVerticalMove = (height2, lineHeight, lines, vAlign) => {
+  if (!height2 || lines.length * lineHeight >= height2) {
+    return 0;
+  }
+  const diff = height2 - lines.length * lineHeight;
+  if (vAlign === "center") {
+    return diff / 2;
+  }
+  if (vAlign === "bottom") {
+    return diff;
+  }
+  return 0;
+};
+var prepare = (def, ctx, width2) => {
+  const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
+  let { value: text } = def.text;
+  ctx.font = prepareFontShorthand(def, ctx, fontSize);
+  const colWidth = calcColumnWidth(width2, columns);
+  text = addSpacing(def, text);
+  ctx.textBaseline = textBaseline;
+  const lines = getTextLines(def, text, ctx, colWidth);
+  return {
+    lines,
+    fontSize,
+    lineHeight: def.text.lineHeight ?? fontSize,
+    width: colWidth,
+    columns
+  };
+};
+var getTextLines = (def, text, ctx, width2) => {
+  if (!def.text.wrap) {
+    return [[text, 0]];
+  }
+  const rows = [];
+  let words = text.split(/[^\S\r\n]/), line = "", i = 0;
+  while (words.length > 0) {
+    const newLinePos = words[0].search(/[\r\n]/);
+    if (newLinePos !== -1) {
+      const newLine = words[0].substring(0, newLinePos);
+      rows.push([(line + " " + newLine).trim() + "\n", i]);
+      line = "";
+      i++;
+      words[0] = words[0].substring(newLinePos + 1);
+      continue;
+    }
+    const metrics = ctx.measureText(line + words[0]);
+    if (metrics.width > width2) {
+      if (line.length > 0) {
+        rows.push([line.trim(), i]);
+        i++;
+      }
+      line = "";
+    }
+    line += " " + words[0];
+    words = words.splice(1);
+  }
+  if (line.length > 0) {
+    rows.push([line.replace(/^\s+/, ""), i]);
+  }
+  return rows;
+};
+var addSpacing = (def, text) => {
+  if (!def.text.spacing) {
+    return text;
+  }
+  return text.split("").join(getSpaceChart().repeat(def.text.spacing));
+};
+var getSpaceChart = () => String.fromCharCode(8202);
+var prepareFontShorthand = (def, ctx, fontSize) => {
+  const { font = null } = def.text;
+  if (!font) {
+    return ctx.font;
+  }
+  fontSize = fontSize + "px ";
+  const fontFamily = (font.family || "serif") + " ";
+  const fontWeight = (font.weight ?? 100) + " ";
+  let fontSh = "";
+  if (font.style) {
+    fontSh += font.style + " ";
+  }
+  if (font.variant) {
+    fontSh += font.variant + " ";
+  }
+  fontSh += fontWeight;
+  if (font.stretch) {
+    fontSh += font.stretch + " ";
+  }
+  fontSh += fontSize;
+  if (font.height) {
+    fontSh += "/" + font.height + " ";
+  }
+  return fontSh + fontFamily;
+};
+var calcColumnWidth = (rWidth, columns) => {
+  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
+};
+var isSafari = () => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
+
+// src/action/group.tsx
+var ResolveGroupAction = (ctx, modules, def) => {
+  const { group, start } = def;
+  if (def.layout.length === 0) {
+    return;
+  }
+  ctx.save();
+  ctx.translate(start.x, start.y);
+  if (group.interaction === "fixed") {
+    modules.system.view.redraw(def.layout);
+  } else {
+    drawLayersRelatively(ctx, modules, def);
+  }
+  ctx.restore();
+};
+var getRowsHeight = (def, rows) => {
+  let height2 = 0;
+  const horizontal = def.group.gap.horizontal;
+  rows.forEach((row) => {
+    height2 += row.height + horizontal;
+  });
+  return height2 - horizontal;
+};
+var getRowsWidth = (rows) => {
+  let width2 = 0;
+  rows.forEach((row) => {
+    width2 += row.width;
+  });
+  return width2;
+};
+var drawLayersRelatively = (ctx, modules, def) => {
+  const { group } = def;
+  const { vertical, horizontal } = group.gap;
+  const rows = separateIntoRows(def, def.layout);
+  if (group.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
+    ctx.beginPath();
+    ctx.rect(
+      def.start.x,
+      def.start.y,
+      isNaN(def.size.w) ? getRowsWidth(rows) : def.size.w,
+      isNaN(def.size.h) ? getRowsHeight(def, rows) : def.size.h
+    );
+    ctx.clip();
+  }
+  let currentHeight = 0;
+  let xShift = 0;
+  rows.forEach((row) => {
+    row.layers.forEach((layer) => {
+      ctx.save();
+      ctx.translate(xShift, currentHeight);
+      modules.system.view.draw(layer.def);
+      ctx.restore();
+      xShift += layer.def.size.w + vertical;
+    });
+    xShift = 0;
+    currentHeight += row.height + horizontal;
+  });
+};
+var separateIntoRows = (def, layout) => {
+  const { size } = def;
+  const rows = [];
+  const generateRow = () => ({ height: 0, width: 0, layers: [] });
+  let row = generateRow();
+  layout.forEach((layer, i) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i != 0 && def.group.direction === "column") {
+      rows.push(row);
+      row = generateRow();
+    }
+    row.layers.push({ x: row.width, def: layer });
+    if (row.height < layer.size.h) row.height = layer.size.h;
+    row.width += layer.size.w + def.group.gap.vertical;
+  });
+  rows.push(row);
+  return rows;
+};
+
+// src/action/polygon.calc.tsx
+var ResolveCalcPolygon = async (action, modules) => {
+  const illustrator = modules.illustrator;
+  const objSwitch = {
+    close: () => {
+    },
+    fill: async (action2) => {
+      await calcFill(illustrator, action2.args);
+    },
+    line: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-line",
+        purpose: "position",
+        values: action2.args
+      });
+    },
+    curve: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-curve",
+        purpose: "position",
+        values: action2.args
+      });
+    },
+    stroke: async (action2) => {
+      action2.args.thickness = (await illustrator.calc({
+        layerType: "polygon-stroke",
+        purpose: "thickness",
+        values: { thickness: action2.args.thickness ?? 5 }
+      })).thickness;
+    },
+    begin: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-begin",
+        purpose: "position",
+        values: action2.args
+      });
+    },
+    move: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-move",
+        purpose: "position",
+        values: action2.args
+      });
+    }
+  };
+  if (!action.means) {
+    action.means = "line";
+  }
+  if (!objSwitch[action.means]) {
+    return;
+  }
+  objSwitch[action.means](action);
+};
+
+// src/action/image.calc.tsx
+var loadedImages = {};
+var cachedBySettings = {};
 var ResolveImageCalc = async (modules, def) => {
   def.size = await modules.illustrator.calc({
     layerType: "image",
@@ -566,23 +834,6 @@ var calculateImage = async (def, source, cacheKey = null) => {
       height: asHeight
     }
   );
-};
-var ResolveImageAction = async (ctx, def) => {
-  const image = def.image.calculated;
-  if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image)) {
-    return;
-  }
-  if (!(image instanceof CalculatedImage)) {
-    return;
-  }
-  const { x, y, width: width2, height: height2 } = image.coords;
-  ctx.drawImage(image.image, x, y, width2, height2);
-};
-var imageTimeoutReached = (image) => {
-  return image === IMAGE_TIMEOUT_STATUS;
-};
-var imageIsBeingLoaded = (image) => {
-  return image === IMAGE_LOADING_STATUS;
 };
 var getImageCacheKey = (image, width2, height2) => JSON.stringify({ ...image, timeout: 0, calculated: 0, width: width2, height: height2 });
 var loadImage = async (def, src, modules) => {
@@ -749,7 +1000,7 @@ var getImageHorizontalDiff = (align, width2, asWidth) => {
   return (width2 - asWidth) / 2;
 };
 
-// src/action/text.tsx
+// src/action/text.calc.tsx
 var ResolveTextCalc = async (def, modules) => {
   const illustrator = modules.illustrator;
   def.size = await illustrator.calc({
@@ -792,177 +1043,8 @@ var ResolveTextCalc = async (def, modules) => {
   }
   return def;
 };
-var ResolveTextAction = (ctx, def) => {
-  let { x, y } = def.start;
-  const { h, w } = def.size;
-  ctx.save();
-  const { lines: texts, lineHeight, width: columnWidth, columns, fontSize } = prepare(def, ctx, w), linesAmount = Math.ceil(texts.length / columns.amount);
-  if (isSafari()) {
-    y -= fontSize * 0.2;
-  }
-  const transY = calcVerticalMove(h, lineHeight, texts, def.text.align?.vertical || "top");
-  let lines = [], previousColumnsLines = 0;
-  while ((lines = texts.splice(0, linesAmount)).length) {
-    lines.forEach((text, i) => {
-      const nextLine = lines[i + 1] || texts[0] || [""];
-      const isLast = i + 1 == lines.length || nextLine[0] == "" || text[0][text[0].length - 1] == "\n";
-      const verticalMove = transY + (text[1] - previousColumnsLines) * lineHeight;
-      fillText(ctx, text[0], def, x, y, columnWidth, verticalMove, isLast);
-    });
-    previousColumnsLines += lines[lines.length - 1][1] + 1;
-    x += columns.gap + columnWidth;
-  }
-  ctx.restore();
-};
-var fillText = (ctx, text, def, x, y, width2, transY, isLast) => {
-  const { color = "#000", outline = null } = def.text;
-  const horizontal = def.text.align?.horizontal || "left";
-  if (horizontal != "left") {
-    ({ text, x } = alignHorizontally(ctx, horizontal, text, width2, isLast, x));
-  }
-  if (transY > 0) {
-    y = y + transY;
-  }
-  ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
-  if (outline) {
-    outlineText(ctx, outline, text, x, y, width2);
-  }
-  ctx.fillText(text, x, y, width2);
-};
-var outlineText = (ctx, outline, text, x, y, width2) => {
-  ctx.strokeStyle = generateFill(outline.fill.type, outline.fill.style);
-  ctx.lineWidth = outline.thickness;
-  ctx.lineJoin = outline.lineJoin ?? "round";
-  ctx.miterLimit = outline.miterLimit ?? 2;
-  ctx.strokeText(text, x, y, width2);
-};
-var alignHorizontally = (ctx, horizontal, text, width2, isLast, x) => {
-  const metrics = ctx.measureText(text);
-  const realWidth = metrics.width;
-  if (horizontal == "center") {
-    const transX = (width2 - realWidth) / 2;
-    if (transX > 0) {
-      x = x + transX;
-    }
-  } else if (horizontal == "right") {
-    x = x + width2 - realWidth;
-  } else if (horizontal == "justify" && !isLast) {
-    text = justifyText(text, metrics, width2, ctx);
-  }
-  return { text, x };
-};
-var justifyText = (text, metrics, width2, ctx) => {
-  if (metrics.width >= width2) {
-    return text;
-  }
-  const words = text.split(" "), spacingMeasure = ctx.measureText(getSpaceChart()), spacings = Math.floor((width2 - metrics.width) / spacingMeasure.width), amount = spacings / (words.length - 1);
-  for (let j = 0; j < words.length - 1; j++) {
-    words[j] += getSpaceChart().repeat(amount);
-  }
-  return words.join(" ");
-};
-var calcVerticalMove = (height2, lineHeight, lines, vAlign) => {
-  if (!height2 || lines.length * lineHeight >= height2) {
-    return 0;
-  }
-  const diff = height2 - lines.length * lineHeight;
-  if (vAlign === "center") {
-    return diff / 2;
-  }
-  if (vAlign === "bottom") {
-    return diff;
-  }
-  return 0;
-};
-var prepare = (def, ctx, width2) => {
-  const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
-  let { value: text } = def.text;
-  ctx.font = prepareFontShorthand(def, ctx, fontSize);
-  const colWidth = calcColumnWidth(width2, columns);
-  text = addSpacing(def, text);
-  ctx.textBaseline = textBaseline;
-  const lines = getTextLines(def, text, ctx, colWidth);
-  return {
-    lines,
-    fontSize,
-    lineHeight: def.text.lineHeight ?? fontSize,
-    width: colWidth,
-    columns
-  };
-};
-var getTextLines = (def, text, ctx, width2) => {
-  if (!def.text.wrap) {
-    return [[text, 0]];
-  }
-  const rows = [];
-  let words = text.split(/[^\S\r\n]/), line = "", i = 0;
-  while (words.length > 0) {
-    const newLinePos = words[0].search(/[\r\n]/);
-    if (newLinePos !== -1) {
-      const newLine = words[0].substring(0, newLinePos);
-      rows.push([(line + " " + newLine).trim() + "\n", i]);
-      line = "";
-      i++;
-      words[0] = words[0].substring(newLinePos + 1);
-      continue;
-    }
-    const metrics = ctx.measureText(line + words[0]);
-    if (metrics.width > width2) {
-      if (line.length > 0) {
-        rows.push([line.trim(), i]);
-        i++;
-      }
-      line = "";
-    }
-    line += " " + words[0];
-    words = words.splice(1);
-  }
-  if (line.length > 0) {
-    rows.push([line.replace(/^\s+/, ""), i]);
-  }
-  return rows;
-};
-var addSpacing = (def, text) => {
-  if (!def.text.spacing) {
-    return text;
-  }
-  return text.split("").join(getSpaceChart().repeat(def.text.spacing));
-};
-var getSpaceChart = () => String.fromCharCode(8202);
-var getFontSize = (def) => def.text.font?.size || 10;
-var prepareFontShorthand = (def, ctx, fontSize) => {
-  const { font = null } = def.text;
-  if (!font) {
-    return ctx.font;
-  }
-  fontSize = fontSize + "px ";
-  const fontFamily = (font.family || "serif") + " ";
-  const fontWeight = (font.weight ?? 100) + " ";
-  let fontSh = "";
-  if (font.style) {
-    fontSh += font.style + " ";
-  }
-  if (font.variant) {
-    fontSh += font.variant + " ";
-  }
-  fontSh += fontWeight;
-  if (font.stretch) {
-    fontSh += font.stretch + " ";
-  }
-  fontSh += fontSize;
-  if (font.height) {
-    fontSh += "/" + font.height + " ";
-  }
-  return fontSh + fontFamily;
-};
-var calcColumnWidth = (rWidth, columns) => {
-  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
-};
-var isSafari = () => {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-};
 
-// src/action/group.tsx
+// src/action/group.calc.tsx
 var ResolveGroupCalc = async (modules, def) => {
   const { group } = def;
   def.size = await modules.illustrator.calc({
@@ -997,80 +1079,6 @@ var ResolveGroupCalc = async (modules, def) => {
   group.interaction ??= "fixed";
   settings.relative.height = pRelHeight;
   settings.relative.width = pRelWidth;
-};
-var ResolveGroupAction = (ctx, modules, def) => {
-  const { group, start } = def;
-  if (def.layout.length === 0) {
-    return;
-  }
-  ctx.save();
-  ctx.translate(start.x, start.y);
-  if (group.interaction === "fixed") {
-    modules.system.view.redraw(def.layout);
-  } else {
-    drawLayersRelatively(ctx, modules, def);
-  }
-  ctx.restore();
-};
-var getRowsHeight = (def, rows) => {
-  let height2 = 0;
-  const horizontal = def.group.gap.horizontal;
-  rows.forEach((row) => {
-    height2 += row.height + horizontal;
-  });
-  return height2 - horizontal;
-};
-var getRowsWidth = (rows) => {
-  let width2 = 0;
-  rows.forEach((row) => {
-    width2 += row.width;
-  });
-  return width2;
-};
-var drawLayersRelatively = (ctx, modules, def) => {
-  const { group } = def;
-  const { vertical, horizontal } = group.gap;
-  const rows = separateIntoRows(def, def.layout);
-  if (group.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
-    ctx.beginPath();
-    ctx.rect(
-      def.start.x,
-      def.start.y,
-      isNaN(def.size.w) ? getRowsWidth(rows) : def.size.w,
-      isNaN(def.size.h) ? getRowsHeight(def, rows) : def.size.h
-    );
-    ctx.clip();
-  }
-  let currentHeight = 0;
-  let xShift = 0;
-  rows.forEach((row) => {
-    row.layers.forEach((layer) => {
-      ctx.save();
-      ctx.translate(xShift, currentHeight);
-      modules.system.view.draw(layer.def);
-      ctx.restore();
-      xShift += layer.def.size.w + vertical;
-    });
-    xShift = 0;
-    currentHeight += row.height + horizontal;
-  });
-};
-var separateIntoRows = (def, layout) => {
-  const { size } = def;
-  const rows = [];
-  const generateRow = () => ({ height: 0, width: 0, layers: [] });
-  let row = generateRow();
-  layout.forEach((layer, i) => {
-    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i != 0 && def.group.direction === "column") {
-      rows.push(row);
-      row = generateRow();
-    }
-    row.layers.push({ x: row.width, def: layer });
-    if (row.height < layer.size.h) row.height = layer.size.h;
-    row.width += layer.size.w + def.group.gap.vertical;
-  });
-  rows.push(row);
-  return rows;
 };
 
 // src/module.tsx

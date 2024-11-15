@@ -1,15 +1,18 @@
 import type { Modules, IStart, Module } from "@boardmeister/antetype";
 import { Event, ICalcEvent } from "@boardmeister/antetype-workspace";
-import { ResolveCalcPolygon, ResolvePolygonAction } from "@src/action/polygon";
+import { ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonDef } from "@src/type/polygon.d";
 import { IImageDef } from "@src/type/image.d";
-import { ResolveImageAction, ResolveImageCalc } from "@src/action/image";
+import { ResolveImageAction } from "@src/action/image";
 import { ITextDef } from "@src/type/text.d";
-import { ResolveTextAction, ResolveTextCalc } from "@src/action/text";
-import { ResolveGroupAction, ResolveGroupCalc } from "@src/action/group";
+import { ResolveTextAction } from "@src/action/text";
+import { ResolveGroupAction } from "@src/action/group";
 import { IGroupDef } from "@src/type/group.d";
 import { IInjected } from "@src/index";
-// import { Event, ICalcEvent } from "@src/type/event.d";
+import { ResolveCalcPolygon } from "@src/action/polygon.calc";
+import { ResolveImageCalc } from "@src/action/image.calc";
+import { ResolveTextCalc } from "@src/action/text.calc";
+import { ResolveGroupCalc } from "@src/action/group.calc";
 
 export interface IIllustrator extends Module {
   reset: () => void;

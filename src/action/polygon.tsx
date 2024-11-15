@@ -1,68 +1,9 @@
-import type { XValue, YValue, Modules } from "@boardmeister/antetype";
+import type { XValue, YValue } from "@boardmeister/antetype";
 import {
   FillStyle,
   IBegin, IClose, ICurve, IFill, IFillDefault, IFillLinear, ILine, IMove, IStroke, LineJoin,
 } from "@src/type/polygon.d";
-import { calcFill, generateFill } from "@src/shared";
-import { IIllustrator } from "@src/module";
-
-export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
-  action: PActions<K>,
-  modules: Modules,
-): Promise<void> => {
-  const illustrator = modules.illustrator as IIllustrator;
-  const objSwitch: Actions = {
-    close: (): void => {},
-    fill: async (action: IFill): Promise<void> => {
-      await calcFill(illustrator, action.args);
-    },
-    line: async (action: ILine): Promise<void> => {
-      action.args = await illustrator.calc<ILine['args']>({
-        layerType: 'polygon-line',
-        purpose: 'position',
-        values: action.args,
-      });
-    },
-    curve: async (action: ICurve): Promise<void> => {
-      action.args = await illustrator.calc<ICurve['args']>({
-        layerType: 'polygon-curve',
-        purpose: 'position',
-        values: action.args,
-      });
-    },
-    stroke: async (action: IStroke): Promise<void> => {
-      action.args.thickness = (await illustrator.calc<{ thickness: number }>({
-        layerType: 'polygon-stroke',
-        purpose: 'thickness',
-        values: { thickness: action.args.thickness ?? 5 },
-      })).thickness;
-    },
-    begin: async (action: IBegin): Promise<void> => {
-      action.args = await illustrator.calc<IBegin['args']>({
-        layerType: 'polygon-begin',
-        purpose: 'position',
-        values: action.args,
-      });
-    },
-    move: async (action: IMove): Promise<void> => {
-      action.args = await illustrator.calc<IMove['args']>({
-        layerType: 'polygon-move',
-        purpose: 'position',
-        values: action.args,
-      });
-    },
-  };
-
-  if (!action.means) {
-    (action as ILine).means = 'line'
-  }
-
-  if (!objSwitch[action.means]) {
-    return;
-  }
-
-  objSwitch[action.means](action);
-}
+import { generateFill } from "@src/shared";
 
 const Actions = {
   line: (ctx: CanvasRenderingContext2D, x: XValue, y: YValue): void => {
@@ -129,10 +70,10 @@ export interface PolygonActionTypes {
 
 type PActionTypes = PolygonActionTypes;
 
-type PActions<K extends keyof PActionTypes = keyof PActionTypes>
+export type PActions<K extends keyof PActionTypes = keyof PActionTypes>
   = { [P in K]: { means: P, args: PActionTypes[P]['args'] } }[K]
 
-type Actions = { [K in keyof PActionTypes]: (action: PActions<K>) => void }
+export type Actions = { [K in keyof PActionTypes]: (action: PActions<K>) => void }
 
 export function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
   ctx: CanvasRenderingContext2D,

@@ -1,0 +1,51 @@
+import type { Modules } from "@boardmeister/antetype";
+import type { IWorkspaceSettings } from "@boardmeister/antetype-workspace";
+import { IGroupDef } from "@src/type/group.d";
+import { IIllustrator } from "@src/module";
+
+export const ResolveGroupCalc = async (
+  modules: Modules,
+  def: IGroupDef
+): Promise<void> => {
+  const { group } = def;
+
+  def.size = await (modules.illustrator as IIllustrator).calc<IGroupDef['size']>({
+    layerType: 'group',
+    purpose: 'size',
+    values: def.size ?? { w: 0, h: 0 },
+  });
+  def.size.w ??= NaN;
+  def.size.h ??= NaN;
+
+  def.start = await (modules.illustrator as IIllustrator).calc<IGroupDef['start']>({
+    layerType: 'group',
+    purpose: 'position',
+    values: def.start ?? { x: 0, y: 0 },
+  });
+  def.start.y ??= 0;
+  def.start.x ??= 0;
+
+  /* Set relative sizes */
+  const settings = (modules.system.setting.get('workspace') ?? {}) as IWorkspaceSettings;
+  settings.relative ??= {};
+  const pRelHeight = settings.relative.height;
+  const pRelWidth = settings.relative.width;
+  if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
+  if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
+  modules.system.setting.set('workspace', settings);
+
+  def.layout = await modules.system.view.recalc(def);
+
+  group.gap = await (modules.illustrator as IIllustrator).calc<{ vertical: number, horizontal: number }>({
+    layerType: 'group',
+    purpose: 'gap',
+    values: group.gap ?? { vertical: 0, horizontal: 0 },
+  });
+  group.gap.vertical ??= 0;
+  group.gap.horizontal ??= 0;
+
+  group.interaction ??= 'fixed';
+
+  settings.relative.height = pRelHeight;
+  settings.relative.width = pRelWidth;
+}

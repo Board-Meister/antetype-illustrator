@@ -1,0 +1,63 @@
+import type { Modules } from "@boardmeister/antetype";
+import { IIllustrator } from "@src/module";
+import { IBegin, ICurve, IFill, ILine, IMove, IStroke } from "@src/type/polygon.d";
+import { calcFill } from "@src/shared";
+import { Actions, PActions, PolygonActionTypes } from "@src/action/polygon";
+
+export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
+  action: PActions<K>,
+  modules: Modules,
+): Promise<void> => {
+  const illustrator = modules.illustrator as IIllustrator;
+  const objSwitch: Actions = {
+    close: (): void => {},
+    fill: async (action: IFill): Promise<void> => {
+      await calcFill(illustrator, action.args);
+    },
+    line: async (action: ILine): Promise<void> => {
+      action.args = await illustrator.calc<ILine['args']>({
+        layerType: 'polygon-line',
+        purpose: 'position',
+        values: action.args,
+      });
+    },
+    curve: async (action: ICurve): Promise<void> => {
+      action.args = await illustrator.calc<ICurve['args']>({
+        layerType: 'polygon-curve',
+        purpose: 'position',
+        values: action.args,
+      });
+    },
+    stroke: async (action: IStroke): Promise<void> => {
+      action.args.thickness = (await illustrator.calc<{ thickness: number }>({
+        layerType: 'polygon-stroke',
+        purpose: 'thickness',
+        values: { thickness: action.args.thickness ?? 5 },
+      })).thickness;
+    },
+    begin: async (action: IBegin): Promise<void> => {
+      action.args = await illustrator.calc<IBegin['args']>({
+        layerType: 'polygon-begin',
+        purpose: 'position',
+        values: action.args,
+      });
+    },
+    move: async (action: IMove): Promise<void> => {
+      action.args = await illustrator.calc<IMove['args']>({
+        layerType: 'polygon-move',
+        purpose: 'position',
+        values: action.args,
+      });
+    },
+  };
+
+  if (!action.means) {
+    (action as ILine).means = 'line'
+  }
+
+  if (!objSwitch[action.means]) {
+    return;
+  }
+
+  objSwitch[action.means](action);
+}
