@@ -1,7 +1,7 @@
+import type { Modules, ISystemModule, IArea } from "@boardmeister/antetype";
 import { HorizontalAlignType, IImageArg, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
 import { IIllustrator } from "@src/module";
 import { CalculatedImage, IMAGE_ERROR_STATUS, IMAGE_LOADING_STATUS, IMAGE_TIMEOUT_STATUS } from "@src/action/image";
-import type { Modules, ISystemModule } from "@boardmeister/antetype";
 import { generateFill } from "@src/shared";
 
 const loadedImages: Record<string, CalculatedImage|symbol> = {};
@@ -12,6 +12,17 @@ interface CachedImage {
   width: number;
   height: number;
 }
+
+const ResolveImageSize = (def: IImageDef): IArea => ({
+  start: {
+    x: def.start.x,
+    y:def.start.y,
+  },
+  size: {
+    h: def.size.h,
+    w: def.size.w,
+  }
+});
 
 export const ResolveImageCalc = async (
   modules: Modules,
@@ -28,6 +39,8 @@ export const ResolveImageCalc = async (
     purpose: 'position',
     values: def.start,
   });
+
+  def.area = ResolveImageSize(def);
 
   if (def.image.outline?.thickness) {
     def.image.outline.thickness = (await (modules.illustrator as IIllustrator).calc<{ thickness: number }>({

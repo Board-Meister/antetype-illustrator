@@ -9,7 +9,7 @@ import { ResolveTextAction } from "@src/action/text";
 import { ResolveGroupAction } from "@src/action/group";
 import { IGroupDef } from "@src/type/group.d";
 import { IInjected } from "@src/index";
-import { ResolveCalcPolygon } from "@src/action/polygon.calc";
+import { ResolveCalcPolygon, ResolvePolygonSize } from "@src/action/polygon.calc";
 import { ResolveImageCalc } from "@src/action/image.calc";
 import { ResolveTextCalc } from "@src/action/text.calc";
 import { ResolveGroupCalc } from "@src/action/group.calc";
@@ -79,6 +79,8 @@ export default class Illustrator implements IIllustrator {
     for (const step of def.polygon.steps) {
       await ResolveCalcPolygon(def, step, this.#modules);
     }
+
+    def.area = ResolvePolygonSize(def);
   }
 
   polygon({ polygon: { steps }, start: { x, y } }: IPolygonDef): void {
@@ -104,7 +106,7 @@ export default class Illustrator implements IIllustrator {
   }
 
   async textCalc(def: ITextDef): Promise<void> {
-    await ResolveTextCalc(def, this.#modules);
+    await ResolveTextCalc(def, this.#modules, this.#ctx);
   }
 
   text(def: ITextDef): void {

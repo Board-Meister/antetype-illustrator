@@ -1,6 +1,7 @@
 import { IBaseDef, XValue } from "@boardmeister/antetype";
 import { StandardLonghandProperties } from 'csstype'
 import { FillStyle, FillTypes } from "@src/type/polygon.d";
+import { TextLines } from "@src/action/text";
 
 export declare type VerticalAlign = 'center'|'top'|'bottom';
 export declare type HorizontalAlign = 'center'|'left'|'right'|'justify';
@@ -43,6 +44,9 @@ export interface ITextArgs {
   lineHeight?: XValue;
   color?: FillStyle|FillTypes;
   outline?: ITextOutline;
+  // Calculated do not set!
+  transY?: number;
+  lines?: TextLines;
 }
 
 export interface ITextDef extends IBaseDef {

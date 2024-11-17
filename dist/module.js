@@ -436,25 +436,22 @@ var imageIsBeingLoaded = (image) => {
 
 // src/action/text.tsx
 var getFontSize = (def) => def.text.font?.size || 10;
+var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
-  let { x, y } = def.start;
-  const { h, w } = def.size;
+  let { x } = def.start, lines = [], previousColumnsLines = 0;
+  const { start: { y }, size: { w }, text } = def, { columns, transY, lineHeight } = text, value = [...text.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
   ctx.save();
-  const { lines: texts, lineHeight, width: columnWidth, columns, fontSize } = prepare(def, ctx, w), linesAmount = Math.ceil(texts.length / columns.amount);
-  if (isSafari()) {
-    y -= fontSize * 0.2;
-  }
-  const transY = calcVerticalMove(h, lineHeight, texts, def.text.align?.vertical || "top");
-  let lines = [], previousColumnsLines = 0;
-  while ((lines = texts.splice(0, linesAmount)).length) {
-    lines.forEach((text, i) => {
-      const nextLine = lines[i + 1] || texts[0] || [""];
-      const isLast = i + 1 == lines.length || nextLine[0] == "" || text[0][text[0].length - 1] == "\n";
-      const verticalMove = transY + (text[1] - previousColumnsLines) * lineHeight;
-      fillText(ctx, text[0], def, x, y, columnWidth, verticalMove, isLast);
+  ctx.font = prepareFontShorthand(def, ctx, getFontSize(def));
+  ctx.textBaseline = textBaseline;
+  while ((lines = value.splice(0, linesAmount)).length) {
+    lines.forEach((text2, i) => {
+      const nextLine = lines[i + 1] || value[0] || [""];
+      const isLast = i + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
+      const verticalMove = transY + (text2[1] - previousColumnsLines) * lineHeight;
+      fillText(ctx, text2[0], def, x, y, w, verticalMove, isLast);
     });
     previousColumnsLines += lines[lines.length - 1][1] + 1;
-    x += columns.gap + columnWidth;
+    x += columns.gap + w;
   }
   ctx.restore();
 };
@@ -505,74 +502,6 @@ var justifyText = (text, metrics, width2, ctx) => {
   }
   return words.join(" ");
 };
-var calcVerticalMove = (height2, lineHeight, lines, vAlign) => {
-  if (!height2 || lines.length * lineHeight >= height2) {
-    return 0;
-  }
-  const diff = height2 - lines.length * lineHeight;
-  if (vAlign === "center") {
-    return diff / 2;
-  }
-  if (vAlign === "bottom") {
-    return diff;
-  }
-  return 0;
-};
-var prepare = (def, ctx, width2) => {
-  const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
-  let { value: text } = def.text;
-  ctx.font = prepareFontShorthand(def, ctx, fontSize);
-  const colWidth = calcColumnWidth(width2, columns);
-  text = addSpacing(def, text);
-  ctx.textBaseline = textBaseline;
-  const lines = getTextLines(def, text, ctx, colWidth);
-  return {
-    lines,
-    fontSize,
-    lineHeight: def.text.lineHeight ?? fontSize,
-    width: colWidth,
-    columns
-  };
-};
-var getTextLines = (def, text, ctx, width2) => {
-  if (!def.text.wrap) {
-    return [[text, 0]];
-  }
-  const rows = [];
-  let words = text.split(/[^\S\r\n]/), line = "", i = 0;
-  while (words.length > 0) {
-    const newLinePos = words[0].search(/[\r\n]/);
-    if (newLinePos !== -1) {
-      const newLine = words[0].substring(0, newLinePos);
-      rows.push([(line + " " + newLine).trim() + "\n", i]);
-      line = "";
-      i++;
-      words[0] = words[0].substring(newLinePos + 1);
-      continue;
-    }
-    const metrics = ctx.measureText(line + words[0]);
-    if (metrics.width > width2) {
-      if (line.length > 0) {
-        rows.push([line.trim(), i]);
-        i++;
-      }
-      line = "";
-    }
-    line += " " + words[0];
-    words = words.splice(1);
-  }
-  if (line.length > 0) {
-    rows.push([line.replace(/^\s+/, ""), i]);
-  }
-  return rows;
-};
-var addSpacing = (def, text) => {
-  if (!def.text.spacing) {
-    return text;
-  }
-  return text.split("").join(getSpaceChart().repeat(def.text.spacing));
-};
-var getSpaceChart = () => String.fromCharCode(8202);
 var prepareFontShorthand = (def, ctx, fontSize) => {
   const { font = null } = def.text;
   if (!font) {
@@ -597,12 +526,6 @@ var prepareFontShorthand = (def, ctx, fontSize) => {
     fontSh += "/" + font.height + " ";
   }
   return fontSh + fontFamily;
-};
-var calcColumnWidth = (rWidth, columns) => {
-  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
-};
-var isSafari = () => {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 };
 
 // src/action/group.tsx
@@ -682,6 +605,19 @@ var separateIntoRows = (def, layout) => {
 };
 
 // src/action/polygon.calc.tsx
+var ResolvePolygonSize = (def) => {
+  const size = def.polygon.size;
+  return {
+    start: {
+      x: def.start.x + size.negative.x,
+      y: def.start.y + size.negative.y
+    },
+    size: {
+      w: size.positive.x,
+      h: size.positive.y
+    }
+  };
+};
 var ResolveCalcPolygon = async (def, action, modules) => {
   const illustrator = modules.illustrator;
   const objSwitch = {
@@ -756,6 +692,16 @@ var updateSizeVectors = (def, value, dir) => {
 // src/action/image.calc.tsx
 var loadedImages = {};
 var cachedBySettings = {};
+var ResolveImageSize = (def) => ({
+  start: {
+    x: def.start.x,
+    y: def.start.y
+  },
+  size: {
+    h: def.size.h,
+    w: def.size.w
+  }
+});
 var ResolveImageCalc = async (modules, def) => {
   def.size = await modules.illustrator.calc({
     layerType: "image",
@@ -767,6 +713,7 @@ var ResolveImageCalc = async (modules, def) => {
     purpose: "position",
     values: def.start
   });
+  def.area = ResolveImageSize(def);
   if (def.image.outline?.thickness) {
     def.image.outline.thickness = (await modules.illustrator.calc({
       layerType: "image",
@@ -1019,7 +966,23 @@ var getImageHorizontalDiff = (align, width2, asWidth) => {
 };
 
 // src/action/text.calc.tsx
-var ResolveTextCalc = async (def, modules) => {
+var ResolveTextSize = (def) => {
+  let fontSize = def.text.font?.size;
+  if (!fontSize || typeof fontSize == "string") {
+    fontSize = 0;
+  }
+  return {
+    start: {
+      y: def.start.y - (def.text.transY ?? 0),
+      x: def.start.x
+    },
+    size: {
+      w: def.size.w,
+      h: (def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0)
+    }
+  };
+};
+var ResolveTextCalc = async (def, modules, ctx) => {
   const illustrator = modules.illustrator;
   def.size = await illustrator.calc({
     layerType: "text",
@@ -1059,10 +1022,135 @@ var ResolveTextCalc = async (def, modules) => {
   if (typeof def.text.color.type == "string") {
     await calcFill(illustrator, def.text.color);
   }
+  const {
+    lines,
+    lineHeight: preparedLineHeight,
+    width: width2,
+    columns,
+    fontSize: preparedFontSize
+  } = prepare(def, ctx, def.size.w);
+  def.text.transY = calcVerticalMove(def.size.h, preparedLineHeight, lines, def.text.align?.vertical || "top");
+  if (isSafari()) {
+    def.start.y -= preparedFontSize * 0.2;
+  }
+  def.text.lineHeight = preparedLineHeight;
+  def.text.font.size = preparedFontSize;
+  def.text.columns = columns;
+  def.size.w = width2;
+  def.text.lines = lines;
+  def.area = ResolveTextSize(def);
   return def;
+};
+var prepare = (def, ctx, width2) => {
+  const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
+  let { value: text } = def.text;
+  ctx.save();
+  ctx.font = prepareFontShorthand(def, ctx, fontSize);
+  ctx.textBaseline = textBaseline;
+  const colWidth = calcColumnWidth(width2, columns);
+  text = addSpacing(def, text);
+  const lines = getTextLines(def, text, ctx, colWidth);
+  ctx.restore();
+  return {
+    lines,
+    fontSize,
+    lineHeight: def.text.lineHeight ?? fontSize,
+    width: colWidth,
+    columns
+  };
+};
+var getTextLines = (def, text, ctx, width2) => {
+  if (!def.text.wrap) {
+    return [[text, 0]];
+  }
+  const rows = [];
+  let words = text.split(/[^\S\r\n]/), line = "", i = 0;
+  while (words.length > 0) {
+    const newLinePos = words[0].search(/[\r\n]/);
+    if (newLinePos !== -1) {
+      const newLine = words[0].substring(0, newLinePos);
+      rows.push([(line + " " + newLine).trim() + "\n", i]);
+      line = "";
+      i++;
+      words[0] = words[0].substring(newLinePos + 1);
+      continue;
+    }
+    const metrics = ctx.measureText(line + words[0]);
+    if (metrics.width > width2) {
+      if (line.length > 0) {
+        rows.push([line.trim(), i]);
+        i++;
+      }
+      line = "";
+    }
+    line += " " + words[0];
+    words = words.splice(1);
+  }
+  if (line.length > 0) {
+    rows.push([line.replace(/^\s+/, ""), i]);
+  }
+  return rows;
+};
+var addSpacing = (def, text) => {
+  if (!def.text.spacing) {
+    return text;
+  }
+  return text.split("").join(getSpaceChart().repeat(def.text.spacing));
+};
+var calcColumnWidth = (rWidth, columns) => {
+  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
+};
+var isSafari = () => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
+var calcVerticalMove = (height2, lineHeight, lines, vAlign) => {
+  if (!height2 || lines.length * lineHeight >= height2) {
+    return 0;
+  }
+  const diff = height2 - lines.length * lineHeight;
+  if (vAlign === "center") {
+    return diff / 2;
+  }
+  if (vAlign === "bottom") {
+    return diff;
+  }
+  return 0;
 };
 
 // src/action/group.calc.tsx
+var ResolveGroupSize = async (def) => {
+  const area = {
+    size: {
+      h: 0,
+      w: 0
+    },
+    start: {
+      x: 0,
+      y: 0
+    }
+  };
+  for (let i = 0; i < def.layout.length; i++) {
+    const subArea = def.layout[i].area;
+    if (!subArea) {
+      continue;
+    }
+    area.size.h = Math.max(area.size.h, subArea.size.h);
+    area.size.w = Math.max(area.size.w, subArea.size.w);
+    area.start.y = Math.min(area.start.y, subArea.start.y);
+    area.start.x = Math.min(area.start.x, subArea.start.x);
+  }
+  if (def.group.clip) {
+    if (!isNaN(def.size.h)) {
+      area.size.h = def.size.h;
+    }
+    if (!isNaN(def.size.w)) {
+      area.size.w = def.size.w;
+    }
+  }
+  area.start.y += def.start.y;
+  area.start.x += def.start.x;
+  return area;
+};
 var ResolveGroupCalc = async (modules, def) => {
   const { group } = def;
   def.size = await modules.illustrator.calc({
@@ -1097,6 +1185,7 @@ var ResolveGroupCalc = async (modules, def) => {
   group.interaction ??= "fixed";
   settings.relative.height = pRelHeight;
   settings.relative.width = pRelWidth;
+  def.area = await ResolveGroupSize(def);
 };
 
 // src/module.tsx
@@ -1144,6 +1233,7 @@ var Illustrator = class {
     for (const step of def.polygon.steps) {
       await ResolveCalcPolygon(def, step, this.#modules2);
     }
+    def.area = ResolvePolygonSize(def);
   }
   polygon({ polygon: { steps }, start: { x, y } }) {
     const ctx = this.#ctx2;
@@ -1163,7 +1253,7 @@ var Illustrator = class {
     ResolveImageAction(this.#ctx2, def);
   }
   async textCalc(def) {
-    await ResolveTextCalc(def, this.#modules2);
+    await ResolveTextCalc(def, this.#modules2, this.#ctx2);
   }
   text(def) {
     ResolveTextAction(this.#ctx2, def);

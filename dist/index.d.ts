@@ -165,6 +165,10 @@ interface ISize {
 	w: XValue;
 	h: YValue;
 }
+interface IArea {
+	size: ISize;
+	start: IStart;
+}
 interface IHierarchy {
 	parent: IParentDef;
 	position: number;
@@ -174,6 +178,7 @@ interface IBaseDef<T = never> {
 	hierarchy?: IHierarchy;
 	start: IStart;
 	size: ISize;
+	area?: IArea;
 	type: string;
 	data?: T;
 }
@@ -189,6 +194,7 @@ interface ISystemModule extends Module$1 {
 		draw: (element: IBaseDef) => Promise<void>;
 		reloadStructure: () => Promise<void>;
 		reload: () => void;
+		size: (element: IBaseDef) => Promise<IBaseDef>;
 	};
 	font: {
 		load: (font: IFont) => Promise<void>;
@@ -332,6 +338,10 @@ interface IImageArg {
 interface IImageDef<T = never> extends IBaseDef<T> {
 	image: IImageArg;
 }
+declare type TextLines = {
+	0: string;
+	1: number;
+}[];
 declare type VerticalAlign = "center" | "top" | "bottom";
 declare type HorizontalAlign = "center" | "left" | "right" | "justify";
 interface ITextAlign {
@@ -368,6 +378,8 @@ interface ITextArgs {
 	lineHeight?: XValue;
 	color?: FillStyle | FillTypes;
 	outline?: ITextOutline;
+	transY?: number;
+	lines?: TextLines;
 }
 interface ITextDef extends IBaseDef {
 	text: ITextArgs;

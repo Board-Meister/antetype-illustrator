@@ -3,6 +3,7 @@ var Event = /* @__PURE__ */ ((Event23) => {
   Event23["STRUCTURE"] = "antetype.structure";
   Event23["DRAW"] = "antetype.draw";
   Event23["CALC"] = "antetype.calc";
+  Event23["SIZE"] = "antetype.size";
   Event23["MIDDLE"] = "antetype.structure.middle";
   Event23["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
   Event23["CENTER"] = "antetype.structure.center";

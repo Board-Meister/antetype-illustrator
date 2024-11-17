@@ -1,12 +1,31 @@
-import type { Modules } from "@boardmeister/antetype";
-import { ITextDef } from "@src/type/text.d";
+import type { Modules, IArea } from "@boardmeister/antetype";
+import { ITextColumns, ITextDef, VerticalAlign } from "@src/type/text.d";
 import { calcFill } from "@src/shared";
 import { IIllustrator } from "@src/module";
-import { getFontSize } from "@src/action/text";
+import { getFontSize, getSpaceChart, prepareFontShorthand, TextLines } from "@src/action/text";
+
+export const ResolveTextSize = (def: ITextDef): IArea => {
+  let fontSize = def.text.font?.size;
+  if (!fontSize || typeof fontSize == 'string') {
+    fontSize = 0;
+  }
+
+  return {
+    start: {
+      y: def.start.y - (def.text.transY ?? 0),
+      x: def.start.x,
+    },
+    size: {
+      w: def.size.w,
+      h: (def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0),
+    }
+  };
+}
 
 export const ResolveTextCalc = async (
   def: ITextDef,
   modules: Modules,
+  ctx: CanvasRenderingContext2D,
 ): Promise<ITextDef> => {
   const illustrator = modules.illustrator as IIllustrator;
   def.size = await illustrator.calc<ITextDef['size']>({
@@ -55,5 +74,139 @@ export const ResolveTextCalc = async (
     await calcFill(illustrator, def.text.color);
   }
 
+  const {
+    lines,
+    lineHeight: preparedLineHeight,
+    width,
+    columns,
+    fontSize: preparedFontSize
+  } = prepare(def, ctx, def.size.w);
+  def.text.transY = calcVerticalMove(def.size.h, preparedLineHeight, lines, def.text.align?.vertical || 'top');
+
+  // For some reason Safari line height is bigger than in other browsers
+  if (isSafari()) {
+    def.start.y -= preparedFontSize*.2;
+  }
+
+  def.text.lineHeight = preparedLineHeight;
+  def.text.font.size = preparedFontSize;
+  def.text.columns = columns;
+  def.size.w = width;
+  def.text.lines = lines;
+
+  def.area = ResolveTextSize(def);
+
   return def;
+}
+
+interface IPreparedTextProperties {
+  lines: TextLines;
+  fontSize: number;
+  lineHeight: number;
+  width: number;
+  columns: ITextColumns;
+}
+
+const prepare = (
+  def: ITextDef,
+  ctx: CanvasRenderingContext2D,
+  width: number,
+): IPreparedTextProperties => {
+  const columns = def.text.columns ?? { gap: 0, amount: 1 },
+    fontSize = getFontSize(def),
+    { textBaseline = 'top' } = def.text
+  ;
+  let { value: text } = def.text;
+
+  ctx.save();
+  ctx.font = prepareFontShorthand(def, ctx, fontSize);
+  ctx.textBaseline = textBaseline;
+  const colWidth = calcColumnWidth(width, columns)
+  text = addSpacing(def, text);
+  const lines = getTextLines(def, text, ctx, colWidth);
+  ctx.restore();
+
+  return {
+    lines,
+    fontSize,
+    lineHeight: def.text.lineHeight ?? fontSize,
+    width: colWidth,
+    columns,
+  }
+}
+
+const getTextLines = (def: ITextDef, text: string, ctx: CanvasRenderingContext2D, width: number): TextLines => {
+  if (!def.text.wrap) {
+    return [[text, 0]];
+  }
+
+  const rows: TextLines = [];
+  let words = text.split(/[^\S\r\n]/),
+    line = '',
+    i = 0
+  ;
+  while (words.length > 0) {
+    const newLinePos = words[0].search(/[\r\n]/);
+
+    if (newLinePos !== -1) {
+      const newLine = words[0].substring(0, newLinePos);
+      rows.push([(line + ' ' + newLine).trim() + '\n', i]);
+      line = '';
+      i++;
+      words[0] = words[0].substring(newLinePos + 1);
+      continue;
+    }
+
+    const metrics = ctx.measureText(line + words[0]);
+
+    if (metrics.width > width) {
+      if (line.length > 0) {
+        rows.push([line.trim(), i]);
+        i++;
+      }
+      line = '';
+    }
+
+    line += ' ' + words[0];
+    words = words.splice(1);
+  }
+
+  if (line.length > 0) {
+    rows.push([line.replace(/^\s+/, ''), i]);
+  }
+
+  return rows;
+}
+
+const addSpacing = (def: ITextDef, text: string): string => {
+  if (!def.text.spacing) {
+    return text;
+  }
+
+  return text.split('').join(getSpaceChart().repeat(def.text.spacing));
+}
+
+const calcColumnWidth = (rWidth: number, columns: ITextColumns): number => {
+  return (rWidth - ((columns.amount - 1) * columns.gap))/columns.amount;
+}
+
+const isSafari = (): boolean => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+
+const calcVerticalMove = (height: number, lineHeight: number, lines: TextLines, vAlign: VerticalAlign): number => {
+  if (!height || lines.length * lineHeight >= height) {
+    return 0;
+  }
+
+  const diff = height - (lines.length * lineHeight);
+  if (vAlign === 'center') {
+    return diff/2;
+  }
+
+  if (vAlign === 'bottom') {
+    return diff;
+  }
+
+  return 0;
 }

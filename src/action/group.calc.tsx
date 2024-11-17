@@ -1,7 +1,46 @@
-import type { Modules } from "@boardmeister/antetype";
+import type { Modules, IArea } from "@boardmeister/antetype";
 import type { IWorkspaceSettings } from "@boardmeister/antetype-workspace";
 import { IGroupDef } from "@src/type/group.d";
 import { IIllustrator } from "@src/module";
+
+const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
+  const area = {
+    size: {
+      h: 0,
+      w: 0,
+    },
+    start: {
+      x: 0,
+      y: 0,
+    },
+  } as IArea;
+
+  for (let i = 0; i < def.layout.length; i++) {
+    const subArea = def.layout[i].area;
+    if (!subArea) {
+      continue;
+    }
+    area.size.h = Math.max(area.size.h, subArea.size.h);
+    area.size.w = Math.max(area.size.w, subArea.size.w);
+    area.start.y = Math.min(area.start.y, subArea.start.y);
+    area.start.x = Math.min(area.start.x, subArea.start.x);
+  }
+
+  if (def.group.clip) {
+    if (!isNaN(def.size.h)) {
+      area.size.h = def.size.h;
+    }
+
+    if (!isNaN(def.size.w)) {
+      area.size.w = def.size.w;
+    }
+  }
+
+  area.start.y += def.start.y;
+  area.start.x += def.start.x;
+
+  return area;
+}
 
 export const ResolveGroupCalc = async (
   modules: Modules,
@@ -48,4 +87,6 @@ export const ResolveGroupCalc = async (
 
   settings.relative.height = pRelHeight;
   settings.relative.width = pRelWidth;
+
+  def.area = await ResolveGroupSize(def);
 }
