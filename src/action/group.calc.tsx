@@ -65,15 +65,15 @@ export const ResolveGroupCalc = async (
   def.start.x ??= 0;
 
   /* Set relative sizes */
-  const settings = (modules.system.setting.get('workspace') ?? {}) as IWorkspaceSettings;
+  const settings = (modules.system!.setting.get('workspace') ?? {}) as IWorkspaceSettings;
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
   const pRelWidth = settings.relative.width;
   if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
   if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
-  modules.system.setting.set('workspace', settings);
+  modules.system!.setting.set('workspace', settings);
 
-  def.layout = await modules.system.view.recalc(def);
+  def.layout = await modules.system!.view.recalculate(def);
 
   group.gap = await (modules.illustrator as IIllustrator).calc<{ vertical: number, horizontal: number }>({
     layerType: 'group',

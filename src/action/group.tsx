@@ -14,7 +14,7 @@ export const ResolveGroupAction = (
   ctx.save();
   ctx.translate(start.x, start.y);
   if (group.interaction === 'fixed') {
-    modules.system.view.redraw(def.layout);
+    modules.system!.view.redraw(def.layout);
   } else {
     drawLayersRelatively(ctx, modules, def);
   }
@@ -82,7 +82,7 @@ const drawLayersRelatively = (
     row.layers.forEach(layer => {
       ctx.save();
       ctx.translate(xShift, currentHeight);
-      modules.system.view.draw(layer.def);
+      modules.system!.view.draw(layer.def);
       ctx.restore();
       xShift += layer.def.size.w + vertical;
     });
