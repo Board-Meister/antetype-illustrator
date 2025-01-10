@@ -322,10 +322,8 @@ const outlineImage = async (
 
 
 const canvasToWebp = async (canvas: HTMLCanvasElement, dft: HTMLImageElement): Promise<HTMLImageElement> => {
-  const url = canvas.toDataURL('image/webp'),
-    image = new Image()
-  ;
-  image.src = url;
+  const image = new Image();
+  image.src = canvas.toDataURL('image/webp');
 
   return new Promise<HTMLImageElement>(resolve => {
     const timeout = setTimeout(() => {

@@ -36,7 +36,7 @@ export function generateFill(type: 'default'|'linear', style: FillStyle|LinearFi
     }
   };
 
-  return (filTypes[type] || filTypes['default'])(style as any);
+  return (filTypes[type] || filTypes['default'])(style as FillStyle|LinearFillStyle);
 }
 
 export const generateLinearGradient = (

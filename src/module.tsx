@@ -21,7 +21,7 @@ export interface IIllustrator extends Module {
   polygon: (def: IPolygonDef) => void;
   image: (def: IImageDef) => void;
   text: (def: ITextDef) => void;
-  calc: <T extends Record<string, any>>(def: ICalcEvent) => Promise<T>;
+  calc: <T = Record<string, unknown>>(def: ICalcEvent) => Promise<T>;
 }
 
 export default class Illustrator implements IIllustrator {
@@ -113,7 +113,7 @@ export default class Illustrator implements IIllustrator {
     ResolveTextAction(this.#ctx, def);
   }
 
-  async calc<T extends Record<string, any> = Record<string, any>>(def: ICalcEvent): Promise<T> {
+  async calc<T = Record<string, unknown>>(def: ICalcEvent): Promise<T> {
     const event = new CustomEvent(Event.CALC, { detail: def });
     await this.#injected.herald.dispatch(event);
 

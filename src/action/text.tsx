@@ -2,7 +2,7 @@ import { HorizontalAlign, ITextDef, ITextOutline } from "@src/type/text.d";
 import { generateFill } from "@src/shared";
 
 export declare type TextLines = { 0: string, 1: number }[];
-export const getFontSize = (def: ITextDef): any => def.text.font?.size || 10;
+export const getFontSize = (def: ITextDef): number => Number(def.text.font?.size || 10);
 export const getSpaceChart = (): string => String.fromCharCode(8202);
 
 /*
@@ -25,7 +25,7 @@ export const ResolveTextAction = (
 
   ctx.save();
 
-  ctx.font = prepareFontShorthand(def, ctx, getFontSize(def));
+  ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
 
   while ((lines = value.splice(0, linesAmount)).length) {

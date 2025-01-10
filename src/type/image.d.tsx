@@ -29,7 +29,7 @@ export interface IImageArg {
   align?: IImageAlign;
   fitTo?: 'auto'|'height'|'width';
   src: string|HTMLImageElement;
-};
+}
 
 export interface IImageDef<T = never> extends IBaseDef<T> {
   image: IImageArg;

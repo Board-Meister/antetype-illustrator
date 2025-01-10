@@ -51,7 +51,7 @@ export interface IMove {
 
 export interface IClose {
   means: 'close';
-  args: {};
+  args: object;
 }
 
 export interface LeanerFillColor {
@@ -90,12 +90,14 @@ export interface IFill {
 
 export type PolygonActions = ILine | ICurve | IStroke | IBegin | IMove | IClose | IFill;
 
-export interface IPolygonDef<T = never> extends IBaseDef<T> {
-  polygon: {
-    steps: PolygonActions[];
-    size: {
-      negative: IStart;
-      positive: IStart;
-    }
+export interface IPolygonArgs {
+  steps: PolygonActions[];
+  size: {
+    negative: IStart;
+    positive: IStart;
   }
+}
+
+export interface IPolygonDef<T = never> extends IBaseDef<T> {
+  polygon: IPolygonArgs;
 }

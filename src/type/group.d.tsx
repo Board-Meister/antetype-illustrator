@@ -1,6 +1,6 @@
 import { IParentDef } from "@boardmeister/antetype";
 
-interface IGroupArgs {
+export interface IGroupArgs {
   clip?: boolean;
   interaction?: 'fixed'|'static';
   direction?: 'row'|'column';

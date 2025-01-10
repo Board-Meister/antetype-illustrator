@@ -119,7 +119,7 @@ const prepare = (
   let { value: text } = def.text;
 
   ctx.save();
-  ctx.font = prepareFontShorthand(def, ctx, fontSize);
+  ctx.font = prepareFontShorthand(def, ctx, String(fontSize));
   ctx.textBaseline = textBaseline;
   const colWidth = calcColumnWidth(width, columns)
   text = addSpacing(def, text);

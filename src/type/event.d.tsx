@@ -2,7 +2,7 @@ export enum Event {
   CALC = 'antetype.illustrator.calc',
 }
 
-export interface ICalcEvent<T extends Record<string, any> = Record<string, any>> {
+export interface ICalcEvent<T = Record<string, unknown>> {
   purpose: string;
   layerType: string;
   values: T;

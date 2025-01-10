@@ -4,12 +4,26 @@ import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import { Event } from "@boardmeister/antetype"
 import type { DrawEvent, ModulesEvent, CalcEvent } from "@boardmeister/antetype"
 import type Illustrator from "@src/module";
+import type { IBaseDef, IParentDef } from "@boardmeister/antetype";
+import { IPolygonArgs } from "@src/type/polygon.d";
+import { IImageArg } from "@src/type/image.d";
+import { ITextArgs } from "@src/type/text.d";
+import { IGroupArgs } from "@src/type/group.d";
 
 export interface IInjected extends Record<string, object> {
   minstrel: Minstrel;
   herald: Herald;
 }
 
+/**
+ * The main piece of the tool - the drawing script.
+ * Currently, supports:
+ * - groups
+ * - images
+ * - polygons
+ * - text
+ * - clearing mechanism
+ */
 export class AntetypeIllustrator {
   #module: (typeof Illustrator)|null = null;
   #instance: Illustrator|null = null;
@@ -36,7 +50,7 @@ export class AntetypeIllustrator {
       return;
     }
     const { element } = event.detail;
-    const typeToAction: Record<string, Function> = {
+    const typeToAction: Record<string, (def: GenericBaseDef) => void> = {
       clear: this.#instance.clear.bind(this.#instance),
       polygon: this.#instance.polygon.bind(this.#instance),
       image: this.#instance.image.bind(this.#instance),
@@ -46,7 +60,7 @@ export class AntetypeIllustrator {
 
     const el = typeToAction[element.type]
     if (typeof el == 'function') {
-      await el(element);
+      await el(element as GenericBaseDef);
     }
   }
 
@@ -55,7 +69,7 @@ export class AntetypeIllustrator {
       return;
     }
     const { element } = event.detail;
-    const typeToAction: Record<string, Function> = {
+    const typeToAction: Record<string, (def: GenericBaseDef) => Promise<void>> = {
       polygon: this.#instance.polygonCalc.bind(this.#instance),
       image: this.#instance.imageCalc.bind(this.#instance),
       text: this.#instance.textCalc.bind(this.#instance),
@@ -64,7 +78,7 @@ export class AntetypeIllustrator {
 
     const el = typeToAction[element.type]
     if (typeof el == 'function') {
-      await el(element);
+      await el(element as GenericBaseDef);
     }
   }
 
@@ -80,3 +94,13 @@ const EnAntetypeIllustrator: IInjectable&ISubscriber = AntetypeIllustrator;
 export { IIllustrator } from '@src/module';
 export { Event, ICalcEvent } from '@src/type/event.d';
 export default EnAntetypeIllustrator;
+
+type Assign<T, R> = T & R;
+
+type GenericBaseDef = Assign<IBaseDef|IParentDef, {
+  polygon: IPolygonArgs,
+  image: IImageArg,
+  text: ITextArgs,
+  group: IGroupArgs,
+  layout: IBaseDef[],
+}>;

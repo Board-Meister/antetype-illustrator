@@ -9,7 +9,7 @@ interface EntryConfig {
 	namespace: string;
 	name: string;
 	version: string;
-	arguments?: any[];
+	arguments?: unknown[];
 }
 interface RegisterConfig {
 	entry: EntryConfig;
@@ -27,16 +27,16 @@ interface RegisterConfig {
 }
 type Module = Record<string, unknown>;
 interface IModuleImportObject {
-	default?: Module | React$1.FC | Function;
+	default?: Module | React$1.FC | ((...args: unknown[]) => void);
 }
 interface IModuleImport {
 	config: RegisterConfig;
 	module: IModuleImportObject | (() => Promise<Module>);
 }
 declare class _IInjectable {
-	constructor(...args: any[]);
+	constructor(...args: unknown[]);
 	inject(injections: Record<string, object>): void;
-	scope?(): Record<string, any>;
+	scope?(): Record<string, unknown>;
 	static inject: Record<string, string>;
 }
 type IInjectable = typeof _IInjectable;
@@ -46,10 +46,10 @@ declare class Marshal {
 	registered: Record<string, RegisterConfig>;
 	loaded: Record<string, object>;
 	tagMap: Record<string, IModuleImport[]>;
-	scope: Record<string, any>;
+	scope: Record<string, unknown>;
 	instanceMap: WeakMap<Module, RegisterConfig>;
 	constructor();
-	addScope(name: string, value: any): void;
+	addScope(name: string, value: unknown): void;
 	render(): void;
 	register(config: RegisterConfig): void;
 	getModuleConstraint(config: RegisterConfig): string;
@@ -63,9 +63,10 @@ declare class Marshal {
 	getMappedInstance(module: Module): RegisterConfig | undefined;
 	loadDependencies(module: Module, config: RegisterConfig): Record<string, object> | undefined | false;
 	isESClass(fn: unknown): boolean;
+	orderModules(moduleRegistry: Record<string, RegisterConfig>): RegisterConfig[];
 	generateLoadGroups(toSend: Record<string, RegisterConfig>): Promise<IModuleImport>[];
 	isTag(string: string): boolean;
-	import(source: string, addScope?: Record<string, any>): Promise<IModuleImportObject>;
+	import(source: string, addScope?: Record<string, unknown>): Promise<IModuleImportObject>;
 	importModule(config: RegisterConfig): Promise<IModuleImportObject>;
 	retrieveModulePromise(config: RegisterConfig): Promise<IModuleImport>;
 	isObjectEmpty(obj: object): boolean;
@@ -178,14 +179,24 @@ interface IBaseDef<T = never> {
 	hierarchy?: IHierarchy;
 	start: IStart;
 	size: ISize;
-	area?: IArea;
 	type: string;
+	can?: {
+		move?: boolean;
+		scale?: boolean;
+		remove?: boolean;
+	};
+	area?: IArea;
 	data?: T;
 }
 interface IParentDef extends IBaseDef {
 	layout: IBaseDef[];
 }
 interface ISystemModule extends Module$1 {
+	manage: {
+		move: (def: IBaseDef, newStart: IStart) => Promise<void>;
+		resize: (def: IBaseDef, newSize: ISize) => Promise<void>;
+		remove: (def: IBaseDef) => void;
+	};
 	view: {
 		recalc: (parent: IParentDef) => Promise<IBaseDef[]>;
 		redraw: (layout: IBaseDef[]) => void;
@@ -260,7 +271,7 @@ interface IMove {
 }
 interface IClose {
 	means: "close";
-	args: {};
+	args: object;
 }
 interface LeanerFillColor {
 	offset: number;
@@ -291,14 +302,15 @@ interface IFill {
 	args: FillTypes;
 }
 type PolygonActions = ILine | ICurve | IStroke | IBegin | IMove | IClose | IFill;
-interface IPolygonDef<T = never> extends IBaseDef<T> {
-	polygon: {
-		steps: PolygonActions[];
-		size: {
-			negative: IStart;
-			positive: IStart;
-		};
+interface IPolygonArgs {
+	steps: PolygonActions[];
+	size: {
+		negative: IStart;
+		positive: IStart;
 	};
+}
+interface IPolygonDef<T = never> extends IBaseDef<T> {
+	polygon: IPolygonArgs;
 }
 interface IImageCoords {
 	x: number;
@@ -404,12 +416,12 @@ export interface IIllustrator extends Module$1 {
 	polygon: (def: IPolygonDef) => void;
 	image: (def: IImageDef) => void;
 	text: (def: ITextDef) => void;
-	calc: <T extends Record<string, any>>(def: ICalcEvent) => Promise<T>;
+	calc: <T = Record<string, unknown>>(def: ICalcEvent) => Promise<T>;
 }
 declare enum Event$1 {
 	CALC = "antetype.illustrator.calc"
 }
-interface ICalcEvent$1<T extends Record<string, any> = Record<string, any>> {
+interface ICalcEvent$1<T = Record<string, unknown>> {
 	purpose: string;
 	layerType: string;
 	values: T;
@@ -418,6 +430,15 @@ export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;
 	herald: Herald;
 }
+/**
+ * The main piece of the tool - the drawing script.
+ * Currently, supports:
+ * - groups
+ * - images
+ * - polygons
+ * - text
+ * - clearing mechanism
+ */
 export declare class AntetypeIllustrator {
 	#private;
 	static inject: Record<string, string>;

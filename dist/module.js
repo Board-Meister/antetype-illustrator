@@ -435,13 +435,13 @@ var imageIsBeingLoaded = (image) => {
 };
 
 // src/action/text.tsx
-var getFontSize = (def) => def.text.font?.size || 10;
+var getFontSize = (def) => Number(def.text.font?.size || 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x } = def.start, lines = [], previousColumnsLines = 0;
   const { start: { y }, size: { w }, text } = def, { columns, transY, lineHeight } = text, value = [...text.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
   ctx.save();
-  ctx.font = prepareFontShorthand(def, ctx, getFontSize(def));
+  ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   while ((lines = value.splice(0, linesAmount)).length) {
     lines.forEach((text2, i) => {
@@ -897,8 +897,8 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   return canvasToWebp(canvas, image);
 };
 var canvasToWebp = async (canvas, dft) => {
-  const url = canvas.toDataURL("image/webp"), image = new Image();
-  image.src = url;
+  const image = new Image();
+  image.src = canvas.toDataURL("image/webp");
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       resolve(dft);
@@ -1045,7 +1045,7 @@ var prepare = (def, ctx, width2) => {
   const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
   let { value: text } = def.text;
   ctx.save();
-  ctx.font = prepareFontShorthand(def, ctx, fontSize);
+  ctx.font = prepareFontShorthand(def, ctx, String(fontSize));
   ctx.textBaseline = textBaseline;
   const colWidth = calcColumnWidth(width2, columns);
   text = addSpacing(def, text);
