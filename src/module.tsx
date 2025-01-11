@@ -1,5 +1,6 @@
-import type { Modules, IStart, Module } from "@boardmeister/antetype";
-import { Event, ICalcEvent } from "@boardmeister/antetype-workspace";
+import type { IStart } from "@boardmeister/antetype-core";
+import type { Module } from "@boardmeister/antetype";
+import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonDef } from "@src/type/polygon.d";
 import { IImageDef } from "@src/type/image.d";
@@ -8,7 +9,7 @@ import { ITextDef } from "@src/type/text.d";
 import { ResolveTextAction } from "@src/action/text";
 import { ResolveGroupAction } from "@src/action/group";
 import { IGroupDef } from "@src/type/group.d";
-import { IInjected } from "@src/index";
+import type { ICalcEvent, IInjected, ModulesWithCore } from "@src/index";
 import { ResolveCalcPolygon, ResolvePolygonSize } from "@src/action/polygon.calc";
 import { ResolveImageCalc } from "@src/action/image.calc";
 import { ResolveTextCalc } from "@src/action/text.calc";
@@ -26,13 +27,13 @@ export interface IIllustrator extends Module {
 
 export default class Illustrator implements IIllustrator {
   #canvas: HTMLCanvasElement;
-  #modules: Modules;
+  #modules: ModulesWithCore;
   #ctx: CanvasRenderingContext2D;
   #injected: IInjected;
 
   constructor(
     canvas: HTMLCanvasElement|null,
-    modules: Modules,
+    modules: ModulesWithCore,
     injected: IInjected,
   ) {
     if (!canvas) {

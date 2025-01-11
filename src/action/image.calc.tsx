@@ -1,8 +1,9 @@
-import type { Modules, ISystemModule, IArea } from "@boardmeister/antetype";
+import type { ICore, IArea, IBaseDef, IDocumentDef } from "@boardmeister/antetype-core";
 import { HorizontalAlignType, IImageArg, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
 import { IIllustrator } from "@src/module";
 import { CalculatedImage, IMAGE_ERROR_STATUS, IMAGE_LOADING_STATUS, IMAGE_TIMEOUT_STATUS } from "@src/action/image";
 import { generateFill } from "@src/shared";
+import { ModulesWithCore } from "@src/index";
 
 const loadedImages: Record<string, CalculatedImage|symbol> = {};
 const cachedBySettings: Record<string, CachedImage> = {};
@@ -25,7 +26,7 @@ const ResolveImageSize = (def: IImageDef): IArea => ({
 });
 
 export const ResolveImageCalc = async (
-  modules: Modules,
+  modules: ModulesWithCore,
   def: IImageDef,
 ): Promise<void> => {
   def.size = await (modules.illustrator as IIllustrator).calc<IImageDef['size']>({
@@ -173,10 +174,10 @@ const calculateImage = async (
 const getImageCacheKey = (image: IImageArg, width: number, height: number): string =>
   JSON.stringify({ ...image, timeout: 0, calculated: 0, width, height });
 
-const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise<void> => {
+const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore): Promise<void> => {
   const image = new Image(),
     { image: { timeout = 30000 } } = def,
-    view = (modules.system as ISystemModule).view
+    view = (modules.core as ICore).view
   ;
   image.crossOrigin = 'anonymous';
   image.src = src;
@@ -197,12 +198,20 @@ const loadImage = async (def: IImageDef, src: string, modules: Modules): Promise
       clearTimeout(timeoutTimer);
       def.image.calculated = await calculateImage(def, image);
       resolve();
-      void view.redrawDebounce();
+      void view.redrawDebounce(getDoc(def).layout);
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
 
   await promise;
+}
+
+const getDoc = (def: IBaseDef): IDocumentDef => {
+  if (!def.hierarchy?.parent) {
+    return def as IDocumentDef;
+  }
+
+  return getDoc(def.hierarchy.parent);
 }
 
 const overcolorImage = async (

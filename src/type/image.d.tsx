@@ -1,4 +1,4 @@
-import { IBaseDef, XValue } from "@boardmeister/antetype";
+import { IBaseDef, XValue } from "@boardmeister/antetype-core";
 import { FillTypes } from "@src/type/polygon.d";
 import { CalculatedImage } from "@src/action/image";
 

@@ -1,4 +1,4 @@
-import { IParentDef } from "@boardmeister/antetype";
+import { IParentDef } from "@boardmeister/antetype-core";
 
 export interface IGroupArgs {
   clip?: boolean;

@@ -1,8 +1,6 @@
 // ../../tool/antetype/dist/index.js
 var Event = /* @__PURE__ */ ((Event23) => {
   Event23["STRUCTURE"] = "antetype.structure";
-  Event23["DRAW"] = "antetype.draw";
-  Event23["CALC"] = "antetype.calc";
   Event23["MIDDLE"] = "antetype.structure.middle";
   Event23["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
   Event23["CENTER"] = "antetype.structure.center";
@@ -13,11 +11,43 @@ var Event = /* @__PURE__ */ ((Event23) => {
   return Event23;
 })(Event || {});
 
+// ../antetype-core/dist/index.js
+var s = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e))(s || {});
+var u = ((t) => (t.INIT = "antetype.init", t.DRAW = "antetype.draw", t.CALC = "antetype.calc", t))(u || {});
+var i = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(r) {
+    this.#t = r;
+  }
+  async #a(r, a) {
+    if (!this.#e) {
+      let t = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(t)).default, this.#e = this.#r({ canvas: a, modules: r, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(r) {
+    let { modules: a, canvas: t } = r.detail;
+    a.core = await this.#a(a, t);
+  }
+  async init(r) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: a, settings: t } = r.detail;
+    for (let o2 in t) this.#e.setting.set(o2, t[o2]);
+    let n2 = { type: "document", base: a, layout: [], start: { x: 0, y: 0 }, size: { w: 0, h: 0 } }, l2 = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((o2) => {
+      l2.push(this.#e.font.load(o2));
+    }), await Promise.all(l2), n2.layout = await this.#e.view.recalculate(n2, n2.base), await this.#e.view.redraw(n2.layout), n2;
+  }
+  static subscriptions = { [s.MODULES]: "register", "antetype.init": "init" };
+};
+
 // ../antetype-workspace/dist/index.js
 var Event2 = /* @__PURE__ */ ((Event222) => {
   Event222["STRUCTURE"] = "antetype.structure";
-  Event222["DRAW"] = "antetype.draw";
-  Event222["CALC"] = "antetype.calc";
   Event222["MIDDLE"] = "antetype.structure.middle";
   Event222["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
   Event222["CENTER"] = "antetype.structure.center";
@@ -27,6 +57,36 @@ var Event2 = /* @__PURE__ */ ((Event222) => {
   Event222["MODULES"] = "antetype.modules";
   return Event222;
 })(Event2 || {});
+var n = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(n || {});
+var l = ((e) => (e.INIT = "antetype.init", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e))(l || {});
+var o = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(r) {
+    this.#t = r;
+  }
+  async #a(r, a) {
+    if (!this.#e) {
+      let e = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(e)).default, this.#e = this.#r({ canvas: a, modules: r, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(r) {
+    let { modules: a, canvas: e } = r.detail;
+    a.core = await this.#a(a, e);
+  }
+  async init(r) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: a } = r.detail, e = { type: "document", base: a, layout: [], start: { x: 0, y: 0 }, size: { w: 0, h: 0 } }, i2 = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((s2) => {
+      i2.push(this.#e.font.load(s2));
+    }), await Promise.all(i2), e.layout = await this.#e.view.recalculate(e, e.base), await this.#e.view.redraw(e.layout), e;
+  }
+  static subscriptions = { [n.MODULES]: "register", "antetype.init": "init" };
+};
 var cloned = Symbol("cloned");
 var Workspace = class {
   #maxDepth = 50;
@@ -118,7 +178,7 @@ var Workspace = class {
     return +number.toFixed(precision);
   }
   #getSystem() {
-    return this.#modules.system;
+    return this.#modules.core;
   }
   #getSettings() {
     const height2 = this.#ctx.canvas.offsetHeight;
@@ -270,14 +330,14 @@ var AntetypeWorkspace = class {
       "antetype.workspace.calc"
       /* CALC */
     ]: "calc",
-    [Event2.CALC]: [
+    [l.CALC]: [
       {
         method: "cloneDefinitions",
         priority: -255
       }
     ],
     [Event2.MODULES]: "register",
-    [Event2.DRAW]: [
+    [l.DRAW]: [
       {
         method: "draw",
         priority: 255
@@ -362,8 +422,8 @@ var AntetypeIllustrator = class {
   }
   static subscriptions = {
     [Event.MODULES]: "register",
-    [Event.DRAW]: "draw",
-    [Event.CALC]: "calc"
+    [u.DRAW]: "draw",
+    [u.CALC]: "calc"
   };
 };
 var EnAntetypeIllustrator = AntetypeIllustrator;

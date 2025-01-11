@@ -136,25 +136,11 @@ declare class Minstrel {
 	component<T>(module: Module, suffix: string, scope?: Record<string, any>): React$1.FC<T>;
 	asset(module: Module, suffix: string): string;
 }
-interface IFont {
-	url: string;
-	name: string;
-}
 interface DrawEvent {
 	element: IBaseDef;
 }
 interface CalcEvent {
 	element: IBaseDef | null;
-}
-interface ModulesEvent {
-	modules: Modules;
-	canvas: HTMLCanvasElement | null;
-}
-interface Module$1 {
-}
-interface Modules {
-	[key: string]: Module$1;
-	system: ISystemModule;
 }
 declare type XValue = number;
 declare type YValue = XValue;
@@ -171,11 +157,11 @@ interface IArea {
 	start: IStart;
 }
 interface IHierarchy {
-	parent: IParentDef;
+	parent: IParentDef | null;
 	position: number;
 }
 interface IBaseDef<T = never> {
-	[key: symbol | string]: any;
+	[key: symbol | string]: unknown;
 	hierarchy?: IHierarchy;
 	start: IStart;
 	size: ISize;
@@ -189,42 +175,47 @@ interface IBaseDef<T = never> {
 	data?: T;
 }
 interface IParentDef extends IBaseDef {
-	layout: IBaseDef[];
+	layout: Layout;
 }
-interface ISystemModule extends Module$1 {
+interface IFont {
+	url: string;
+	name: string;
+}
+interface ICore {
 	manage: {
-		move: (def: IBaseDef, newStart: IStart) => Promise<void>;
-		resize: (def: IBaseDef, newSize: ISize) => Promise<void>;
-		remove: (def: IBaseDef) => void;
+		move: (original: IBaseDef, def: IBaseDef, newStart: IStart) => Promise<void>;
+		resize: (original: IBaseDef, def: IBaseDef, newSize: ISize) => Promise<void>;
+		remove: (def: IBaseDef, ogParent: IParentDef, ogPosition: number) => void;
 	};
 	view: {
-		recalc: (parent: IParentDef) => Promise<IBaseDef[]>;
-		redraw: (layout: IBaseDef[]) => void;
-		redrawDebounce: () => void;
-		calc: (element: IBaseDef, parent: IParentDef, position: number) => Promise<IBaseDef>;
-		draw: (element: IBaseDef) => Promise<void>;
-		reloadStructure: () => Promise<void>;
-		reload: () => void;
-		size: (element: IBaseDef) => Promise<IBaseDef>;
+		calc: (element: IBaseDef, parent: IParentDef, position: number) => Promise<IBaseDef | null>;
+		draw: (element: IBaseDef) => void;
+		redraw: (layout: Layout) => void;
+		recalculate: (parent: IParentDef, layout: Layout) => Promise<Layout>;
+		redrawDebounce: (layout: Layout) => void;
+	};
+	policies: {
+		markAsLayer: (layer: IBaseDef) => IBaseDef;
+		isLayer: (layer: Record<symbol, unknown>) => boolean;
 	};
 	font: {
 		load: (font: IFont) => Promise<void>;
 	};
-	policies: {
-		markAsLayer: (layer: IBaseDef) => IBaseDef;
-		isLayer: (layer: Record<symbol, any>) => boolean;
-	};
 	setting: {
-		[symbol: symbol]: Record<string, any>;
 		set: (name: string, value: unknown) => void;
 		get: <T = unknown>(name: string) => T | null;
 		has: (name: string) => boolean;
 	};
 }
-interface ICalcEvent<T extends Record<string, any> = Record<string, any>> {
-	purpose: string;
-	layerType: string;
-	values: T;
+type Layout = (IBaseDef | IParentDef)[];
+interface ModulesEvent {
+	modules: Modules;
+	canvas: HTMLCanvasElement | null;
+}
+interface Module$1 {
+}
+interface Modules {
+	[key: string]: Module$1 | undefined;
 }
 declare type LineJoin = "round" | "bevel" | "miter";
 declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;
@@ -421,10 +412,13 @@ export interface IIllustrator extends Module$1 {
 declare enum Event$1 {
 	CALC = "antetype.illustrator.calc"
 }
-interface ICalcEvent$1<T = Record<string, unknown>> {
+export interface ICalcEvent<T = Record<string, any>> {
 	purpose: string;
 	layerType: string;
 	values: T;
+}
+export interface ModulesWithCore extends Modules {
+	core: ICore;
 }
 export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;
@@ -453,7 +447,6 @@ declare const EnAntetypeIllustrator: IInjectable & ISubscriber;
 export {
 	EnAntetypeIllustrator as default,
 	Event$1 as Event,
-	ICalcEvent$1 as ICalcEvent,
 };
 
 export {};

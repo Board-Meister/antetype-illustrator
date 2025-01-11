@@ -1,14 +1,19 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
-import { Event } from "@boardmeister/antetype"
-import type { DrawEvent, ModulesEvent, CalcEvent } from "@boardmeister/antetype"
+import { Event as AntetypeEvent } from "@boardmeister/antetype"
+import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
+import type { DrawEvent, CalcEvent, IBaseDef, IParentDef, ICore } from "@boardmeister/antetype-core"
+import type { ModulesEvent, Modules } from "@boardmeister/antetype"
 import type Illustrator from "@src/module";
-import type { IBaseDef, IParentDef } from "@boardmeister/antetype";
 import { IPolygonArgs } from "@src/type/polygon.d";
 import { IImageArg } from "@src/type/image.d";
 import { ITextArgs } from "@src/type/text.d";
 import { IGroupArgs } from "@src/type/group.d";
+
+export interface ModulesWithCore extends Modules {
+  core: ICore;
+}
 
 export interface IInjected extends Record<string, object> {
   minstrel: Minstrel;
@@ -42,7 +47,7 @@ export class AntetypeIllustrator {
       const module = this.#injected!.minstrel.getResourceUrl(this as Module, 'module.js');
       this.#module = (await import(module)).default;
     }
-    this.#instance = modules.illustrator = new this.#module!(canvas, modules, this.#injected!);
+    this.#instance = modules.illustrator = new this.#module!(canvas, modules as ModulesWithCore, this.#injected!);
   }
 
   async draw(event: CustomEvent<DrawEvent>): Promise<void> {
@@ -83,9 +88,9 @@ export class AntetypeIllustrator {
   }
 
   static subscriptions: Subscriptions = {
-    [Event.MODULES]: 'register',
-    [Event.DRAW]: 'draw',
-    [Event.CALC]: 'calc',
+    [AntetypeEvent.MODULES]: 'register',
+    [AntetypeCoreEvent.DRAW]: 'draw',
+    [AntetypeCoreEvent.CALC]: 'calc',
   }
 }
 

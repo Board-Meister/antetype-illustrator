@@ -1,4 +1,4 @@
-import { IBaseDef, XValue } from "@boardmeister/antetype";
+import type { IBaseDef, XValue } from "@boardmeister/antetype-core";
 import { StandardLonghandProperties } from 'csstype'
 import { FillStyle, FillTypes } from "@src/type/polygon.d";
 import { TextLines } from "@src/action/text";

@@ -1,4 +1,4 @@
-import type { XValue, YValue } from "@boardmeister/antetype";
+import type { XValue, YValue } from "@boardmeister/antetype-core";
 import {
   FillStyle,
   IBegin, IClose, ICurve, IFill, IFillDefault, IFillLinear, ILine, IMove, IStroke, LineJoin,

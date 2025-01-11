@@ -1,5 +1,5 @@
+import type { XValue, YValue } from '@boardmeister/antetype-core'
 import { FillStyle, FillTypes, LeanerFillColor, LinearFillStyle } from "@src/type/polygon.d";
-import { XValue, YValue } from '@boardmeister/antetype'
 import { IIllustrator } from "@src/module";
 
 export async function calcFill(illustrator: IIllustrator, fill: FillTypes): Promise<FillTypes> {

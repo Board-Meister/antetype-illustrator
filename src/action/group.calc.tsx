@@ -1,7 +1,9 @@
-import type { Modules, IArea } from "@boardmeister/antetype";
+import type { IArea } from "@boardmeister/antetype-core";
+// import type { Modules } from "@boardmeister/antetype";
 import type { IWorkspaceSettings } from "@boardmeister/antetype-workspace";
 import { IGroupDef } from "@src/type/group.d";
 import { IIllustrator } from "@src/module";
+import { ModulesWithCore } from "@src/index";
 
 const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
   const area = {
@@ -43,7 +45,7 @@ const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
 }
 
 export const ResolveGroupCalc = async (
-  modules: Modules,
+  modules: ModulesWithCore,
   def: IGroupDef
 ): Promise<void> => {
   const { group } = def;
@@ -65,15 +67,16 @@ export const ResolveGroupCalc = async (
   def.start.x ??= 0;
 
   /* Set relative sizes */
-  const settings = (modules.system!.setting.get('workspace') ?? {}) as IWorkspaceSettings;
+  const settings = (modules.core!.setting.get('workspace') ?? {}) as IWorkspaceSettings;
+  console.log(settings)
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
   const pRelWidth = settings.relative.width;
   if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
   if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
-  modules.system!.setting.set('workspace', settings);
+  modules.core!.setting.set('workspace', settings);
 
-  def.layout = await modules.system!.view.recalculate(def);
+  def.layout = await modules.core!.view.recalculate(def, def.layout);
 
   group.gap = await (modules.illustrator as IIllustrator).calc<{ vertical: number, horizontal: number }>({
     layerType: 'group',

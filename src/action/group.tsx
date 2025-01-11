@@ -1,9 +1,10 @@
-import type { Modules, IBaseDef } from "@boardmeister/antetype";
+import type { IBaseDef } from "@boardmeister/antetype-core";
 import { IGroupDef } from "@src/type/group.d";
+import { ModulesWithCore } from "@src/index";
 
 export const ResolveGroupAction = (
   ctx: CanvasRenderingContext2D,
-  modules: Modules,
+  modules: ModulesWithCore,
   def: IGroupDef,
 ): void => {
   const { group, start } = def;
@@ -14,7 +15,7 @@ export const ResolveGroupAction = (
   ctx.save();
   ctx.translate(start.x, start.y);
   if (group.interaction === 'fixed') {
-    modules.system!.view.redraw(def.layout);
+    modules.core!.view.redraw(def.layout);
   } else {
     drawLayersRelatively(ctx, modules, def);
   }
@@ -58,7 +59,7 @@ const getRowsWidth = (
 
 const drawLayersRelatively = (
   ctx: CanvasRenderingContext2D,
-  modules: Modules,
+  modules: ModulesWithCore,
   def: IGroupDef,
 ): void => {
   const { group } = def;
@@ -82,7 +83,7 @@ const drawLayersRelatively = (
     row.layers.forEach(layer => {
       ctx.save();
       ctx.translate(xShift, currentHeight);
-      modules.system!.view.draw(layer.def);
+      modules.core!.view.draw(layer.def);
       ctx.restore();
       xShift += layer.def.size.w + vertical;
     });

@@ -1,8 +1,6 @@
 // ../antetype-workspace/dist/index.js
 var Event = /* @__PURE__ */ ((Event22) => {
   Event22["STRUCTURE"] = "antetype.structure";
-  Event22["DRAW"] = "antetype.draw";
-  Event22["CALC"] = "antetype.calc";
   Event22["MIDDLE"] = "antetype.structure.middle";
   Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
   Event22["CENTER"] = "antetype.structure.center";
@@ -12,6 +10,36 @@ var Event = /* @__PURE__ */ ((Event22) => {
   Event22["MODULES"] = "antetype.modules";
   return Event22;
 })(Event || {});
+var n = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(n || {});
+var l = ((e) => (e.INIT = "antetype.init", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e))(l || {});
+var o = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(r) {
+    this.#t = r;
+  }
+  async #a(r, a) {
+    if (!this.#e) {
+      let e = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(e)).default, this.#e = this.#r({ canvas: a, modules: r, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(r) {
+    let { modules: a, canvas: e } = r.detail;
+    a.core = await this.#a(a, e);
+  }
+  async init(r) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: a } = r.detail, e = { type: "document", base: a, layout: [], start: { x: 0, y: 0 }, size: { w: 0, h: 0 } }, i = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((s) => {
+      i.push(this.#e.font.load(s));
+    }), await Promise.all(i), e.layout = await this.#e.view.recalculate(e, e.base), await this.#e.view.redraw(e.layout), e;
+  }
+  static subscriptions = { [n.MODULES]: "register", "antetype.init": "init" };
+};
 var cloned = Symbol("cloned");
 var Workspace = class {
   #maxDepth = 50;
@@ -103,7 +131,7 @@ var Workspace = class {
     return +number.toFixed(precision);
   }
   #getSystem() {
-    return this.#modules.system;
+    return this.#modules.core;
   }
   #getSettings() {
     const height2 = this.#ctx.canvas.offsetHeight;
@@ -255,14 +283,14 @@ var AntetypeWorkspace = class {
       "antetype.workspace.calc"
       /* CALC */
     ]: "calc",
-    [Event.CALC]: [
+    [l.CALC]: [
       {
         method: "cloneDefinitions",
         priority: -255
       }
     ],
     [Event.MODULES]: "register",
-    [Event.DRAW]: [
+    [l.DRAW]: [
       {
         method: "draw",
         priority: 255
@@ -537,7 +565,7 @@ var ResolveGroupAction = (ctx, modules, def) => {
   ctx.save();
   ctx.translate(start.x, start.y);
   if (group.interaction === "fixed") {
-    modules.system.view.redraw(def.layout);
+    modules.core.view.redraw(def.layout);
   } else {
     drawLayersRelatively(ctx, modules, def);
   }
@@ -578,7 +606,7 @@ var drawLayersRelatively = (ctx, modules, def) => {
     row.layers.forEach((layer) => {
       ctx.save();
       ctx.translate(xShift, currentHeight);
-      modules.system.view.draw(layer.def);
+      modules.core.view.draw(layer.def);
       ctx.restore();
       xShift += layer.def.size.w + vertical;
     });
@@ -681,8 +709,8 @@ var ResolveCalcPolygon = async (def, action, modules) => {
 };
 var updateSizeVectors = (def, value, dir) => {
   if (value < 0) {
-    const n = def.polygon.size.negative;
-    n[dir] = Math.min(n[dir], value);
+    const n2 = def.polygon.size.negative;
+    n2[dir] = Math.min(n2[dir], value);
   } else {
     const p = def.polygon.size.positive;
     p[dir] = Math.max(p[dir], value);
@@ -802,7 +830,7 @@ var calculateImage = async (def, source, cacheKey = null) => {
 };
 var getImageCacheKey = (image, width2, height2) => JSON.stringify({ ...image, timeout: 0, calculated: 0, width: width2, height: height2 });
 var loadImage = async (def, src, modules) => {
-  const image = new Image(), { image: { timeout = 3e4 } } = def, view = modules.system.view;
+  const image = new Image(), { image: { timeout = 3e4 } } = def, view = modules.core.view;
   image.crossOrigin = "anonymous";
   image.src = src;
   const promise = new Promise((resolve) => {
@@ -819,11 +847,17 @@ var loadImage = async (def, src, modules) => {
       clearTimeout(timeoutTimer);
       def.image.calculated = await calculateImage(def, image);
       resolve();
-      void view.redrawDebounce();
+      void view.redrawDebounce(getDoc(def).layout);
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
   await promise;
+};
+var getDoc = (def) => {
+  if (!def.hierarchy?.parent) {
+    return def;
+  }
+  return getDoc(def.hierarchy.parent);
 };
 var overcolorImage = async (image, def, asWidth, asHeight) => {
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), overcolor = def.image.overcolor;
@@ -1167,14 +1201,15 @@ var ResolveGroupCalc = async (modules, def) => {
   });
   def.start.y ??= 0;
   def.start.x ??= 0;
-  const settings = modules.system.setting.get("workspace") ?? {};
+  const settings = modules.core.setting.get("workspace") ?? {};
+  console.log(settings);
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
   const pRelWidth = settings.relative.width;
   if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
   if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
-  modules.system.setting.set("workspace", settings);
-  def.layout = await modules.system.view.recalc(def);
+  modules.core.setting.set("workspace", settings);
+  def.layout = await modules.core.view.recalculate(def, def.layout);
   group.gap = await modules.illustrator.calc({
     layerType: "group",
     purpose: "gap",

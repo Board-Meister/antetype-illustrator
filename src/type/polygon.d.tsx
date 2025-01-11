@@ -1,4 +1,4 @@
-import { IBaseDef, XValue, YValue, IStart } from "@boardmeister/antetype";
+import type { IBaseDef, XValue, YValue, IStart } from "@boardmeister/antetype-core";
 
 export declare type LineJoin = "round"|"bevel"|"miter";
 export declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;

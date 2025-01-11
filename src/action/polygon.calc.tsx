@@ -1,4 +1,5 @@
-import type { Modules, IArea } from "@boardmeister/antetype";
+import type { IArea } from "@boardmeister/antetype-core";
+import type { Modules } from "@boardmeister/antetype";
 import { IIllustrator } from "@src/module";
 import { IBegin, ICurve, IFill, ILine, IMove, IPolygonDef, IStroke } from "@src/type/polygon.d";
 import { calcFill } from "@src/shared";
