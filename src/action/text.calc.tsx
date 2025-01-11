@@ -3,7 +3,7 @@ import type { Modules } from "@boardmeister/antetype";
 import { ITextColumns, ITextDef, VerticalAlign } from "@src/type/text.d";
 import { calcFill } from "@src/shared";
 import { IIllustrator } from "@src/module";
-import { getFontSize, getSpaceChart, prepareFontShorthand, TextLines } from "@src/action/text";
+import { getFontSize, getFontSizeForCalc, getSpaceChart, prepareFontShorthand, TextLines } from "@src/action/text";
 
 export const ResolveTextSize = (def: ITextDef): IArea => {
   let fontSize = def.text.font?.size;
@@ -50,7 +50,7 @@ export const ResolveTextCalc = async (
     layerType: 'text',
     purpose: 'prepare',
     values: {
-      fontSize: getFontSize(def),
+      fontSize: getFontSizeForCalc(def),
       lineHeight: def.text.lineHeight ?? 0,
       gap: def.text.columns?.gap ?? 0,
       outlineThickness: def.text.outline?.thickness ?? 0,

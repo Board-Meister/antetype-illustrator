@@ -2,7 +2,8 @@ import { HorizontalAlign, ITextDef, ITextOutline } from "@src/type/text.d";
 import { generateFill } from "@src/shared";
 
 export declare type TextLines = { 0: string, 1: number }[];
-export const getFontSize = (def: ITextDef): number => Number(def.text.font?.size || 10);
+export const getFontSizeForCalc = (def: ITextDef): string => String(def.text.font?.size ?? 10);
+export const getFontSize = (def: ITextDef): number => Number(def.text.font?.size ?? 10);
 export const getSpaceChart = (): string => String.fromCharCode(8202);
 
 /*

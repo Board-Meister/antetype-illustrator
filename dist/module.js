@@ -463,7 +463,8 @@ var imageIsBeingLoaded = (image) => {
 };
 
 // src/action/text.tsx
-var getFontSize = (def) => Number(def.text.font?.size || 10);
+var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
+var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x } = def.start, lines = [], previousColumnsLines = 0;
@@ -1037,7 +1038,7 @@ var ResolveTextCalc = async (def, modules, ctx) => {
     layerType: "text",
     purpose: "prepare",
     values: {
-      fontSize: getFontSize(def),
+      fontSize: getFontSizeForCalc(def),
       lineHeight: def.text.lineHeight ?? 0,
       gap: def.text.columns?.gap ?? 0,
       outlineThickness: def.text.outline?.thickness ?? 0
@@ -1202,7 +1203,6 @@ var ResolveGroupCalc = async (modules, def) => {
   def.start.y ??= 0;
   def.start.x ??= 0;
   const settings = modules.core.setting.get("workspace") ?? {};
-  console.log(settings);
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
   const pRelWidth = settings.relative.width;

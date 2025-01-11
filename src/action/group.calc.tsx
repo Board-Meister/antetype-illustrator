@@ -68,7 +68,6 @@ export const ResolveGroupCalc = async (
 
   /* Set relative sizes */
   const settings = (modules.core!.setting.get('workspace') ?? {}) as IWorkspaceSettings;
-  console.log(settings)
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
   const pRelWidth = settings.relative.width;
