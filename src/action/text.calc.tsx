@@ -13,12 +13,12 @@ export const ResolveTextSize = (def: ITextDef): IArea => {
 
   return {
     start: {
-      y: def.start.y - (def.text.transY ?? 0),
+      y: def.start.y - ((def.text.transY ?? 0)/2),
       x: def.start.x,
     },
     size: {
       w: def.size.w,
-      h: (def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0),
+      h: def.size.h ?? ((def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0)),
     }
   };
 }

@@ -7,14 +7,15 @@ import { Actions, PActions, PolygonActionTypes } from "@src/action/polygon";
 
 export const ResolvePolygonSize = (def: IPolygonDef): IArea => {
   const size = def.polygon.size;
+
   return {
     start: {
       x: def.start.x + size.negative.x,
       y: def.start.y + size.negative.y,
     },
     size: {
-      w: size.positive.x,
-      h: size.positive.y,
+      w: size.positive.x - size.negative.x,
+      h: size.positive.y - size.negative.y,
     }
   }
 }
@@ -87,7 +88,7 @@ export const ResolveCalcPolygon = async <K extends keyof PolygonActionTypes>(
     return;
   }
 
-  objSwitch[action.means](action);
+  await objSwitch[action.means](action);
 }
 
 const updateSizeVectors = (def: IPolygonDef, value: number, dir: 'x'|'y'): void => {

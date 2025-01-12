@@ -136,6 +136,7 @@ declare class Minstrel {
 	component<T>(module: Module, suffix: string, scope?: Record<string, any>): React$1.FC<T>;
 	asset(module: Module, suffix: string): string;
 }
+declare type UnknownRecord = Record<symbol | string, unknown>;
 interface DrawEvent {
 	element: IBaseDef;
 }
@@ -177,26 +178,50 @@ interface IBaseDef<T = never> {
 interface IParentDef extends IBaseDef {
 	layout: Layout;
 }
+interface IDocumentDef extends IParentDef {
+	type: "document";
+	base: Layout;
+	start: {
+		x: 0;
+		y: 0;
+	};
+	size: {
+		w: 0;
+		h: 0;
+	};
+}
 interface IFont {
 	url: string;
 	name: string;
 }
 interface ICore {
+	meta: {
+		document: IDocumentDef;
+	};
+	clone: {
+		definitions: (data: IBaseDef) => Promise<IBaseDef>;
+		getOriginal: <T extends UnknownRecord = UnknownRecord>(object: T) => T;
+		getClone: <T extends UnknownRecord = UnknownRecord>(object: T) => T;
+	};
 	manage: {
+		markAsLayer: (layer: IBaseDef) => IBaseDef;
+		add: (def: IBaseDef, parent?: IParentDef | null, position?: number | null) => void;
+		addVolatile: (def: IBaseDef, parent?: IParentDef | null, position?: number | null) => void;
 		move: (original: IBaseDef, def: IBaseDef, newStart: IStart) => Promise<void>;
 		resize: (original: IBaseDef, def: IBaseDef, newSize: ISize) => Promise<void>;
-		remove: (def: IBaseDef, ogParent: IParentDef, ogPosition: number) => void;
+		remove: (def: IBaseDef) => void;
+		removeVolatile: (def: IBaseDef) => void;
 	};
 	view: {
 		calc: (element: IBaseDef, parent: IParentDef, position: number) => Promise<IBaseDef | null>;
 		draw: (element: IBaseDef) => void;
-		redraw: (layout: Layout) => void;
-		recalculate: (parent: IParentDef, layout: Layout) => Promise<Layout>;
+		redraw: (layout?: Layout) => void;
+		recalculate: (parent?: IParentDef, layout?: Layout) => Promise<Layout>;
 		redrawDebounce: (layout: Layout) => void;
 	};
 	policies: {
-		markAsLayer: (layer: IBaseDef) => IBaseDef;
 		isLayer: (layer: Record<symbol, unknown>) => boolean;
+		isClone: (layer: Record<symbol, unknown>) => boolean;
 	};
 	font: {
 		load: (font: IFont) => Promise<void>;

@@ -4,28 +4,17 @@ import type { IWorkspaceSettings } from "@boardmeister/antetype-workspace";
 import { IGroupDef } from "@src/type/group.d";
 import { IIllustrator } from "@src/module";
 import { ModulesWithCore } from "@src/index";
+import { getRowsHeight, getRowsWidth, separateIntoRows } from "@src/action/group";
 
 const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
-  const area = {
-    size: {
-      h: 0,
-      w: 0,
-    },
-    start: {
-      x: 0,
-      y: 0,
-    },
-  } as IArea;
+  let area: IArea;
+  if (def.group.interaction === 'fixed') {
+    area = ResolveGroupSizeForFixed(def);
 
-  for (let i = 0; i < def.layout.length; i++) {
-    const subArea = def.layout[i].area;
-    if (!subArea) {
-      continue;
-    }
-    area.size.h = Math.max(area.size.h, subArea.size.h);
-    area.size.w = Math.max(area.size.w, subArea.size.w);
-    area.start.y = Math.min(area.start.y, subArea.start.y);
-    area.start.x = Math.min(area.start.x, subArea.start.x);
+    area.start.y += def.start.y;
+    area.start.x += def.start.x;
+  } else {
+    area = ResolveGroupSizeForRelative(def);
   }
 
   if (def.group.clip) {
@@ -38,8 +27,46 @@ const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
     }
   }
 
-  area.start.y += def.start.y;
-  area.start.x += def.start.x;
+  return area;
+}
+
+const generateArea = (): IArea => {
+  return {
+    size: {
+      w: 0,
+      h: 0,
+    },
+    start: {
+      x: 0,
+      y: 0,
+    }
+  };
+}
+
+const ResolveGroupSizeForRelative = (def: IGroupDef): IArea => {
+  const area = generateArea();
+  const rows = separateIntoRows(def, def.layout);
+  area.size.h = getRowsHeight(def, rows);
+  area.size.w = getRowsWidth(def, rows);
+  area.start.x = def.start.x;
+  area.start.y = def.start.y;
+
+  return area;
+}
+
+const ResolveGroupSizeForFixed = (def: IGroupDef): IArea => {
+  const area = generateArea();
+
+  for (let i = 0; i < def.layout.length; i++) {
+    const subArea = def.layout[i].area;
+    if (!subArea) {
+      continue;
+    }
+    area.size.h = Math.max(area.size.h, subArea.size.h);
+    area.size.w = Math.max(area.size.w, subArea.size.w);
+    area.start.y = Math.min(area.start.y, subArea.start.y);
+    area.start.x = Math.min(area.start.x, subArea.start.x);
+  }
 
   return area;
 }

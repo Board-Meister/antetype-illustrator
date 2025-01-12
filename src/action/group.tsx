@@ -33,7 +33,7 @@ interface IGroupRow {
   layers: IRowLayer[]
 }
 
-const getRowsHeight = (
+export const getRowsHeight = (
   def: IGroupDef,
   rows: IGroupRow[],
 ): number => {
@@ -46,13 +46,23 @@ const getRowsHeight = (
   return height - horizontal;
 }
 
-const getRowsWidth = (
+export const getRowsWidth = (
+  def: IGroupDef,
   rows: IGroupRow[],
 ): number => {
   let width = 0;
+  const vertical = def.group.gap!.vertical!;
   rows.forEach(row => {
-    width += row.width;
-  })
+    if (def.group.direction === "column") {
+      width = Math.max(width, row.width);
+    } else {
+      width += row.width + vertical;
+    }
+  });
+
+  if (def.group.direction === "row") {
+    width -= vertical;
+  }
 
   return width;
 }
@@ -71,7 +81,7 @@ const drawLayersRelatively = (
     ctx.rect(
       def.start.x,
       def.start.y,
-      isNaN(def.size!.w) ? getRowsWidth(rows) : def.size.w,
+      isNaN(def.size!.w) ? getRowsWidth(def, rows) : def.size.w,
       isNaN(def.size!.h) ? getRowsHeight(def, rows) : def.size.h,
     );
     ctx.clip();
@@ -92,7 +102,7 @@ const drawLayersRelatively = (
   });
 }
 
-const separateIntoRows = (
+export const separateIntoRows = (
   def: IGroupDef,
   layout: IBaseDef[],
 ): IGroupRow[] => {
