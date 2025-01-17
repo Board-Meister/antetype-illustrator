@@ -10,8 +10,49 @@ var Event = /* @__PURE__ */ ((Event22) => {
   Event22["MODULES"] = "antetype.modules";
   return Event22;
 })(Event || {});
+var i = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i || {});
+var c = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c || {});
+var s = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#t = e;
+  }
+  async #n(e, n) {
+    if (!this.#e) {
+      let r = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(e) {
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
+  }
+  async init(e) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: n, settings: r } = e.detail;
+    for (let a in r) this.#e.setting.set(a, r[a]);
+    let o = this.#e.meta.document;
+    o.base = n;
+    let l = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
+      l.push(this.#e.font.load(a));
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
+  }
+  async cloneDefinitions(e) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
+  }
+  static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+};
 var Event2 = /* @__PURE__ */ ((Event32) => {
-  Event32["SELECT"] = "antetype.cursor.select";
+  Event32["POSITION"] = "antetype.cursor.position";
+  Event32["DOWN"] = "antetype.cursor.on.down";
+  Event32["UP"] = "antetype.cursor.on.up";
+  Event32["MOVE"] = "antetype.cursor.on.move";
   return Event32;
 })(Event2 || {});
 var AntetypeCursor = class {
@@ -36,10 +77,24 @@ var AntetypeCursor = class {
       modules,
       injected: this.#injected
     });
-    this.#instance;
+  }
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction = {
+      selection: this.#instance.drawSelection
+    };
+    const el = typeToAction[element.type];
+    if (typeof el == "function") {
+      el(element);
+    }
   }
   static subscriptions = {
-    [Event.MODULES]: "register"
+    [Event.MODULES]: "register",
+    [c.DRAW]: "draw"
   };
 };
 var Event3 = /* @__PURE__ */ ((Event22) => {
@@ -53,9 +108,9 @@ var Event3 = /* @__PURE__ */ ((Event22) => {
   Event22["MODULES"] = "antetype.modules";
   return Event22;
 })(Event3 || {});
-var i = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i || {});
-var c = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c || {});
-var s = class {
+var i2 = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i2 || {});
+var c2 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c2 || {});
+var s2 = class {
   #t;
   #r = null;
   #e = null;
@@ -63,33 +118,33 @@ var s = class {
   inject(e) {
     this.#t = e;
   }
-  async #n(e, o) {
+  async #n(e, n) {
     if (!this.#e) {
       let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: o, modules: e, injected: this.#t });
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
     }
     return this.#e;
   }
   async register(e) {
-    let { modules: o, canvas: r } = e.detail;
-    o.core = await this.#n(o, r);
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
   }
   async init(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: o, settings: r } = e.detail;
+    let { base: n, settings: r } = e.detail;
     for (let a in r) this.#e.setting.set(a, r[a]);
-    let n = this.#e.meta.document;
-    n.base = o;
+    let o = this.#e.meta.document;
+    o.base = n;
     let l = [];
     return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
       l.push(this.#e.font.load(a));
-    }), await Promise.all(l), n.layout = await this.#e.view.recalculate(n, n.base), await this.#e.view.redraw(n.layout), console.log(n), n;
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
   }
   async cloneDefinitions(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
     e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
   }
-  static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+  static subscriptions = { [i2.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
 };
 var Workspace = class {
   #canvas;
@@ -107,8 +162,14 @@ var Workspace = class {
   drawCanvas() {
     const ctx = this.#ctx;
     ctx.save();
-    ctx.fillStyle = "#FFF";
     const { height: height2, width: width2 } = this.#getSize();
+    ctx.clearRect(
+      -this.getLeft(),
+      -this.getTop(),
+      this.#canvas.width,
+      this.#canvas.height
+    );
+    ctx.fillStyle = "#FFF";
     ctx.fillRect(0, 0, width2, height2);
     ctx.restore();
   }
@@ -137,6 +198,13 @@ var Workspace = class {
       return;
     }
     this.#ctx.restore();
+  }
+  toRelative(value, direction = "x") {
+    const { height: height2, width: width2 } = this.#getSizeRelative();
+    if (direction === "x") {
+      return value / height2 * 100 + "h%";
+    }
+    return value / width2 * 100 + "w%";
   }
   calc(operation) {
     if (typeof operation == "number") {
@@ -285,7 +353,7 @@ var AntetypeWorkspace = class {
       /* CALC */
     ]: "calc",
     [Event3.MODULES]: "register",
-    [c.DRAW]: [
+    [c2.DRAW]: [
       {
         method: "draw",
         priority: 255
@@ -299,7 +367,7 @@ var AntetypeWorkspace = class {
         priority: 255
       }
     ],
-    [Event2.SELECT]: "subtractWorkspace"
+    [Event2.POSITION]: "subtractWorkspace"
   };
 };
 var EnAntetypeWorkspace = AntetypeWorkspace;
@@ -448,8 +516,8 @@ var ResolveImageAction = async (ctx, def) => {
   if (!(image instanceof CalculatedImage)) {
     return;
   }
-  const { x, y, width: width2, height: height2 } = image.coords;
-  ctx.drawImage(image.image, x, y, width2, height2);
+  const { start: { x, y } } = def.area;
+  ctx.drawImage(image.image, x + image.coords.xDiff, y + image.coords.yDiff, image.coords.width, image.coords.height);
 };
 var imageTimeoutReached = (image) => {
   return image === IMAGE_TIMEOUT_STATUS;
@@ -469,9 +537,9 @@ var ResolveTextAction = (ctx, def) => {
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   while ((lines = value.splice(0, linesAmount)).length) {
-    lines.forEach((text2, i2) => {
-      const nextLine = lines[i2 + 1] || value[0] || [""];
-      const isLast = i2 + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
+    lines.forEach((text2, i3) => {
+      const nextLine = lines[i3 + 1] || value[0] || [""];
+      const isLast = i3 + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
       const verticalMove = transY + (text2[1] - previousColumnsLines) * lineHeight;
       fillText(ctx, text2[0], def, x, y, w, verticalMove, isLast);
     });
@@ -624,8 +692,8 @@ var separateIntoRows = (def, layout) => {
   const rows = [];
   const generateRow = () => ({ height: 0, width: 0, layers: [] });
   let row = generateRow();
-  layout.forEach((layer, i2) => {
-    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i2 != 0 && def.group.direction === "column") {
+  layout.forEach((layer, i3) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i3 != 0 && def.group.direction === "column") {
       rows.push(row);
       row = generateRow();
     }
@@ -777,21 +845,18 @@ var ResolveImageCalc = async (modules, def) => {
 };
 var calculateFromCache = (def, cached) => {
   const image = def.image, { w, h } = def.size;
-  let { x, y } = def.start;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
     image.fit ?? "default",
     cached.width,
     cached.height,
     w,
     h
-  ), leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), topDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
-  x += leftDiff;
-  y += topDiff;
+  ), xDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
   return new CalculatedImage(
     cached.image,
     {
-      x,
-      y,
+      xDiff,
+      yDiff,
       width: asWidth,
       height: asHeight
     }
@@ -799,16 +864,13 @@ var calculateFromCache = (def, cached) => {
 };
 var calculateImage = async (def, source, cacheKey = null) => {
   const image = def.image, { w, h } = def.size, sWidth = source.width, sHeight = source.height;
-  let { x, y } = def.start;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
     image.fit ?? "default",
     sWidth,
     sHeight,
     w,
     h
-  ), leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), topDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
-  x += leftDiff;
-  y += topDiff;
+  ), xDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
   if (image.fit === "crop") {
     source = await cropImage(source, def);
   }
@@ -826,8 +888,8 @@ var calculateImage = async (def, source, cacheKey = null) => {
   return new CalculatedImage(
     source,
     {
-      x,
-      y,
+      xDiff,
+      yDiff,
       width: asWidth,
       height: asHeight
     }
@@ -900,9 +962,9 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   if (thickness > 5) {
     const granularity = Math.floor(thickness / 2.5);
     let newDArr = [];
-    for (let i2 = 0; i2 < dArr.length; i2++) {
-      newDArr.push(dArr[i2]);
-      const [cX, cY] = dArr[i2], [dX, dY] = i2 + 1 === dArr.length ? dArr[0] : dArr[i2 + 1];
+    for (let i3 = 0; i3 < dArr.length; i3++) {
+      newDArr.push(dArr[i3]);
+      const [cX, cY] = dArr[i3], [dX, dY] = i3 + 1 === dArr.length ? dArr[0] : dArr[i3 + 1];
       const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
       let x = cX, y = cY;
       while ((trendX > 0 && x + bX < dX || trendX < 0 && x + bX > dX) && (trendY > 0 && y + bY < dY || trendY < 0 && y + bY > dY)) {
@@ -916,11 +978,11 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   }
   canvas.setAttribute("width", String(asWidth + thickness * 2));
   canvas.setAttribute("height", String(asHeight + thickness * 2));
-  for (let i2 = 0; i2 < dArr.length; i2++) {
+  for (let i3 = 0; i3 < dArr.length; i3++) {
     ctx.drawImage(
       image,
-      thickness + dArr[i2][0] * thickness,
-      thickness + dArr[i2][1] * thickness,
+      thickness + dArr[i3][0] * thickness,
+      thickness + dArr[i3][1] * thickness,
       asWidth,
       asHeight
     );
@@ -1103,22 +1165,22 @@ var getTextLines = (def, text, ctx, width2) => {
     return [[text, 0]];
   }
   const rows = [];
-  let words = text.split(/[^\S\r\n]/), line = "", i2 = 0;
+  let words = text.split(/[^\S\r\n]/), line = "", i3 = 0;
   while (words.length > 0) {
     const newLinePos = words[0].search(/[\r\n]/);
     if (newLinePos !== -1) {
       const newLine = words[0].substring(0, newLinePos);
-      rows.push([(line + " " + newLine).trim() + "\n", i2]);
+      rows.push([(line + " " + newLine).trim() + "\n", i3]);
       line = "";
-      i2++;
+      i3++;
       words[0] = words[0].substring(newLinePos + 1);
       continue;
     }
     const metrics = ctx.measureText(line + words[0]);
     if (metrics.width > width2) {
       if (line.length > 0) {
-        rows.push([line.trim(), i2]);
-        i2++;
+        rows.push([line.trim(), i3]);
+        i3++;
       }
       line = "";
     }
@@ -1126,7 +1188,7 @@ var getTextLines = (def, text, ctx, width2) => {
     words = words.splice(1);
   }
   if (line.length > 0) {
-    rows.push([line.replace(/^\s+/, ""), i2]);
+    rows.push([line.replace(/^\s+/, ""), i3]);
   }
   return rows;
 };
@@ -1199,8 +1261,8 @@ var ResolveGroupSizeForRelative = (def) => {
 };
 var ResolveGroupSizeForFixed = (def) => {
   const area = generateArea();
-  for (let i2 = 0; i2 < def.layout.length; i2++) {
-    const subArea = def.layout[i2].area;
+  for (let i3 = 0; i3 < def.layout.length; i3++) {
+    const subArea = def.layout[i3].area;
     if (!subArea) {
       continue;
     }

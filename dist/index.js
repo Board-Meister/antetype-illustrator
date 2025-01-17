@@ -22,27 +22,27 @@ var s = class {
   inject(e) {
     this.#t = e;
   }
-  async #n(e, o) {
+  async #n(e, n) {
     if (!this.#e) {
       let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: o, modules: e, injected: this.#t });
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
     }
     return this.#e;
   }
   async register(e) {
-    let { modules: o, canvas: r } = e.detail;
-    o.core = await this.#n(o, r);
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
   }
   async init(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: o, settings: r } = e.detail;
+    let { base: n, settings: r } = e.detail;
     for (let a in r) this.#e.setting.set(a, r[a]);
-    let n = this.#e.meta.document;
-    n.base = o;
+    let o = this.#e.meta.document;
+    o.base = n;
     let l = [];
     return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
       l.push(this.#e.font.load(a));
-    }), await Promise.all(l), n.layout = await this.#e.view.recalculate(n, n.base), await this.#e.view.redraw(n.layout), console.log(n), n;
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
   }
   async cloneDefinitions(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
@@ -63,8 +63,49 @@ var Event2 = /* @__PURE__ */ ((Event222) => {
   Event222["MODULES"] = "antetype.modules";
   return Event222;
 })(Event2 || {});
+var i2 = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i2 || {});
+var c2 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c2 || {});
+var s2 = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#t = e;
+  }
+  async #n(e, n) {
+    if (!this.#e) {
+      let r = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(e) {
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
+  }
+  async init(e) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: n, settings: r } = e.detail;
+    for (let a in r) this.#e.setting.set(a, r[a]);
+    let o = this.#e.meta.document;
+    o.base = n;
+    let l = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
+      l.push(this.#e.font.load(a));
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
+  }
+  async cloneDefinitions(e) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
+  }
+  static subscriptions = { [i2.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+};
 var Event22 = /* @__PURE__ */ ((Event32) => {
-  Event32["SELECT"] = "antetype.cursor.select";
+  Event32["POSITION"] = "antetype.cursor.position";
+  Event32["DOWN"] = "antetype.cursor.on.down";
+  Event32["UP"] = "antetype.cursor.on.up";
+  Event32["MOVE"] = "antetype.cursor.on.move";
   return Event32;
 })(Event22 || {});
 var AntetypeCursor = class {
@@ -89,10 +130,24 @@ var AntetypeCursor = class {
       modules,
       injected: this.#injected
     });
-    this.#instance;
+  }
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction = {
+      selection: this.#instance.drawSelection
+    };
+    const el = typeToAction[element.type];
+    if (typeof el == "function") {
+      el(element);
+    }
   }
   static subscriptions = {
-    [Event2.MODULES]: "register"
+    [Event2.MODULES]: "register",
+    [c2.DRAW]: "draw"
   };
 };
 var Event3 = /* @__PURE__ */ ((Event222) => {
@@ -106,9 +161,9 @@ var Event3 = /* @__PURE__ */ ((Event222) => {
   Event222["MODULES"] = "antetype.modules";
   return Event222;
 })(Event3 || {});
-var i2 = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i2 || {});
-var c2 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c2 || {});
-var s2 = class {
+var i22 = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i22 || {});
+var c22 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c22 || {});
+var s22 = class {
   #t;
   #r = null;
   #e = null;
@@ -116,33 +171,33 @@ var s2 = class {
   inject(e) {
     this.#t = e;
   }
-  async #n(e, o) {
+  async #n(e, n) {
     if (!this.#e) {
       let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: o, modules: e, injected: this.#t });
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
     }
     return this.#e;
   }
   async register(e) {
-    let { modules: o, canvas: r } = e.detail;
-    o.core = await this.#n(o, r);
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
   }
   async init(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: o, settings: r } = e.detail;
+    let { base: n, settings: r } = e.detail;
     for (let a in r) this.#e.setting.set(a, r[a]);
-    let n = this.#e.meta.document;
-    n.base = o;
+    let o = this.#e.meta.document;
+    o.base = n;
     let l = [];
     return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
       l.push(this.#e.font.load(a));
-    }), await Promise.all(l), n.layout = await this.#e.view.recalculate(n, n.base), await this.#e.view.redraw(n.layout), console.log(n), n;
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
   }
   async cloneDefinitions(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
     e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
   }
-  static subscriptions = { [i2.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+  static subscriptions = { [i22.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
 };
 var Workspace = class {
   #canvas;
@@ -160,8 +215,14 @@ var Workspace = class {
   drawCanvas() {
     const ctx = this.#ctx;
     ctx.save();
-    ctx.fillStyle = "#FFF";
     const { height: height2, width: width2 } = this.#getSize();
+    ctx.clearRect(
+      -this.getLeft(),
+      -this.getTop(),
+      this.#canvas.width,
+      this.#canvas.height
+    );
+    ctx.fillStyle = "#FFF";
     ctx.fillRect(0, 0, width2, height2);
     ctx.restore();
   }
@@ -190,6 +251,13 @@ var Workspace = class {
       return;
     }
     this.#ctx.restore();
+  }
+  toRelative(value, direction = "x") {
+    const { height: height2, width: width2 } = this.#getSizeRelative();
+    if (direction === "x") {
+      return value / height2 * 100 + "h%";
+    }
+    return value / width2 * 100 + "w%";
   }
   calc(operation) {
     if (typeof operation == "number") {
@@ -338,7 +406,7 @@ var AntetypeWorkspace = class {
       /* CALC */
     ]: "calc",
     [Event3.MODULES]: "register",
-    [c2.DRAW]: [
+    [c22.DRAW]: [
       {
         method: "draw",
         priority: 255
@@ -352,7 +420,7 @@ var AntetypeWorkspace = class {
         priority: 255
       }
     ],
-    [Event22.SELECT]: "subtractWorkspace"
+    [Event22.POSITION]: "subtractWorkspace"
   };
 };
 var EnAntetypeWorkspace = AntetypeWorkspace;

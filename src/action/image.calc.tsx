@@ -17,7 +17,7 @@ interface CachedImage {
 const ResolveImageSize = (def: IImageDef): IArea => ({
   start: {
     x: def.start.x,
-    y:def.start.y,
+    y: def.start.y,
   },
   size: {
     h: def.size.h,
@@ -91,7 +91,6 @@ const calculateFromCache = (
   const image = def.image,
     { w, h } =  def.size
   ;
-  let { x, y } = def.start;
 
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
       image.fit ?? 'default',
@@ -100,17 +99,15 @@ const calculateFromCache = (
       w,
       h,
     ),
-    leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
-    topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
+    xDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
+    yDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
   ;
-
-  x += leftDiff;
-  y += topDiff;
 
   return new CalculatedImage(
     cached.image,
     {
-      x, y,
+      xDiff,
+      yDiff,
       width: asWidth,
       height: asHeight,
     }
@@ -127,8 +124,6 @@ const calculateImage = async (
     sWidth = source.width,
     sHeight = source.height
   ;
-  let { x, y } = def.start;
-
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
       image.fit ?? 'default',
       sWidth,
@@ -136,12 +131,9 @@ const calculateImage = async (
       w,
       h,
     ),
-    leftDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
-    topDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
+    xDiff = getImageHorizontalDiff(image.align?.horizontal ?? 'center', w, asWidth),
+    yDiff = getImageVerticalDiff(image.align?.vertical ?? 'center', h, asHeight)
   ;
-
-  x += leftDiff;
-  y += topDiff;
 
   if (image.fit === 'crop') {
     source = await cropImage(source, def)
@@ -160,10 +152,12 @@ const calculateImage = async (
     width: sWidth,
     height: sHeight,
   };
+
   return new CalculatedImage(
     source,
     {
-      x, y,
+      xDiff,
+      yDiff,
       width: asWidth,
       height: asHeight,
     }

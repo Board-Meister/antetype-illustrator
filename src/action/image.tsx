@@ -6,8 +6,8 @@ export const IMAGE_LOADING_STATUS = Symbol('loading');
 
 
 interface IImageCoords {
-  x: number;
-  y: number;
+  xDiff: number;
+  yDiff: number;
   width: number;
   height: number;
 }
@@ -38,8 +38,8 @@ export const ResolveImageAction = async (
     return;
   }
 
-  const { x, y, width, height } = image.coords;
-  ctx.drawImage(image.image, x, y, width, height);
+  const { start: { x, y } } = def.area!;
+  ctx.drawImage(image.image, x + image.coords.xDiff, y + image.coords.yDiff, image.coords.width, image.coords.height);
 }
 
 const imageTimeoutReached = (image: unknown): boolean => {

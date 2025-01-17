@@ -329,8 +329,8 @@ interface IPolygonDef<T = never> extends IBaseDef<T> {
 	polygon: IPolygonArgs;
 }
 interface IImageCoords {
-	x: number;
-	y: number;
+	xDiff: number;
+	yDiff: number;
 	width: number;
 	height: number;
 }
