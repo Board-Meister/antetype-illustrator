@@ -71,7 +71,7 @@ export const ResolveTextCalc = async (
   def.text.font = def.text.font ?? {};
   def.text.font.size = fontSize;
 
-  if (typeof def.text.color.type == 'string') {
+  if (typeof def.text.color?.type == 'string') {
     await calcFill(illustrator, def.text.color);
   }
 

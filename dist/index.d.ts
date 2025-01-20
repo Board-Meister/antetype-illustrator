@@ -241,6 +241,12 @@ interface Module$1 {
 }
 interface Modules {
 	[key: string]: Module$1 | undefined;
+	system?: {
+		structure: {
+			reloadStructure: () => Promise<void>;
+			reload: VoidFunction;
+		};
+	};
 }
 declare type LineJoin = "round" | "bevel" | "miter";
 declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;
@@ -433,6 +439,10 @@ export interface IIllustrator extends Module$1 {
 	image: (def: IImageDef) => void;
 	text: (def: ITextDef) => void;
 	calc: <T = Record<string, unknown>>(def: ICalcEvent) => Promise<T>;
+	generateText: (value: string) => ITextDef;
+	generateImage: (src: string | HTMLImageElement) => IImageDef;
+	generatePolygon: (steps: PolygonActions[]) => IPolygonDef;
+	generateGroup: (layout: Layout) => IGroupDef;
 }
 declare enum Event$1 {
 	CALC = "antetype.illustrator.calc"

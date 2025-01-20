@@ -1,8 +1,8 @@
-import type { IStart } from "@boardmeister/antetype-core";
+import type { IStart, Layout } from "@boardmeister/antetype-core";
 import type { Module } from "@boardmeister/antetype";
 import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
-import { IPolygonDef } from "@src/type/polygon.d";
+import { IPolygonDef, PolygonActions } from "@src/type/polygon.d";
 import { IImageDef } from "@src/type/image.d";
 import { ResolveImageAction } from "@src/action/image";
 import { ITextDef } from "@src/type/text.d";
@@ -23,6 +23,10 @@ export interface IIllustrator extends Module {
   image: (def: IImageDef) => void;
   text: (def: ITextDef) => void;
   calc: <T = Record<string, unknown>>(def: ICalcEvent) => Promise<T>;
+  generateText: (value: string) => ITextDef;
+  generateImage: (src: string|HTMLImageElement) => IImageDef;
+  generatePolygon: (steps: PolygonActions[])=>  IPolygonDef;
+  generateGroup: (layout: Layout) => IGroupDef;
 }
 
 export default class Illustrator implements IIllustrator {
@@ -119,5 +123,87 @@ export default class Illustrator implements IIllustrator {
     await this.#injected.herald.dispatch(event);
 
     return event.detail.values as T;
+  }
+
+  generateText(value: string): ITextDef {
+    return {
+      type: 'text',
+      start: {
+        x: 0,
+        y: 0,
+      },
+      size: {
+        w: 300,
+        h: 100,
+      },
+      text: {
+        value,
+        font: {
+          family: 'Arial',
+          weight: 400,
+          size: 30,
+        }
+      }
+    }
+  }
+
+  generateImage(src: string|HTMLImageElement): IImageDef {
+    return {
+      type: 'image',
+      start: {
+        x: 0,
+        y: 0,
+      },
+      size: {
+        w: 300,
+        h: 300,
+      },
+      image: {
+        src,
+      }
+    }
+  }
+
+  generatePolygon(steps: PolygonActions[] = []): IPolygonDef {
+    return {
+      type: 'polygon',
+      start: {
+        x: 0,
+        y: 0,
+      },
+      size: {
+        w: NaN,
+        h: NaN,
+      },
+      polygon: {
+        steps,
+        size: {
+          negative: {
+            x: 0,
+            y: 0,
+          },
+          positive: {
+            x: 0,
+            y: 0,
+          },
+        }
+      }
+    }
+  }
+
+  generateGroup(layout: Layout): IGroupDef {
+    return {
+      type: 'group',
+      start: {
+        x: 0,
+        y: 0,
+      },
+      size: {
+        w: NaN,
+        h: NaN,
+      },
+      group: {},
+      layout,
+    }
   }
 }

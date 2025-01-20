@@ -164,7 +164,6 @@ const calculateImage = async (
   );
 }
 
-
 const getImageCacheKey = (image: IImageArg, width: number, height: number): string =>
   JSON.stringify({ ...image, timeout: 0, calculated: 0, width, height });
 
@@ -191,8 +190,8 @@ const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore):
     image.onload = async () => {
       clearTimeout(timeoutTimer);
       def.image.calculated = await calculateImage(def, image);
+      view.redrawDebounce(getDoc(def).layout);
       resolve();
-      void view.redrawDebounce(getDoc(def).layout);
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;

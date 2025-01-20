@@ -1,4 +1,67 @@
 // ../antetype-workspace/dist/index.js
+var o = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e))(o || {});
+var c = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e))(c || {});
+var a = ((e) => (e.INIT = "antetype.init", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e))(a || {});
+var m = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#t = e;
+  }
+  async #s(e, t) {
+    if (!this.#e) {
+      let r = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: t, modules: e, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(e) {
+    let { modules: t, canvas: r } = e.detail;
+    t.core = await this.#s(t, r);
+  }
+  async init(e) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: t, settings: r } = e.detail;
+    for (let s2 in r) this.#e.setting.set(s2, r[s2]);
+    let i2 = this.#e.meta.document;
+    i2.base = t;
+    let n = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((s2) => {
+      n.push(this.#e.font.load(s2));
+    }), await Promise.all(n), i2.layout = await this.#e.view.recalculate(i2, i2.base), await this.#e.view.redraw(i2.layout), i2;
+  }
+  async cloneDefinitions(e) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
+  }
+  static subscriptions = { [c.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+};
+var u = ((s2) => (s2.POSITION = "antetype.cursor.position", s2.DOWN = "antetype.cursor.on.down", s2.UP = "antetype.cursor.on.up", s2.MOVE = "antetype.cursor.on.move", s2.SLIP = "antetype.cursor.on.slip", s2))(u || {});
+var l = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#t = t;
+  }
+  async register(t) {
+    let { modules: r, canvas: i2 } = t.detail;
+    if (!this.#r) {
+      let n = this.#t.minstrel.getResourceUrl(this, "module.js");
+      this.#r = (await import(n)).default;
+    }
+    this.#e = r.transform = this.#r({ canvas: i2, modules: r, injected: this.#t });
+  }
+  draw(t) {
+    if (!this.#e) return;
+    let { element: r } = t.detail, n = { selection: this.#e.drawSelection }[r.type];
+    typeof n == "function" && n(r);
+  }
+  static subscriptions = { [o.MODULES]: "register", [a.DRAW]: "draw" };
+};
 var Event = /* @__PURE__ */ ((Event22) => {
   Event22["STRUCTURE"] = "antetype.structure";
   Event22["MIDDLE"] = "antetype.structure.middle";
@@ -8,143 +71,46 @@ var Event = /* @__PURE__ */ ((Event22) => {
   Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
   Event22["BAR_TOP"] = "antetype.structure.bar.top";
   Event22["MODULES"] = "antetype.modules";
+  Event22["ACTIONS"] = "antetype.structure.column.left.actions";
   return Event22;
 })(Event || {});
-var i = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i || {});
-var c = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c || {});
+var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e))(i || {});
+var c2 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c2 || {});
 var s = class {
   #t;
   #r = null;
   #e = null;
   static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(e) {
-    this.#t = e;
+  inject(t) {
+    this.#t = t;
   }
-  async #n(e, n) {
+  async #n(t, n) {
     if (!this.#e) {
       let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
     }
     return this.#e;
   }
-  async register(e) {
-    let { modules: n, canvas: r } = e.detail;
+  async register(t) {
+    let { modules: n, canvas: r } = t.detail;
     n.core = await this.#n(n, r);
   }
-  async init(e) {
+  async init(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: n, settings: r } = e.detail;
-    for (let a in r) this.#e.setting.set(a, r[a]);
-    let o = this.#e.meta.document;
-    o.base = n;
-    let l = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
-      l.push(this.#e.font.load(a));
-    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
+    let { base: n, settings: r } = t.detail;
+    for (let a2 in r) this.#e.setting.set(a2, r[a2]);
+    let o2 = this.#e.meta.document;
+    o2.base = n;
+    let l2 = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((a2) => {
+      l2.push(this.#e.font.load(a2));
+    }), await Promise.all(l2), o2.layout = await this.#e.view.recalculate(o2, o2.base), await this.#e.view.redraw(o2.layout), o2;
   }
-  async cloneDefinitions(e) {
+  async cloneDefinitions(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
+    t.detail.element !== null && (t.detail.element = await this.#e.clone.definitions(t.detail.element));
   }
   static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
-};
-var Event2 = /* @__PURE__ */ ((Event32) => {
-  Event32["POSITION"] = "antetype.cursor.position";
-  Event32["DOWN"] = "antetype.cursor.on.down";
-  Event32["UP"] = "antetype.cursor.on.up";
-  Event32["MOVE"] = "antetype.cursor.on.move";
-  return Event32;
-})(Event2 || {});
-var AntetypeCursor = class {
-  #injected;
-  #module = null;
-  #instance = null;
-  static inject = {
-    minstrel: "boardmeister/minstrel",
-    herald: "boardmeister/herald"
-  };
-  inject(injections) {
-    this.#injected = injections;
-  }
-  async register(event) {
-    const { modules, canvas } = event.detail;
-    if (!this.#module) {
-      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
-      this.#module = (await import(module)).default;
-    }
-    this.#instance = modules.transform = this.#module({
-      canvas,
-      modules,
-      injected: this.#injected
-    });
-  }
-  // @TODO there is not unregister method to remove all subscriptions
-  draw(event) {
-    if (!this.#instance) {
-      return;
-    }
-    const { element } = event.detail;
-    const typeToAction = {
-      selection: this.#instance.drawSelection
-    };
-    const el = typeToAction[element.type];
-    if (typeof el == "function") {
-      el(element);
-    }
-  }
-  static subscriptions = {
-    [Event.MODULES]: "register",
-    [c.DRAW]: "draw"
-  };
-};
-var Event3 = /* @__PURE__ */ ((Event22) => {
-  Event22["STRUCTURE"] = "antetype.structure";
-  Event22["MIDDLE"] = "antetype.structure.middle";
-  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
-  Event22["CENTER"] = "antetype.structure.center";
-  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
-  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
-  Event22["BAR_TOP"] = "antetype.structure.bar.top";
-  Event22["MODULES"] = "antetype.modules";
-  return Event22;
-})(Event3 || {});
-var i2 = ((t) => (t.STRUCTURE = "antetype.structure", t.MIDDLE = "antetype.structure.middle", t.BAR_BOTTOM = "antetype.structure.bar.bottom", t.CENTER = "antetype.structure.center", t.COLUMN_LEFT = "antetype.structure.column.left", t.COLUMN_RIGHT = "antetype.structure.column.right", t.BAR_TOP = "antetype.structure.bar.top", t.MODULES = "antetype.modules", t))(i2 || {});
-var c2 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c2 || {});
-var s2 = class {
-  #t;
-  #r = null;
-  #e = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(e) {
-    this.#t = e;
-  }
-  async #n(e, n) {
-    if (!this.#e) {
-      let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
-    }
-    return this.#e;
-  }
-  async register(e) {
-    let { modules: n, canvas: r } = e.detail;
-    n.core = await this.#n(n, r);
-  }
-  async init(e) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: n, settings: r } = e.detail;
-    for (let a in r) this.#e.setting.set(a, r[a]);
-    let o = this.#e.meta.document;
-    o.base = n;
-    let l = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
-      l.push(this.#e.font.load(a));
-    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
-  }
-  async cloneDefinitions(e) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
-  }
-  static subscriptions = { [i2.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
 };
 var Workspace = class {
   #canvas;
@@ -282,22 +248,31 @@ var Workspace = class {
   }
   #getSizeRelative() {
     const settings = this.#getSettings(), { width: aWidth2, height: aHeight2 } = this.#getSize(), rWidth = settings.relative?.width ?? aWidth2, rHeight = settings.relative?.height ?? aHeight2;
-    const ratio = rWidth / rHeight;
-    let height2 = this.#ctx.canvas.offsetHeight, width2 = height2 * ratio;
-    if (width2 > this.#ctx.canvas.offsetWidth) {
-      width2 = this.#ctx.canvas.offsetWidth;
-      height2 = width2 * (rHeight / rWidth);
-    }
-    return {
-      width: width2,
-      height: height2
+    const size = {
+      width: settings.relative?.width ?? 0,
+      height: settings.relative?.height ?? 0
     };
+    const height2 = this.#ctx.canvas.offsetHeight;
+    if (!size.width) {
+      const ratio = rWidth / rHeight;
+      size.width = height2 * ratio;
+    }
+    if (!size.height) {
+      const width2 = size.width;
+      if (width2 > this.#ctx.canvas.offsetWidth) {
+        size.width = this.#ctx.canvas.offsetWidth;
+        size.height = width2 * (rHeight / rWidth);
+      } else {
+        size.height = height2;
+      }
+    }
+    return size;
   }
 };
-var Event4 = /* @__PURE__ */ ((Event5) => {
-  Event5["CALC"] = "antetype.workspace.calc";
-  return Event5;
-})(Event4 || {});
+var Event2 = /* @__PURE__ */ ((Event3) => {
+  Event3["CALC"] = "antetype.workspace.calc";
+  return Event3;
+})(Event2 || {});
 var AntetypeWorkspace = class {
   #module = null;
   #instance = null;
@@ -352,7 +327,7 @@ var AntetypeWorkspace = class {
       "antetype.workspace.calc"
       /* CALC */
     ]: "calc",
-    [Event3.MODULES]: "register",
+    [Event.MODULES]: "register",
     [c2.DRAW]: [
       {
         method: "draw",
@@ -367,7 +342,8 @@ var AntetypeWorkspace = class {
         priority: 255
       }
     ],
-    [Event2.POSITION]: "subtractWorkspace"
+    // @TODO those bridge listeners will probably be move to the Antetype as a defining tools
+    [u.POSITION]: "subtractWorkspace"
   };
 };
 var EnAntetypeWorkspace = AntetypeWorkspace;
@@ -537,9 +513,9 @@ var ResolveTextAction = (ctx, def) => {
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   while ((lines = value.splice(0, linesAmount)).length) {
-    lines.forEach((text2, i3) => {
-      const nextLine = lines[i3 + 1] || value[0] || [""];
-      const isLast = i3 + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
+    lines.forEach((text2, i2) => {
+      const nextLine = lines[i2 + 1] || value[0] || [""];
+      const isLast = i2 + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
       const verticalMove = transY + (text2[1] - previousColumnsLines) * lineHeight;
       fillText(ctx, text2[0], def, x, y, w, verticalMove, isLast);
     });
@@ -692,8 +668,8 @@ var separateIntoRows = (def, layout) => {
   const rows = [];
   const generateRow = () => ({ height: 0, width: 0, layers: [] });
   let row = generateRow();
-  layout.forEach((layer, i3) => {
-    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i3 != 0 && def.group.direction === "column") {
+  layout.forEach((layer, i2) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i2 != 0 && def.group.direction === "column") {
       rows.push(row);
       row = generateRow();
     }
@@ -913,8 +889,8 @@ var loadImage = async (def, src, modules) => {
     image.onload = async () => {
       clearTimeout(timeoutTimer);
       def.image.calculated = await calculateImage(def, image);
+      view.redrawDebounce(getDoc(def).layout);
       resolve();
-      void view.redrawDebounce(getDoc(def).layout);
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
@@ -962,9 +938,9 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   if (thickness > 5) {
     const granularity = Math.floor(thickness / 2.5);
     let newDArr = [];
-    for (let i3 = 0; i3 < dArr.length; i3++) {
-      newDArr.push(dArr[i3]);
-      const [cX, cY] = dArr[i3], [dX, dY] = i3 + 1 === dArr.length ? dArr[0] : dArr[i3 + 1];
+    for (let i2 = 0; i2 < dArr.length; i2++) {
+      newDArr.push(dArr[i2]);
+      const [cX, cY] = dArr[i2], [dX, dY] = i2 + 1 === dArr.length ? dArr[0] : dArr[i2 + 1];
       const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
       let x = cX, y = cY;
       while ((trendX > 0 && x + bX < dX || trendX < 0 && x + bX > dX) && (trendY > 0 && y + bY < dY || trendY < 0 && y + bY > dY)) {
@@ -978,11 +954,11 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   }
   canvas.setAttribute("width", String(asWidth + thickness * 2));
   canvas.setAttribute("height", String(asHeight + thickness * 2));
-  for (let i3 = 0; i3 < dArr.length; i3++) {
+  for (let i2 = 0; i2 < dArr.length; i2++) {
     ctx.drawImage(
       image,
-      thickness + dArr[i3][0] * thickness,
-      thickness + dArr[i3][1] * thickness,
+      thickness + dArr[i2][0] * thickness,
+      thickness + dArr[i2][1] * thickness,
       asWidth,
       asHeight
     );
@@ -1120,7 +1096,7 @@ var ResolveTextCalc = async (def, modules, ctx) => {
   def.text.columns.gap = gap;
   def.text.font = def.text.font ?? {};
   def.text.font.size = fontSize;
-  if (typeof def.text.color.type == "string") {
+  if (typeof def.text.color?.type == "string") {
     await calcFill(illustrator, def.text.color);
   }
   const {
@@ -1165,22 +1141,22 @@ var getTextLines = (def, text, ctx, width2) => {
     return [[text, 0]];
   }
   const rows = [];
-  let words = text.split(/[^\S\r\n]/), line = "", i3 = 0;
+  let words = text.split(/[^\S\r\n]/), line = "", i2 = 0;
   while (words.length > 0) {
     const newLinePos = words[0].search(/[\r\n]/);
     if (newLinePos !== -1) {
       const newLine = words[0].substring(0, newLinePos);
-      rows.push([(line + " " + newLine).trim() + "\n", i3]);
+      rows.push([(line + " " + newLine).trim() + "\n", i2]);
       line = "";
-      i3++;
+      i2++;
       words[0] = words[0].substring(newLinePos + 1);
       continue;
     }
     const metrics = ctx.measureText(line + words[0]);
     if (metrics.width > width2) {
       if (line.length > 0) {
-        rows.push([line.trim(), i3]);
-        i3++;
+        rows.push([line.trim(), i2]);
+        i2++;
       }
       line = "";
     }
@@ -1188,7 +1164,7 @@ var getTextLines = (def, text, ctx, width2) => {
     words = words.splice(1);
   }
   if (line.length > 0) {
-    rows.push([line.replace(/^\s+/, ""), i3]);
+    rows.push([line.replace(/^\s+/, ""), i2]);
   }
   return rows;
 };
@@ -1261,8 +1237,8 @@ var ResolveGroupSizeForRelative = (def) => {
 };
 var ResolveGroupSizeForFixed = (def) => {
   const area = generateArea();
-  for (let i3 = 0; i3 < def.layout.length; i3++) {
-    const subArea = def.layout[i3].area;
+  for (let i2 = 0; i2 < def.layout.length; i2++) {
+    const subArea = def.layout[i2].area;
     if (!subArea) {
       continue;
     }
@@ -1381,9 +1357,87 @@ var Illustrator = class {
     ResolveTextAction(this.#ctx2, def);
   }
   async calc(def) {
-    const event = new CustomEvent(Event4.CALC, { detail: def });
+    const event = new CustomEvent(Event2.CALC, { detail: def });
     await this.#injected.herald.dispatch(event);
     return event.detail.values;
+  }
+  generateText(value) {
+    return {
+      type: "text",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: 300,
+        h: 100
+      },
+      text: {
+        value,
+        font: {
+          family: "Arial",
+          weight: 400,
+          size: 30
+        }
+      }
+    };
+  }
+  generateImage(src) {
+    return {
+      type: "image",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: 300,
+        h: 300
+      },
+      image: {
+        src
+      }
+    };
+  }
+  generatePolygon(steps = []) {
+    return {
+      type: "polygon",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: NaN,
+        h: NaN
+      },
+      polygon: {
+        steps,
+        size: {
+          negative: {
+            x: 0,
+            y: 0
+          },
+          positive: {
+            x: 0,
+            y: 0
+          }
+        }
+      }
+    };
+  }
+  generateGroup(layout) {
+    return {
+      type: "group",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: NaN,
+        h: NaN
+      },
+      group: {},
+      layout
+    };
   }
 };
 export {
