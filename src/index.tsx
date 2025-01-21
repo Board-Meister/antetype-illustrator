@@ -98,6 +98,10 @@ const EnAntetypeIllustrator: IInjectable&ISubscriber = AntetypeIllustrator;
 
 export { IIllustrator } from '@src/module';
 export { Event, ICalcEvent } from '@src/type/event.d';
+export { IPolygonDef } from "@src/type/polygon.d";
+export { IImageDef } from "@src/type/image.d";
+export { ITextDef } from "@src/type/text.d";
+export { IGroupDef } from "@src/type/group.d";
 export default EnAntetypeIllustrator;
 
 type Assign<T, R> = T & R;

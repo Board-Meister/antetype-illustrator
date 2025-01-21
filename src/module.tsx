@@ -192,7 +192,7 @@ export default class Illustrator implements IIllustrator {
   }
 
   generateGroup(layout: Layout): IGroupDef {
-    return {
+    const group = {
       type: 'group',
       start: {
         x: 0,
@@ -203,7 +203,18 @@ export default class Illustrator implements IIllustrator {
         h: NaN,
       },
       group: {},
-      layout,
+      layout: [] as Layout,
     }
-  }
+
+
+    for (const layer of layout) {
+      layer.hierarchy = {
+        parent: group,
+        position: group.layout.length,
+      }
+      group.layout.push(layer);
+    }
+
+    return group;
+  };
 }

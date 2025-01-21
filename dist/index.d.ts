@@ -331,7 +331,7 @@ interface IPolygonArgs {
 		positive: IStart;
 	};
 }
-interface IPolygonDef<T = never> extends IBaseDef<T> {
+export interface IPolygonDef<T = never> extends IBaseDef<T> {
 	polygon: IPolygonArgs;
 }
 interface IImageCoords {
@@ -369,7 +369,7 @@ interface IImageArg {
 	fitTo?: "auto" | "height" | "width";
 	src: string | HTMLImageElement;
 }
-interface IImageDef<T = never> extends IBaseDef<T> {
+export interface IImageDef<T = never> extends IBaseDef<T> {
 	image: IImageArg;
 }
 declare type TextLines = {
@@ -415,7 +415,7 @@ interface ITextArgs {
 	transY?: number;
 	lines?: TextLines;
 }
-interface ITextDef extends IBaseDef {
+export interface ITextDef extends IBaseDef {
 	text: ITextArgs;
 }
 interface IGroupArgs {
@@ -428,7 +428,7 @@ interface IGroupArgs {
 		horizontal?: number;
 	};
 }
-interface IGroupDef extends IParentDef {
+export interface IGroupDef extends IParentDef {
 	group: IGroupArgs;
 }
 export interface IIllustrator extends Module$1 {

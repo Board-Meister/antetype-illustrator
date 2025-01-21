@@ -1425,7 +1425,7 @@ var Illustrator = class {
     };
   }
   generateGroup(layout) {
-    return {
+    const group = {
       type: "group",
       start: {
         x: 0,
@@ -1436,8 +1436,16 @@ var Illustrator = class {
         h: NaN
       },
       group: {},
-      layout
+      layout: []
     };
+    for (const layer of layout) {
+      layer.hierarchy = {
+        parent: group,
+        position: group.layout.length
+      };
+      group.layout.push(layer);
+    }
+    return group;
   }
 };
 export {
