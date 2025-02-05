@@ -8,13 +8,13 @@ import { getRowsHeight, getRowsWidth, separateIntoRows } from "@src/action/group
 
 const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
   let area: IArea;
-  if (def.group.interaction === 'fixed') {
+  if (def.group.interaction === 'static') {
+    area = ResolveGroupSizeForRelative(def);
+  } else {
     area = ResolveGroupSizeForFixed(def);
 
     area.start.y += def.start.y;
     area.start.x += def.start.x;
-  } else {
-    area = ResolveGroupSizeForRelative(def);
   }
 
   if (def.group.clip) {
@@ -30,11 +30,11 @@ const ResolveGroupSize = async (def: IGroupDef): Promise<IArea> => {
   return area;
 }
 
-const generateArea = (): IArea => {
+const generateArea = (def: IGroupDef): IArea => {
   return {
     size: {
-      w: 0,
-      h: 0,
+      w: !isNaN(def.size.w ?? NaN) ? def.size.w : 0,
+      h: !isNaN(def.size.h ?? NaN) ? def.size.h : 0,
     },
     start: {
       x: 0,
@@ -44,10 +44,10 @@ const generateArea = (): IArea => {
 }
 
 const ResolveGroupSizeForRelative = (def: IGroupDef): IArea => {
-  const area = generateArea();
+  const area = generateArea(def);
   const rows = separateIntoRows(def, def.layout);
-  area.size.h = getRowsHeight(def, rows);
-  area.size.w = getRowsWidth(def, rows);
+  if (!area.size.h) area.size.h = getRowsHeight(def, rows);
+  if (!area.size.w) area.size.w = getRowsWidth(def, rows);
   area.start.x = def.start.x;
   area.start.y = def.start.y;
 
@@ -55,15 +55,17 @@ const ResolveGroupSizeForRelative = (def: IGroupDef): IArea => {
 }
 
 const ResolveGroupSizeForFixed = (def: IGroupDef): IArea => {
-  const area = generateArea();
+  const area = generateArea(def);
 
+  const skipW = !!area.size.w;
+  const skipH = !!area.size.h;
   for (let i = 0; i < def.layout.length; i++) {
     const subArea = def.layout[i].area;
     if (!subArea) {
       continue;
     }
-    area.size.h = Math.max(area.size.h, subArea.size.h);
-    area.size.w = Math.max(area.size.w, subArea.size.w);
+    if (!skipH) area.size.h = Math.max(area.size.h, subArea.size.h + subArea.start.y);
+    if (!skipW) area.size.w = Math.max(area.size.w, subArea.size.w + subArea.start.x);
     area.start.y = Math.min(area.start.y, subArea.start.y);
     area.start.x = Math.min(area.start.x, subArea.start.x);
   }

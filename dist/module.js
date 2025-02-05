@@ -1,67 +1,4 @@
 // ../antetype-workspace/dist/index.js
-var o = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e))(o || {});
-var c = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e))(c || {});
-var a = ((e) => (e.INIT = "antetype.init", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e))(a || {});
-var m = class {
-  #t;
-  #r = null;
-  #e = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(e) {
-    this.#t = e;
-  }
-  async #s(e, t) {
-    if (!this.#e) {
-      let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: t, modules: e, injected: this.#t });
-    }
-    return this.#e;
-  }
-  async register(e) {
-    let { modules: t, canvas: r } = e.detail;
-    t.core = await this.#s(t, r);
-  }
-  async init(e) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: t, settings: r } = e.detail;
-    for (let s2 in r) this.#e.setting.set(s2, r[s2]);
-    let i2 = this.#e.meta.document;
-    i2.base = t;
-    let n = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((s2) => {
-      n.push(this.#e.font.load(s2));
-    }), await Promise.all(n), i2.layout = await this.#e.view.recalculate(i2, i2.base), await this.#e.view.redraw(i2.layout), i2;
-  }
-  async cloneDefinitions(e) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    e.detail.element !== null && (e.detail.element = await this.#e.clone.definitions(e.detail.element));
-  }
-  static subscriptions = { [c.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
-};
-var u = ((s2) => (s2.POSITION = "antetype.cursor.position", s2.DOWN = "antetype.cursor.on.down", s2.UP = "antetype.cursor.on.up", s2.MOVE = "antetype.cursor.on.move", s2.SLIP = "antetype.cursor.on.slip", s2))(u || {});
-var l = class {
-  #t;
-  #r = null;
-  #e = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(t) {
-    this.#t = t;
-  }
-  async register(t) {
-    let { modules: r, canvas: i2 } = t.detail;
-    if (!this.#r) {
-      let n = this.#t.minstrel.getResourceUrl(this, "module.js");
-      this.#r = (await import(n)).default;
-    }
-    this.#e = r.transform = this.#r({ canvas: i2, modules: r, injected: this.#t });
-  }
-  draw(t) {
-    if (!this.#e) return;
-    let { element: r } = t.detail, n = { selection: this.#e.drawSelection }[r.type];
-    typeof n == "function" && n(r);
-  }
-  static subscriptions = { [o.MODULES]: "register", [a.DRAW]: "draw" };
-};
 var Event = /* @__PURE__ */ ((Event22) => {
   Event22["STRUCTURE"] = "antetype.structure";
   Event22["MIDDLE"] = "antetype.structure.middle";
@@ -72,10 +9,11 @@ var Event = /* @__PURE__ */ ((Event22) => {
   Event22["BAR_TOP"] = "antetype.structure.bar.top";
   Event22["MODULES"] = "antetype.modules";
   Event22["ACTIONS"] = "antetype.structure.column.left.actions";
+  Event22["PROPERTIES"] = "antetype.structure.column.left.properties";
   return Event22;
 })(Event || {});
-var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e))(i || {});
-var c2 = ((r) => (r.INIT = "antetype.init", r.DRAW = "antetype.draw", r.CALC = "antetype.calc", r))(c2 || {});
+var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i || {});
+var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c || {});
 var s = class {
   #t;
   #r = null;
@@ -86,31 +24,156 @@ var s = class {
   }
   async #n(t, n) {
     if (!this.#e) {
-      let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
+      let o2 = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(o2)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
     }
     return this.#e;
   }
   async register(t) {
-    let { modules: n, canvas: r } = t.detail;
-    n.core = await this.#n(n, r);
+    let { modules: n, canvas: o2 } = t.detail;
+    n.core = await this.#n(n, o2);
   }
   async init(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: n, settings: r } = t.detail;
-    for (let a2 in r) this.#e.setting.set(a2, r[a2]);
-    let o2 = this.#e.meta.document;
-    o2.base = n;
-    let l2 = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((a2) => {
-      l2.push(this.#e.font.load(a2));
-    }), await Promise.all(l2), o2.layout = await this.#e.view.recalculate(o2, o2.base), await this.#e.view.redraw(o2.layout), o2;
+    let { base: n, settings: o2 } = t.detail;
+    for (let a in o2) this.#e.setting.set(a, o2[a]);
+    let r2 = this.#e.meta.document;
+    r2.base = n;
+    let l = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
+      l.push(this.#e.font.load(a));
+    }), await Promise.all(l), r2.layout = await this.#e.view.recalculate(r2, r2.base), await this.#e.view.redraw(r2.layout), r2;
   }
   async cloneDefinitions(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
     t.detail.element !== null && (t.detail.element = await this.#e.clone.definitions(t.detail.element));
   }
   static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+};
+var r = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(r || {});
+var i2 = ((t) => (t.SAVE = "antetype.memento.save", t))(i2 || {});
+var o = class {
+  #e;
+  #t = null;
+  #r = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#e = t;
+  }
+  async register(t) {
+    let { modules: s22, canvas: n } = t.detail;
+    if (!this.#t) {
+      let a = this.#e.minstrel.getResourceUrl(this, "module.js");
+      this.#t = (await import(a)).default;
+    }
+    this.#r = s22.transform = this.#t({ canvas: n, modules: s22, injected: this.#e });
+  }
+  save(t) {
+    this.#r && this.#r.addToStack(t.detail.state);
+  }
+  static subscriptions = { [r.MODULES]: "register", "antetype.memento.save": "save" };
+};
+var Event2 = /* @__PURE__ */ ((Event32) => {
+  Event32["POSITION"] = "antetype.cursor.position";
+  Event32["DOWN"] = "antetype.cursor.on.down";
+  Event32["UP"] = "antetype.cursor.on.up";
+  Event32["MOVE"] = "antetype.cursor.on.move";
+  Event32["SLIP"] = "antetype.cursor.on.slip";
+  return Event32;
+})(Event2 || {});
+var AntetypeCursor = class {
+  #injected;
+  #module = null;
+  #instance = null;
+  static inject = {
+    minstrel: "boardmeister/minstrel",
+    herald: "boardmeister/herald"
+  };
+  inject(injections) {
+    this.#injected = injections;
+  }
+  async register(event) {
+    const { modules, canvas } = event.detail;
+    if (!this.#module) {
+      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
+      this.#module = (await import(module)).default;
+    }
+    this.#instance = modules.cursor = this.#module({
+      canvas,
+      modules,
+      injected: this.#injected
+    });
+  }
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction = {
+      selection: this.#instance.drawSelection
+    };
+    const el = typeToAction[element.type];
+    if (typeof el == "function") {
+      el(element);
+    }
+  }
+  static subscriptions = {
+    [Event.MODULES]: "register",
+    [c.DRAW]: "draw"
+  };
+};
+var Event3 = /* @__PURE__ */ ((Event22) => {
+  Event22["STRUCTURE"] = "antetype.structure";
+  Event22["MIDDLE"] = "antetype.structure.middle";
+  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
+  Event22["CENTER"] = "antetype.structure.center";
+  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
+  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
+  Event22["BAR_TOP"] = "antetype.structure.bar.top";
+  Event22["MODULES"] = "antetype.modules";
+  Event22["ACTIONS"] = "antetype.structure.column.left.actions";
+  Event22["PROPERTIES"] = "antetype.structure.column.left.properties";
+  Event22["SHOW_PROPERTIES"] = "antetype.structure.column.left.properties.show";
+  return Event22;
+})(Event3 || {});
+var i3 = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i3 || {});
+var c2 = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c2 || {});
+var s2 = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#t = t;
+  }
+  async #n(t, n) {
+    if (!this.#e) {
+      let o2 = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(o2)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(t) {
+    let { modules: n, canvas: o2 } = t.detail;
+    n.core = await this.#n(n, o2);
+  }
+  async init(t) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: n, settings: o2 } = t.detail;
+    for (let a in o2) this.#e.setting.set(a, o2[a]);
+    let r2 = this.#e.meta.document;
+    r2.base = n;
+    let l = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
+      l.push(this.#e.font.load(a));
+    }), await Promise.all(l), r2.layout = await this.#e.view.recalculate(r2, r2.base), await this.#e.view.redraw(r2.layout), r2;
+  }
+  async cloneDefinitions(t) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    t.detail.element !== null && (t.detail.element = await this.#e.clone.definitions(t.detail.element));
+  }
+  static subscriptions = { [i3.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
 };
 var Workspace = class {
   #canvas;
@@ -125,16 +188,19 @@ var Workspace = class {
     this.#modules = modules;
     this.#ctx = this.#canvas.getContext("2d");
   }
-  drawCanvas() {
+  clearCanvas() {
     const ctx = this.#ctx;
-    ctx.save();
-    const { height: height2, width: width2 } = this.#getSize();
     ctx.clearRect(
       -this.getLeft(),
       -this.getTop(),
       this.#canvas.width,
       this.#canvas.height
     );
+  }
+  drawWorkspace() {
+    const ctx = this.#ctx;
+    ctx.save();
+    const { height: height2, width: width2 } = this.#getSize();
     ctx.fillStyle = "#FFF";
     ctx.fillRect(0, 0, width2, height2);
     ctx.restore();
@@ -165,18 +231,21 @@ var Workspace = class {
     }
     this.#ctx.restore();
   }
-  toRelative(value, direction = "x") {
+  toRelative(value, direction = "x", precision = 3) {
     const { height: height2, width: width2 } = this.#getSizeRelative();
+    let result2 = value / height2 * 100, suffix = "h%";
     if (direction === "x") {
-      return value / height2 * 100 + "h%";
+      result2 = value / width2 * 100;
+      suffix = "w%";
     }
-    return value / width2 * 100 + "w%";
+    return String(Math.round(result2 * 10 ** precision) / 10 ** precision) + suffix;
   }
-  calc(operation) {
+  calc(operation, quiet = false) {
     if (typeof operation == "number") {
       return operation;
     }
     if (typeof operation != "string" || operation.match(/[^-()\d/*+.pxw%hv ]/g)) {
+      console.warn("Calculation contains invalid characters!", operation);
       return NaN;
     }
     const convertUnitToNumber = (unit, suffixLen = 2) => Number(unit.slice(0, unit.length - suffixLen));
@@ -210,7 +279,13 @@ var Workspace = class {
       }
       calculation += String(result2);
     });
-    const result = eval(calculation);
+    let result;
+    try {
+      result = eval(calculation);
+    } catch (e) {
+      result = void 0;
+      if (!quiet) console.warn("Invalid calculation! Tried to calculate from", calculation);
+    }
     if (result == void 0) {
       return NaN;
     }
@@ -269,10 +344,10 @@ var Workspace = class {
     return size;
   }
 };
-var Event2 = /* @__PURE__ */ ((Event3) => {
-  Event3["CALC"] = "antetype.workspace.calc";
-  return Event3;
-})(Event2 || {});
+var Event4 = /* @__PURE__ */ ((Event5) => {
+  Event5["CALC"] = "antetype.workspace.calc";
+  return Event5;
+})(Event4 || {});
 var AntetypeWorkspace = class {
   #module = null;
   #instance = null;
@@ -298,7 +373,8 @@ var AntetypeWorkspace = class {
     }
     const { element } = event.detail;
     const typeToAction = {
-      clear: this.#instance.drawCanvas.bind(this.#instance)
+      clear: this.#instance.clearCanvas.bind(this.#instance),
+      workspace: this.#instance.drawWorkspace.bind(this.#instance)
     };
     const el = typeToAction[element.type];
     if (typeof el == "function") {
@@ -327,11 +403,11 @@ var AntetypeWorkspace = class {
       "antetype.workspace.calc"
       /* CALC */
     ]: "calc",
-    [Event.MODULES]: "register",
+    [Event3.MODULES]: "register",
     [c2.DRAW]: [
       {
         method: "draw",
-        priority: 255
+        priority: 1
       },
       {
         method: "setOrigin",
@@ -343,7 +419,7 @@ var AntetypeWorkspace = class {
       }
     ],
     // @TODO those bridge listeners will probably be move to the Antetype as a defining tools
-    [u.POSITION]: "subtractWorkspace"
+    [Event2.POSITION]: "subtractWorkspace"
   };
 };
 var EnAntetypeWorkspace = AntetypeWorkspace;
@@ -513,9 +589,9 @@ var ResolveTextAction = (ctx, def) => {
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   while ((lines = value.splice(0, linesAmount)).length) {
-    lines.forEach((text2, i2) => {
-      const nextLine = lines[i2 + 1] || value[0] || [""];
-      const isLast = i2 + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
+    lines.forEach((text2, i4) => {
+      const nextLine = lines[i4 + 1] || value[0] || [""];
+      const isLast = i4 + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
       const verticalMove = transY + (text2[1] - previousColumnsLines) * lineHeight;
       fillText(ctx, text2[0], def, x, y, w, verticalMove, isLast);
     });
@@ -540,6 +616,9 @@ var fillText = (ctx, text, def, x, y, width2, transY, isLast) => {
   ctx.fillText(text, x, y, width2);
 };
 var outlineText = (ctx, outline, text, x, y, width2) => {
+  if (!outline.fill?.style) {
+    return;
+  }
   ctx.strokeStyle = generateFill(outline.fill.type, outline.fill.style);
   ctx.lineWidth = outline.thickness;
   ctx.lineJoin = outline.lineJoin ?? "round";
@@ -642,8 +721,8 @@ var drawLayersRelatively = (ctx, modules, def) => {
   if (group.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
     ctx.beginPath();
     ctx.rect(
-      def.start.x,
-      def.start.y,
+      0,
+      0,
       isNaN(def.size.w) ? getRowsWidth(def, rows) : def.size.w,
       isNaN(def.size.h) ? getRowsHeight(def, rows) : def.size.h
     );
@@ -668,8 +747,8 @@ var separateIntoRows = (def, layout) => {
   const rows = [];
   const generateRow = () => ({ height: 0, width: 0, layers: [] });
   let row = generateRow();
-  layout.forEach((layer, i2) => {
-    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i2 != 0 && def.group.direction === "column") {
+  layout.forEach((layer, i4) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i4 != 0 && def.group.direction === "column") {
       rows.push(row);
       row = generateRow();
     }
@@ -916,7 +995,11 @@ var overcolorImage = async (image, def, asWidth, asHeight) => {
   return canvasToWebp(canvas, imageOvercolored);
 };
 var outlineImage = async (image, def, asWidth, asHeight) => {
-  const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), outline = def.image.outline, thickness = outline.thickness;
+  const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), outline = def.image.outline;
+  if (!outline.thickness || !outline.fill) {
+    return image;
+  }
+  const thickness = outline.thickness;
   let dArr = [
     [-0.75, -0.75],
     // ↖️
@@ -938,9 +1021,9 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   if (thickness > 5) {
     const granularity = Math.floor(thickness / 2.5);
     let newDArr = [];
-    for (let i2 = 0; i2 < dArr.length; i2++) {
-      newDArr.push(dArr[i2]);
-      const [cX, cY] = dArr[i2], [dX, dY] = i2 + 1 === dArr.length ? dArr[0] : dArr[i2 + 1];
+    for (let i4 = 0; i4 < dArr.length; i4++) {
+      newDArr.push(dArr[i4]);
+      const [cX, cY] = dArr[i4], [dX, dY] = i4 + 1 === dArr.length ? dArr[0] : dArr[i4 + 1];
       const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
       let x = cX, y = cY;
       while ((trendX > 0 && x + bX < dX || trendX < 0 && x + bX > dX) && (trendY > 0 && y + bY < dY || trendY < 0 && y + bY > dY)) {
@@ -954,11 +1037,11 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   }
   canvas.setAttribute("width", String(asWidth + thickness * 2));
   canvas.setAttribute("height", String(asHeight + thickness * 2));
-  for (let i2 = 0; i2 < dArr.length; i2++) {
+  for (let i4 = 0; i4 < dArr.length; i4++) {
     ctx.drawImage(
       image,
-      thickness + dArr[i2][0] * thickness,
-      thickness + dArr[i2][1] * thickness,
+      thickness + dArr[i4][0] * thickness,
+      thickness + dArr[i4][1] * thickness,
       asWidth,
       asHeight
     );
@@ -1050,7 +1133,7 @@ var ResolveTextSize = (def) => {
   }
   return {
     start: {
-      y: def.start.y - (def.text.transY ?? 0) / 2,
+      y: def.start.y,
       x: def.start.x
     },
     size: {
@@ -1141,22 +1224,22 @@ var getTextLines = (def, text, ctx, width2) => {
     return [[text, 0]];
   }
   const rows = [];
-  let words = text.split(/[^\S\r\n]/), line = "", i2 = 0;
+  let words = text.split(/[^\S\r\n]/), line = "", i4 = 0;
   while (words.length > 0) {
     const newLinePos = words[0].search(/[\r\n]/);
     if (newLinePos !== -1) {
       const newLine = words[0].substring(0, newLinePos);
-      rows.push([(line + " " + newLine).trim() + "\n", i2]);
+      rows.push([(line + " " + newLine).trim() + "\n", i4]);
       line = "";
-      i2++;
+      i4++;
       words[0] = words[0].substring(newLinePos + 1);
       continue;
     }
     const metrics = ctx.measureText(line + words[0]);
     if (metrics.width > width2) {
       if (line.length > 0) {
-        rows.push([line.trim(), i2]);
-        i2++;
+        rows.push([line.trim(), i4]);
+        i4++;
       }
       line = "";
     }
@@ -1164,7 +1247,7 @@ var getTextLines = (def, text, ctx, width2) => {
     words = words.splice(1);
   }
   if (line.length > 0) {
-    rows.push([line.replace(/^\s+/, ""), i2]);
+    rows.push([line.replace(/^\s+/, ""), i4]);
   }
   return rows;
 };
@@ -1197,12 +1280,12 @@ var calcVerticalMove = (height2, lineHeight, lines, vAlign) => {
 // src/action/group.calc.tsx
 var ResolveGroupSize = async (def) => {
   let area;
-  if (def.group.interaction === "fixed") {
+  if (def.group.interaction === "static") {
+    area = ResolveGroupSizeForRelative(def);
+  } else {
     area = ResolveGroupSizeForFixed(def);
     area.start.y += def.start.y;
     area.start.x += def.start.x;
-  } else {
-    area = ResolveGroupSizeForRelative(def);
   }
   if (def.group.clip) {
     if (!isNaN(def.size.h)) {
@@ -1214,11 +1297,11 @@ var ResolveGroupSize = async (def) => {
   }
   return area;
 };
-var generateArea = () => {
+var generateArea = (def) => {
   return {
     size: {
-      w: 0,
-      h: 0
+      w: !isNaN(def.size.w ?? NaN) ? def.size.w : 0,
+      h: !isNaN(def.size.h ?? NaN) ? def.size.h : 0
     },
     start: {
       x: 0,
@@ -1227,23 +1310,25 @@ var generateArea = () => {
   };
 };
 var ResolveGroupSizeForRelative = (def) => {
-  const area = generateArea();
+  const area = generateArea(def);
   const rows = separateIntoRows(def, def.layout);
-  area.size.h = getRowsHeight(def, rows);
-  area.size.w = getRowsWidth(def, rows);
+  if (!area.size.h) area.size.h = getRowsHeight(def, rows);
+  if (!area.size.w) area.size.w = getRowsWidth(def, rows);
   area.start.x = def.start.x;
   area.start.y = def.start.y;
   return area;
 };
 var ResolveGroupSizeForFixed = (def) => {
-  const area = generateArea();
-  for (let i2 = 0; i2 < def.layout.length; i2++) {
-    const subArea = def.layout[i2].area;
+  const area = generateArea(def);
+  const skipW = !!area.size.w;
+  const skipH = !!area.size.h;
+  for (let i4 = 0; i4 < def.layout.length; i4++) {
+    const subArea = def.layout[i4].area;
     if (!subArea) {
       continue;
     }
-    area.size.h = Math.max(area.size.h, subArea.size.h);
-    area.size.w = Math.max(area.size.w, subArea.size.w);
+    if (!skipH) area.size.h = Math.max(area.size.h, subArea.size.h + subArea.start.y);
+    if (!skipW) area.size.w = Math.max(area.size.w, subArea.size.w + subArea.start.x);
     area.start.y = Math.min(area.start.y, subArea.start.y);
     area.start.x = Math.min(area.start.x, subArea.start.x);
   }
@@ -1357,7 +1442,7 @@ var Illustrator = class {
     ResolveTextAction(this.#ctx2, def);
   }
   async calc(def) {
-    const event = new CustomEvent(Event2.CALC, { detail: def });
+    const event = new CustomEvent(Event4.CALC, { detail: def });
     await this.#injected.herald.dispatch(event);
     return event.detail.values;
   }

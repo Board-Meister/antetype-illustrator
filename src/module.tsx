@@ -1,5 +1,4 @@
-import type { IStart, Layout } from "@boardmeister/antetype-core";
-import type { Module } from "@boardmeister/antetype";
+import type { IStart, Layout, Module } from "@boardmeister/antetype-core";
 import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonDef, PolygonActions } from "@src/type/polygon.d";

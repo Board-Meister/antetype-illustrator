@@ -79,8 +79,8 @@ const drawLayersRelatively = (
     // @TODO allow defining the shape of clipping (probably using polygon syntax)
     ctx.beginPath();
     ctx.rect(
-      def.start.x,
-      def.start.y,
+      0,
+      0,
       isNaN(def.size!.w) ? getRowsWidth(def, rows) : def.size.w,
       isNaN(def.size!.h) ? getRowsHeight(def, rows) : def.size.h,
     );

@@ -1,7 +1,7 @@
 import type { IBaseDef, XValue, YValue, IStart } from "@boardmeister/antetype-core";
 
 export declare type LineJoin = "round"|"bevel"|"miter";
-export declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;
+export declare type FillStyle = any | boolean | CanvasGradient | CanvasPattern | string;
 
 export interface ILine {
   means: 'line';

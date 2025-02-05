@@ -3,6 +3,7 @@ import { FillTypes } from "@src/type/polygon.d";
 import { CalculatedImage } from "@src/action/image";
 
 export type ImageFit = 'stretch'|'crop'|'default';
+export type ImageFitTo = 'auto'|'height'|'width';
 export type VerticalAlignType = 'top'|'bottom'|'center';
 export type HorizontalAlignType = 'left'|'right'|'center';
 
@@ -27,7 +28,7 @@ export interface IImageArg {
   overcolor?: IOvercolor;
   outline?: IOutline;
   align?: IImageAlign;
-  fitTo?: 'auto'|'height'|'width';
+  fitTo?: ImageFitTo;
   src: string|HTMLImageElement;
 }
 

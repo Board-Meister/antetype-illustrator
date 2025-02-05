@@ -13,7 +13,7 @@ export const ResolveTextSize = (def: ITextDef): IArea => {
 
   return {
     start: {
-      y: def.start.y - ((def.text.transY ?? 0)/2),
+      y: def.start.y,
       x: def.start.x,
     },
     size: {

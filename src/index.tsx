@@ -3,8 +3,9 @@ import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import { Event as AntetypeEvent } from "@boardmeister/antetype"
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
-import type { DrawEvent, CalcEvent, IBaseDef, IParentDef, ICore } from "@boardmeister/antetype-core"
-import type { ModulesEvent, Modules } from "@boardmeister/antetype"
+import type {
+  Modules, DrawEvent, CalcEvent, IBaseDef, IParentDef, ICore, ModulesEvent
+} from "@boardmeister/antetype-core"
 import type Illustrator from "@src/module";
 import { IPolygonArgs } from "@src/type/polygon.d";
 import { IImageArg } from "@src/type/image.d";
@@ -94,7 +95,7 @@ export class AntetypeIllustrator {
   }
 }
 
-const EnAntetypeIllustrator: IInjectable&ISubscriber = AntetypeIllustrator;
+const EnAntetypeIllustrator: IInjectable<IInjected>&ISubscriber = AntetypeIllustrator;
 
 export { IIllustrator } from '@src/module';
 export { Event, ICalcEvent } from '@src/type/event.d';

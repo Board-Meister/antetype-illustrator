@@ -81,6 +81,10 @@ const outlineText = (
   y: number,
   width: number
 ): void => {
+  if (!outline.fill?.style) {
+    return;
+  }
+
   ctx.strokeStyle = generateFill(outline.fill.type, outline.fill.style);
   ctx.lineWidth = outline.thickness;
   ctx.lineJoin = outline.lineJoin ?? 'round';

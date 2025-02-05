@@ -241,9 +241,12 @@ const outlineImage = async (
 ): Promise<HTMLImageElement> => {
   const canvas = document.createElement('canvas'),
     ctx = canvas.getContext('2d')!,
-    outline = def.image.outline!,
-    thickness = outline.thickness
+    outline = def.image.outline!
   ;
+  if (!outline.thickness || !outline.fill) {
+    return image;
+  }
+  const thickness = outline.thickness;
   let dArr = [
     [-0.75, -0.75], // ↖️
     [ 0   , -1   ], // ⬆️
@@ -253,8 +256,7 @@ const outlineImage = async (
     [ 0   ,  1   ], // ⬇️
     [-0.75,  0.75], // ↙️
     [-1   ,  0   ], // ⬅️
-  ]
-  ;
+  ];
 
   // Our breaking point
   if (thickness > 5) {

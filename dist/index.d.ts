@@ -25,21 +25,25 @@ interface RegisterConfig {
 		src: string;
 	};
 }
-type Module = Record<string, unknown>;
+declare class CModule<T = any> {
+	constructor(...args: unknown[]);
+	inject?: (injections: T) => void;
+}
+type Module<T = any> = CModule<T> | Record<string, unknown>;
 interface IModuleImportObject {
-	default?: Module | React$1.FC | ((...args: unknown[]) => void);
+	default?: Module | ((...args: unknown[]) => void);
 }
 interface IModuleImport {
 	config: RegisterConfig;
 	module: IModuleImportObject | (() => Promise<Module>);
 }
-declare class _IInjectable {
+declare class _IInjectable<T = object> {
 	constructor(...args: unknown[]);
-	inject(injections: Record<string, object>): void;
+	inject(injections: T): void;
 	scope?(): Record<string, unknown>;
 	static inject: Record<string, string>;
 }
-type IInjectable = typeof _IInjectable;
+type IInjectable<T> = typeof _IInjectable<T>;
 declare class Marshal {
 	static version: string;
 	renderCount: number;
@@ -47,7 +51,7 @@ declare class Marshal {
 	loaded: Record<string, object>;
 	tagMap: Record<string, IModuleImport[]>;
 	scope: Record<string, unknown>;
-	instanceMap: WeakMap<Module, RegisterConfig>;
+	instanceMap: WeakMap<Module<any>, RegisterConfig>;
 	constructor();
 	addScope(name: string, value: unknown): void;
 	render(): void;
@@ -137,6 +141,16 @@ declare class Minstrel {
 	asset(module: Module, suffix: string): string;
 }
 declare type UnknownRecord = Record<symbol | string, unknown>;
+interface ModulesEvent {
+	modules: Modules;
+	canvas: HTMLCanvasElement | null;
+}
+interface Module$1 {
+}
+interface Modules {
+	[key: string]: Module$1 | undefined;
+	core: ICore;
+}
 interface DrawEvent {
 	element: IBaseDef;
 }
@@ -194,7 +208,7 @@ interface IFont {
 	url: string;
 	name: string;
 }
-interface ICore {
+interface ICore extends Module$1 {
 	meta: {
 		document: IDocumentDef;
 	};
@@ -207,13 +221,14 @@ interface ICore {
 		markAsLayer: (layer: IBaseDef) => IBaseDef;
 		add: (def: IBaseDef, parent?: IParentDef | null, position?: number | null) => void;
 		addVolatile: (def: IBaseDef, parent?: IParentDef | null, position?: number | null) => void;
-		move: (original: IBaseDef, def: IBaseDef, newStart: IStart) => Promise<void>;
-		resize: (original: IBaseDef, def: IBaseDef, newSize: ISize) => Promise<void>;
+		move: (original: IBaseDef, newStart: IStart) => Promise<void>;
+		resize: (original: IBaseDef, newSize: ISize) => Promise<void>;
 		remove: (def: IBaseDef) => void;
 		removeVolatile: (def: IBaseDef) => void;
+		calcAndUpdateLayer: (original: IBaseDef) => Promise<void>;
 	};
 	view: {
-		calc: (element: IBaseDef, parent: IParentDef, position: number) => Promise<IBaseDef | null>;
+		calc: (element: IBaseDef, parent?: IParentDef, position?: number) => Promise<IBaseDef | null>;
 		draw: (element: IBaseDef) => void;
 		redraw: (layout?: Layout) => void;
 		recalculate: (parent?: IParentDef, layout?: Layout) => Promise<Layout>;
@@ -233,23 +248,8 @@ interface ICore {
 	};
 }
 type Layout = (IBaseDef | IParentDef)[];
-interface ModulesEvent {
-	modules: Modules;
-	canvas: HTMLCanvasElement | null;
-}
-interface Module$1 {
-}
-interface Modules {
-	[key: string]: Module$1 | undefined;
-	system?: {
-		structure: {
-			reloadStructure: () => Promise<void>;
-			reload: VoidFunction;
-		};
-	};
-}
 declare type LineJoin = "round" | "bevel" | "miter";
-declare type FillStyle = any | boolean | string | string | CanvasGradient | CanvasPattern | string;
+declare type FillStyle = any | boolean | CanvasGradient | CanvasPattern | string;
 interface ILine {
 	means: "line";
 	args: {
@@ -346,6 +346,7 @@ declare class CalculatedImage {
 	constructor(image: HTMLImageElement, coords: IImageCoords);
 }
 type ImageFit = "stretch" | "crop" | "default";
+type ImageFitTo = "auto" | "height" | "width";
 type VerticalAlignType = "top" | "bottom" | "center";
 type HorizontalAlignType = "left" | "right" | "center";
 interface IImageAlign {
@@ -366,7 +367,7 @@ interface IImageArg {
 	overcolor?: IOvercolor;
 	outline?: IOutline;
 	align?: IImageAlign;
-	fitTo?: "auto" | "height" | "width";
+	fitTo?: ImageFitTo;
 	src: string | HTMLImageElement;
 }
 export interface IImageDef<T = never> extends IBaseDef<T> {
@@ -477,7 +478,7 @@ export declare class AntetypeIllustrator {
 	calc(event: CustomEvent<CalcEvent>): Promise<void>;
 	static subscriptions: Subscriptions;
 }
-declare const EnAntetypeIllustrator: IInjectable & ISubscriber;
+declare const EnAntetypeIllustrator: IInjectable<IInjected> & ISubscriber;
 
 export {
 	EnAntetypeIllustrator as default,
