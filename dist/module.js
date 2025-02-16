@@ -560,12 +560,10 @@ var CalculatedImage = class {
     this.coords = coords;
   }
 };
-var ResolveImageAction = async (ctx, def) => {
+var ResolveImageAction = (ctx, def) => {
   const image = def.image.calculated;
-  if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image)) {
-    return;
-  }
-  if (!(image instanceof CalculatedImage)) {
+  if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image) || !(image instanceof CalculatedImage)) {
+    drawImagePlaceholder(ctx, def);
     return;
   }
   const { start: { x, y } } = def.area;
@@ -576,6 +574,16 @@ var imageTimeoutReached = (image) => {
 };
 var imageIsBeingLoaded = (image) => {
   return image === IMAGE_LOADING_STATUS;
+};
+var drawImagePlaceholder = (ctx, def) => {
+  const { start: { x, y }, size: { w, h } } = def.area;
+  ctx.save();
+  ctx.rect(x, y, w, h);
+  ctx.fillStyle = "rgba(246, 248, 250, .25)";
+  ctx.strokeStyle = "#080808";
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 };
 
 // src/action/text.tsx
@@ -896,7 +904,7 @@ var ResolveImageCalc = async (modules, def) => {
     console.warn("Image `" + source + "` has invalid source");
     return;
   }
-  await loadImage(def, source, modules);
+  void loadImage(def, source, modules);
 };
 var calculateFromCache = (def, cached) => {
   const image = def.image, { w, h } = def.size;
@@ -968,18 +976,12 @@ var loadImage = async (def, src, modules) => {
     image.onload = async () => {
       clearTimeout(timeoutTimer);
       def.image.calculated = await calculateImage(def, image);
-      view.redrawDebounce(getDoc(def).layout);
+      view.redrawDebounce();
       resolve();
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
   await promise;
-};
-var getDoc = (def) => {
-  if (!def.hierarchy?.parent) {
-    return def;
-  }
-  return getDoc(def.hierarchy.parent);
 };
 var overcolorImage = async (image, def, asWidth, asHeight) => {
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), overcolor = def.image.overcolor;

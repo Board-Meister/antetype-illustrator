@@ -193,13 +193,8 @@ interface IBaseDef<T = never> {
 interface IParentDef extends IBaseDef {
 	layout: Layout;
 }
-interface ISequence {
-	current: number;
-	increment: number;
-}
 interface IDocumentDef extends IParentDef {
 	type: "document";
-	sequence: ISequence;
 	base: Layout;
 	start: {
 		x: 0;
@@ -461,7 +456,7 @@ export interface ICalcEvent<T = Record<string, any>> {
 	values: T;
 }
 export interface ModulesWithCore extends Modules {
-	core: ICore;
+	illustrator: IIllustrator;
 }
 export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;

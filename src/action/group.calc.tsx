@@ -1,8 +1,6 @@
 import type { IArea } from "@boardmeister/antetype-core";
-// import type { Modules } from "@boardmeister/antetype";
 import type { IWorkspaceSettings } from "@boardmeister/antetype-workspace";
 import { IGroupDef } from "@src/type/group.d";
-import { IIllustrator } from "@src/module";
 import { ModulesWithCore } from "@src/index";
 import { getRowsHeight, getRowsWidth, separateIntoRows } from "@src/action/group";
 
@@ -80,7 +78,7 @@ export const ResolveGroupCalc = async (
 ): Promise<void> => {
   const { group } = def;
 
-  def.size = await (modules.illustrator as IIllustrator).calc<IGroupDef['size']>({
+  def.size = await modules.illustrator.calc<IGroupDef['size']>({
     layerType: 'group',
     purpose: 'size',
     values: def.size ?? { w: 0, h: 0 },
@@ -88,7 +86,7 @@ export const ResolveGroupCalc = async (
   def.size.w ??= NaN;
   def.size.h ??= NaN;
 
-  def.start = await (modules.illustrator as IIllustrator).calc<IGroupDef['start']>({
+  def.start = await modules.illustrator.calc<IGroupDef['start']>({
     layerType: 'group',
     purpose: 'position',
     values: def.start ?? { x: 0, y: 0 },
@@ -96,7 +94,7 @@ export const ResolveGroupCalc = async (
   def.start.y ??= 0;
   def.start.x ??= 0;
 
-  group.gap = await (modules.illustrator as IIllustrator).calc<{ vertical: number, horizontal: number }>({
+  group.gap = await modules.illustrator.calc<{ vertical: number, horizontal: number }>({
     layerType: 'group',
     purpose: 'gap',
     values: group.gap ?? { vertical: 0, horizontal: 0 },

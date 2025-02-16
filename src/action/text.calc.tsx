@@ -1,5 +1,4 @@
-import type { IArea } from "@boardmeister/antetype-core";
-import type { Modules } from "@boardmeister/antetype";
+import type { IArea, Modules } from "@boardmeister/antetype-core";
 import { ITextColumns, ITextDef, VerticalAlign } from "@src/type/text.d";
 import { calcFill } from "@src/shared";
 import { IIllustrator } from "@src/module";

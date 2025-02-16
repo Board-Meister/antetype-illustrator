@@ -1,6 +1,5 @@
-import type { ICore, IArea, IBaseDef, IDocumentDef } from "@boardmeister/antetype-core";
+import type { ICore, IArea } from "@boardmeister/antetype-core";
 import { HorizontalAlignType, IImageArg, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
-import { IIllustrator } from "@src/module";
 import { CalculatedImage, IMAGE_ERROR_STATUS, IMAGE_LOADING_STATUS, IMAGE_TIMEOUT_STATUS } from "@src/action/image";
 import { generateFill } from "@src/shared";
 import { ModulesWithCore } from "@src/index";
@@ -29,13 +28,13 @@ export const ResolveImageCalc = async (
   modules: ModulesWithCore,
   def: IImageDef,
 ): Promise<void> => {
-  def.size = await (modules.illustrator as IIllustrator).calc<IImageDef['size']>({
+  def.size = await modules.illustrator.calc<IImageDef['size']>({
     layerType: 'image',
     purpose: 'size',
     values: def.size,
   });
 
-  def.start = await (modules.illustrator as IIllustrator).calc<IImageDef['start']>({
+  def.start = await modules.illustrator.calc<IImageDef['start']>({
     layerType: 'image',
     purpose: 'position',
     values: def.start,
@@ -44,7 +43,7 @@ export const ResolveImageCalc = async (
   def.area = ResolveImageSize(def);
 
   if (def.image.outline?.thickness) {
-    def.image.outline.thickness = (await (modules.illustrator as IIllustrator).calc<{ thickness: number }>({
+    def.image.outline.thickness = (await modules.illustrator.calc<{ thickness: number }>({
       layerType: 'image',
       purpose: 'thickness',
       values: {
@@ -76,13 +75,7 @@ export const ResolveImageCalc = async (
     return;
   }
 
-  /**
-   * Unexpected behaviour.
-   * Tested in Firefox only for now.
-   * When requesting multiple (30+) images at the load time it is more efficient and has better UX to actually
-   * block draw until all of them are loaded - loading them all at once takes longer than one by one.
-   */
-  await loadImage(def, source, modules);
+  void loadImage(def, source, modules);
 }
 const calculateFromCache = (
   def: IImageDef,
@@ -191,21 +184,13 @@ const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore):
     image.onload = async () => {
       clearTimeout(timeoutTimer);
       def.image.calculated = await calculateImage(def, image);
-      view.redrawDebounce(getDoc(def).layout);
+      view.redrawDebounce();
       resolve();
     };
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
 
   await promise;
-}
-
-const getDoc = (def: IBaseDef): IDocumentDef => {
-  if (!def.hierarchy?.parent) {
-    return def as IDocumentDef;
-  }
-
-  return getDoc(def.hierarchy.parent);
 }
 
 const overcolorImage = async (

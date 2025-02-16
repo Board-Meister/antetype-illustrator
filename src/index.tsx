@@ -3,16 +3,17 @@ import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type {
-  Modules, DrawEvent, CalcEvent, IBaseDef, IParentDef, ICore, ModulesEvent
+  Modules, DrawEvent, CalcEvent, IBaseDef, IParentDef, ModulesEvent
 } from "@boardmeister/antetype-core"
 import type Illustrator from "@src/module";
+import type { IIllustrator } from "@src/module";
 import { IPolygonArgs } from "@src/type/polygon.d";
 import { IImageArg } from "@src/type/image.d";
 import { ITextArgs } from "@src/type/text.d";
 import { IGroupArgs } from "@src/type/group.d";
 
 export interface ModulesWithCore extends Modules {
-  core: ICore;
+  illustrator: IIllustrator;
 }
 
 export interface IInjected extends Record<string, object> {
