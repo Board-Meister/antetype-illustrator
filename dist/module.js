@@ -1334,6 +1334,12 @@ var ResolveGroupSizeForFixed = (def) => {
     area.start.y = Math.min(area.start.y, subArea.start.y);
     area.start.x = Math.min(area.start.x, subArea.start.x);
   }
+  if (area.start.y < 0) {
+    area.start.y = 0;
+  }
+  if (area.start.x < 0) {
+    area.start.x = 0;
+  }
   return area;
 };
 var ResolveGroupCalc = async (modules, def, sessionId) => {

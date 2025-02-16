@@ -68,6 +68,14 @@ const ResolveGroupSizeForFixed = (def: IGroupDef): IArea => {
     area.start.x = Math.min(area.start.x, subArea.start.x);
   }
 
+  if (area.start.y < 0) {
+    area.start.y = 0;
+  }
+
+  if (area.start.x < 0) {
+    area.start.x = 0;
+  }
+
   return area;
 }
 
