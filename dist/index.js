@@ -1,21 +1,29 @@
-// ../../tool/antetype/dist/index.js
+// ../antetype-core/dist/index.js
 var Event = /* @__PURE__ */ ((Event23) => {
-  Event23["STRUCTURE"] = "antetype.structure";
-  Event23["MIDDLE"] = "antetype.structure.middle";
-  Event23["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
-  Event23["CENTER"] = "antetype.structure.center";
-  Event23["COLUMN_LEFT"] = "antetype.structure.column.left";
-  Event23["COLUMN_RIGHT"] = "antetype.structure.column.right";
-  Event23["BAR_TOP"] = "antetype.structure.bar.top";
+  Event23["INIT"] = "antetype.init";
+  Event23["CLOSE"] = "antetype.close";
+  Event23["DRAW"] = "antetype.draw";
+  Event23["CALC"] = "antetype.calc";
+  Event23["RECALC_FINISHED"] = "antetype.recalc.finished";
   Event23["MODULES"] = "antetype.modules";
-  Event23["ACTIONS"] = "antetype.structure.column.left.actions";
-  Event23["PROPERTIES"] = "antetype.structure.column.left.properties";
-  Event23["SHOW_PROPERTIES"] = "antetype.structure.column.left.properties.show";
   return Event23;
 })(Event || {});
 
-// ../antetype-core/dist/index.js
-var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e.SHOW_PROPERTIES = "antetype.structure.column.left.properties.show", e))(i || {});
+// ../antetype-workspace/dist/index.js
+var Event2 = /* @__PURE__ */ ((Event222) => {
+  Event222["STRUCTURE"] = "antetype.structure";
+  Event222["MIDDLE"] = "antetype.structure.middle";
+  Event222["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
+  Event222["CENTER"] = "antetype.structure.center";
+  Event222["COLUMN_LEFT"] = "antetype.structure.column.left";
+  Event222["COLUMN_RIGHT"] = "antetype.structure.column.right";
+  Event222["BAR_TOP"] = "antetype.structure.bar.top";
+  Event222["MODULES"] = "antetype.modules";
+  Event222["ACTIONS"] = "antetype.structure.column.left.actions";
+  Event222["PROPERTIES"] = "antetype.structure.column.left.properties";
+  return Event222;
+})(Event2 || {});
+var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i || {});
 var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c || {});
 var s = class {
   #t;
@@ -53,61 +61,8 @@ var s = class {
   }
   static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
 };
-
-// ../antetype-workspace/dist/index.js
-var Event2 = /* @__PURE__ */ ((Event222) => {
-  Event222["STRUCTURE"] = "antetype.structure";
-  Event222["MIDDLE"] = "antetype.structure.middle";
-  Event222["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
-  Event222["CENTER"] = "antetype.structure.center";
-  Event222["COLUMN_LEFT"] = "antetype.structure.column.left";
-  Event222["COLUMN_RIGHT"] = "antetype.structure.column.right";
-  Event222["BAR_TOP"] = "antetype.structure.bar.top";
-  Event222["MODULES"] = "antetype.modules";
-  Event222["ACTIONS"] = "antetype.structure.column.left.actions";
-  Event222["PROPERTIES"] = "antetype.structure.column.left.properties";
-  return Event222;
-})(Event2 || {});
-var i2 = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i2 || {});
-var c2 = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c2 || {});
-var s2 = class {
-  #t;
-  #r = null;
-  #e = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(t) {
-    this.#t = t;
-  }
-  async #n(t, n) {
-    if (!this.#e) {
-      let o2 = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(o2)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
-    }
-    return this.#e;
-  }
-  async register(t) {
-    let { modules: n, canvas: o2 } = t.detail;
-    n.core = await this.#n(n, o2);
-  }
-  async init(t) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: n, settings: o2 } = t.detail;
-    for (let a in o2) this.#e.setting.set(a, o2[a]);
-    let r2 = this.#e.meta.document;
-    r2.base = n;
-    let l = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
-      l.push(this.#e.font.load(a));
-    }), await Promise.all(l), r2.layout = await this.#e.view.recalculate(r2, r2.base), await this.#e.view.redraw(r2.layout), r2;
-  }
-  async cloneDefinitions(t) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    t.detail.element !== null && (t.detail.element = await this.#e.clone.definitions(t.detail.element));
-  }
-  static subscriptions = { [i2.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
-};
 var r = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(r || {});
-var i22 = ((t) => (t.SAVE = "antetype.memento.save", t))(i22 || {});
+var i2 = ((t) => (t.SAVE = "antetype.memento.save", t))(i2 || {});
 var o = class {
   #e;
   #t = null;
@@ -117,12 +72,12 @@ var o = class {
     this.#e = t;
   }
   async register(t) {
-    let { modules: s222, canvas: n } = t.detail;
+    let { modules: s22, canvas: n } = t.detail;
     if (!this.#t) {
       let a = this.#e.minstrel.getResourceUrl(this, "module.js");
       this.#t = (await import(a)).default;
     }
-    this.#r = s222.transform = this.#t({ canvas: n, modules: s222, injected: this.#e });
+    this.#r = s22.transform = this.#t({ canvas: n, modules: s22, injected: this.#e });
   }
   save(t) {
     this.#r && this.#r.addToStack(t.detail.state);
@@ -176,7 +131,7 @@ var AntetypeCursor = class {
   }
   static subscriptions = {
     [Event2.MODULES]: "register",
-    [c2.DRAW]: "draw"
+    [c.DRAW]: "draw"
   };
 };
 var Event3 = /* @__PURE__ */ ((Event222) => {
@@ -194,8 +149,8 @@ var Event3 = /* @__PURE__ */ ((Event222) => {
   return Event222;
 })(Event3 || {});
 var i3 = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i3 || {});
-var c22 = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c22 || {});
-var s22 = class {
+var c2 = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c2 || {});
+var s2 = class {
   #t;
   #r = null;
   #e = null;
@@ -460,7 +415,7 @@ var AntetypeWorkspace = class {
       /* CALC */
     ]: "calc",
     [Event3.MODULES]: "register",
-    [c22.DRAW]: [
+    [c2.DRAW]: [
       {
         method: "draw",
         priority: 1
@@ -533,7 +488,7 @@ var AntetypeIllustrator = class {
     if (!this.#instance || event.detail.element === null) {
       return;
     }
-    const { element } = event.detail;
+    const { element, sessionId } = event.detail;
     const typeToAction = {
       polygon: this.#instance.polygonCalc.bind(this.#instance),
       image: this.#instance.imageCalc.bind(this.#instance),
@@ -542,13 +497,13 @@ var AntetypeIllustrator = class {
     };
     const el = typeToAction[element.type];
     if (typeof el == "function") {
-      await el(element);
+      await el(element, sessionId);
     }
   }
   static subscriptions = {
     [Event.MODULES]: "register",
-    [c.DRAW]: "draw",
-    [c.CALC]: "calc"
+    [Event.DRAW]: "draw",
+    [Event.CALC]: "calc"
   };
 };
 var EnAntetypeIllustrator = AntetypeIllustrator;

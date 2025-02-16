@@ -121,8 +121,9 @@ const calculateImage = async (
 ): Promise<CalculatedImage> => {
   const image = def.image,
     { w, h } =  def.size,
-    sWidth = source.width,
-    sHeight = source.height
+    // @TODO well it doesn't really matter what you use here? I don't understand why but it works??
+    sWidth = source.width || 200,
+    sHeight = source.height || 200
   ;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
       image.fit ?? 'default',

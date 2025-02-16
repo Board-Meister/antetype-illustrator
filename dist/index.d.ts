@@ -142,11 +142,10 @@ declare class Minstrel {
 }
 declare type UnknownRecord = Record<symbol | string, unknown>;
 interface ModulesEvent {
-	modules: Modules;
+	modules: Record<string, Module$1>;
 	canvas: HTMLCanvasElement | null;
 }
-interface Module$1 {
-}
+declare type Module$1 = object;
 interface Modules {
 	[key: string]: Module$1 | undefined;
 	core: ICore;
@@ -156,6 +155,7 @@ interface DrawEvent {
 }
 interface CalcEvent {
 	element: IBaseDef | null;
+	sessionId: symbol | null;
 }
 declare type XValue = number;
 declare type YValue = XValue;
@@ -177,6 +177,7 @@ interface IHierarchy {
 }
 interface IBaseDef<T = never> {
 	[key: symbol | string]: unknown;
+	id?: string;
 	hierarchy?: IHierarchy;
 	start: IStart;
 	size: ISize;
@@ -192,8 +193,13 @@ interface IBaseDef<T = never> {
 interface IParentDef extends IBaseDef {
 	layout: Layout;
 }
+interface ISequence {
+	current: number;
+	increment: number;
+}
 interface IDocumentDef extends IParentDef {
 	type: "document";
+	sequence: ISequence;
 	base: Layout;
 	start: {
 		x: 0;
@@ -211,6 +217,7 @@ interface IFont {
 interface ICore extends Module$1 {
 	meta: {
 		document: IDocumentDef;
+		generateId: () => string;
 	};
 	clone: {
 		definitions: (data: IBaseDef) => Promise<IBaseDef>;
@@ -228,11 +235,11 @@ interface ICore extends Module$1 {
 		calcAndUpdateLayer: (original: IBaseDef) => Promise<void>;
 	};
 	view: {
-		calc: (element: IBaseDef, parent?: IParentDef, position?: number) => Promise<IBaseDef | null>;
+		calc: (element: IBaseDef, parent?: IParentDef, position?: number, currentSession?: symbol | null) => Promise<IBaseDef | null>;
 		draw: (element: IBaseDef) => void;
 		redraw: (layout?: Layout) => void;
-		recalculate: (parent?: IParentDef, layout?: Layout) => Promise<Layout>;
-		redrawDebounce: (layout: Layout) => void;
+		recalculate: (parent?: IParentDef, layout?: Layout, currentSession?: symbol | null) => Promise<Layout>;
+		redrawDebounce: (layout?: Layout) => void;
 	};
 	policies: {
 		isLayer: (layer: Record<symbol, unknown>) => boolean;

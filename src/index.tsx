@@ -1,7 +1,6 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
-import { Event as AntetypeEvent } from "@boardmeister/antetype"
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type {
   Modules, DrawEvent, CalcEvent, IBaseDef, IParentDef, ICore, ModulesEvent
@@ -74,8 +73,8 @@ export class AntetypeIllustrator {
     if (!this.#instance || event.detail.element === null) {
       return;
     }
-    const { element } = event.detail;
-    const typeToAction: Record<string, (def: GenericBaseDef) => Promise<void>> = {
+    const { element, sessionId } = event.detail;
+    const typeToAction: Record<string, (def: GenericBaseDef, sessionId?: symbol|null) => Promise<void>> = {
       polygon: this.#instance.polygonCalc.bind(this.#instance),
       image: this.#instance.imageCalc.bind(this.#instance),
       text: this.#instance.textCalc.bind(this.#instance),
@@ -84,12 +83,12 @@ export class AntetypeIllustrator {
 
     const el = typeToAction[element.type]
     if (typeof el == 'function') {
-      await el(element as GenericBaseDef);
+      await el(element as GenericBaseDef, sessionId);
     }
   }
 
   static subscriptions: Subscriptions = {
-    [AntetypeEvent.MODULES]: 'register',
+    [AntetypeCoreEvent.MODULES]: 'register',
     [AntetypeCoreEvent.DRAW]: 'draw',
     [AntetypeCoreEvent.CALC]: 'calc',
   }

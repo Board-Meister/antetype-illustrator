@@ -61,8 +61,8 @@ export default class Illustrator implements IIllustrator {
     );
   }
 
-  async groupCalc(def: IGroupDef): Promise<void> {
-    await ResolveGroupCalc(this.#modules, def);
+  async groupCalc(def: IGroupDef, sessionId: symbol|null = null): Promise<void> {
+    await ResolveGroupCalc(this.#modules, def, sessionId);
   }
 
   group(def: IGroupDef): void {

@@ -75,7 +75,8 @@ const ResolveGroupSizeForFixed = (def: IGroupDef): IArea => {
 
 export const ResolveGroupCalc = async (
   modules: ModulesWithCore,
-  def: IGroupDef
+  def: IGroupDef,
+  sessionId: symbol|null,
 ): Promise<void> => {
   const { group } = def;
 
@@ -95,6 +96,14 @@ export const ResolveGroupCalc = async (
   def.start.y ??= 0;
   def.start.x ??= 0;
 
+  group.gap = await (modules.illustrator as IIllustrator).calc<{ vertical: number, horizontal: number }>({
+    layerType: 'group',
+    purpose: 'gap',
+    values: group.gap ?? { vertical: 0, horizontal: 0 },
+  });
+  group.gap.vertical ??= 0;
+  group.gap.horizontal ??= 0;
+
   /* Set relative sizes */
   const settings = (modules.core!.setting.get('workspace') ?? {}) as IWorkspaceSettings;
   settings.relative ??= {};
@@ -104,15 +113,7 @@ export const ResolveGroupCalc = async (
   if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
   modules.core!.setting.set('workspace', settings);
 
-  def.layout = await modules.core!.view.recalculate(def, def.layout);
-
-  group.gap = await (modules.illustrator as IIllustrator).calc<{ vertical: number, horizontal: number }>({
-    layerType: 'group',
-    purpose: 'gap',
-    values: group.gap ?? { vertical: 0, horizontal: 0 },
-  });
-  group.gap.vertical ??= 0;
-  group.gap.horizontal ??= 0;
+  def.layout = await modules.core!.view.recalculate(def, def.layout, sessionId);
 
   group.interaction ??= 'fixed';
 

@@ -918,7 +918,7 @@ var calculateFromCache = (def, cached) => {
   );
 };
 var calculateImage = async (def, source, cacheKey = null) => {
-  const image = def.image, { w, h } = def.size, sWidth = source.width, sHeight = source.height;
+  const image = def.image, { w, h } = def.size, sWidth = source.width || 200, sHeight = source.height || 200;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
     image.fit ?? "default",
     sWidth,
@@ -1334,7 +1334,7 @@ var ResolveGroupSizeForFixed = (def) => {
   }
   return area;
 };
-var ResolveGroupCalc = async (modules, def) => {
+var ResolveGroupCalc = async (modules, def, sessionId) => {
   const { group } = def;
   def.size = await modules.illustrator.calc({
     layerType: "group",
@@ -1350,14 +1350,6 @@ var ResolveGroupCalc = async (modules, def) => {
   });
   def.start.y ??= 0;
   def.start.x ??= 0;
-  const settings = modules.core.setting.get("workspace") ?? {};
-  settings.relative ??= {};
-  const pRelHeight = settings.relative.height;
-  const pRelWidth = settings.relative.width;
-  if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
-  if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
-  modules.core.setting.set("workspace", settings);
-  def.layout = await modules.core.view.recalculate(def, def.layout);
   group.gap = await modules.illustrator.calc({
     layerType: "group",
     purpose: "gap",
@@ -1365,6 +1357,14 @@ var ResolveGroupCalc = async (modules, def) => {
   });
   group.gap.vertical ??= 0;
   group.gap.horizontal ??= 0;
+  const settings = modules.core.setting.get("workspace") ?? {};
+  settings.relative ??= {};
+  const pRelHeight = settings.relative.height;
+  const pRelWidth = settings.relative.width;
+  if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
+  if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
+  modules.core.setting.set("workspace", settings);
+  def.layout = await modules.core.view.recalculate(def, def.layout, sessionId);
   group.interaction ??= "fixed";
   settings.relative.height = pRelHeight;
   settings.relative.width = pRelWidth;
@@ -1397,8 +1397,8 @@ var Illustrator = class {
       this.#canvas2.height
     );
   }
-  async groupCalc(def) {
-    await ResolveGroupCalc(this.#modules2, def);
+  async groupCalc(def, sessionId = null) {
+    await ResolveGroupCalc(this.#modules2, def, sessionId);
   }
   group(def) {
     ResolveGroupAction(this.#ctx2, this.#modules2, def);
