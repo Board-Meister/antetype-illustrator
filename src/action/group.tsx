@@ -91,10 +91,13 @@ const drawLayersRelatively = (
   let xShift = 0;
   rows.forEach(row => {
     row.layers.forEach(layer => {
-      ctx.save();
-      ctx.translate(xShift, currentHeight);
+      layer.def.start.x = xShift;
+      layer.def.start.y = currentHeight;
+      if (layer.def.area) {
+        layer.def.area.start.x = xShift;
+        layer.def.area.start.y = currentHeight;
+      }
       modules.core!.view.draw(layer.def);
-      ctx.restore();
       xShift += layer.def.size.w + vertical;
     });
     xShift = 0;

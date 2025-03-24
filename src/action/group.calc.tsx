@@ -57,6 +57,7 @@ const ResolveGroupSizeForFixed = (def: IGroupDef): IArea => {
 
   const skipW = !!area.size.w;
   const skipH = !!area.size.h;
+
   for (let i = 0; i < def.layout.length; i++) {
     const subArea = def.layout[i].area;
     if (!subArea) {
@@ -64,6 +65,7 @@ const ResolveGroupSizeForFixed = (def: IGroupDef): IArea => {
     }
     if (!skipH) area.size.h = Math.max(area.size.h, subArea.size.h + subArea.start.y);
     if (!skipW) area.size.w = Math.max(area.size.w, subArea.size.w + subArea.start.x);
+
     area.start.y = Math.min(area.start.y, subArea.start.y);
     area.start.x = Math.min(area.start.x, subArea.start.x);
   }
@@ -115,9 +117,8 @@ export const ResolveGroupCalc = async (
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
   const pRelWidth = settings.relative.width;
-  if (!isNaN(def.size.h)) settings.relative.height = Math.floor(def.size.h);
-  if (!isNaN(def.size.w)) settings.relative.width = Math.floor(def.size.w);
-  modules.core!.setting.set('workspace', settings);
+  if (!isNaN(def.size.h)) settings.relative.height = def.size.h;
+  if (!isNaN(def.size.w)) settings.relative.width = def.size.w;
 
   def.layout = await modules.core!.view.recalculate(def, def.layout, sessionId);
 

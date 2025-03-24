@@ -52,7 +52,7 @@ export const ResolveImageCalc = async (
     })).thickness;
   }
 
-  const cacheKey = getImageCacheKey(def.image, def.size.w, def.size.h),
+  const cacheKey = getImageCacheKey(def.image),
     cached = cachedBySettings[cacheKey]
   ;
   if (cached) {
@@ -61,7 +61,7 @@ export const ResolveImageCalc = async (
   }
 
   if (def.image.src instanceof Image) {
-    def.image.calculated = await calculateImage(def, def.image.src, cacheKey);
+    def.image.calculated = await calculateImage(def, def.image.src, modules, cacheKey);
     return;
   }
 
@@ -70,7 +70,10 @@ export const ResolveImageCalc = async (
   }
 
   const source = def.image.src;
-  if (typeof source != 'string' || (!source.startsWith('http') && !source.startsWith('/'))) {
+  if (
+    typeof source != 'string'
+    || (!source.startsWith('blob:http') && !source.startsWith('http') && !source.startsWith('/'))
+  ) {
     console.warn('Image `' + source + '` has invalid source');
     return;
   }
@@ -110,8 +113,10 @@ const calculateFromCache = (
 const calculateImage = async (
   def: IImageDef,
   source: HTMLImageElement,
+  modules: ModulesWithCore,
   cacheKey: string|null = null,
 ): Promise<CalculatedImage> => {
+  modules;
   const image = def.image,
     { w, h } =  def.size,
     // @TODO well it doesn't really matter what you use here? I don't understand why but it works??
@@ -141,7 +146,7 @@ const calculateImage = async (
     source = await outlineImage(source, def, asWidth, asHeight)
   }
 
-  cachedBySettings[cacheKey ?? getImageCacheKey(def.image, def.size.w, def.size.h)] = {
+  cachedBySettings[cacheKey ?? getImageCacheKey(def.image)] = {
     image: source,
     width: sWidth,
     height: sHeight,
@@ -158,8 +163,8 @@ const calculateImage = async (
   );
 }
 
-const getImageCacheKey = (image: IImageArg, width: number, height: number): string =>
-  JSON.stringify({ ...image, timeout: 0, calculated: 0, width, height });
+const getImageCacheKey = (image: IImageArg): string =>
+  JSON.stringify({ ...image, timeout: undefined, calculated: undefined });
 
 const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore): Promise<void> => {
   const image = new Image(),
@@ -183,7 +188,7 @@ const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore):
 
     image.onload = async () => {
       clearTimeout(timeoutTimer);
-      def.image.calculated = await calculateImage(def, image);
+      def.image.calculated = await calculateImage(def, image, modules);
       view.redrawDebounce();
       resolve();
     };

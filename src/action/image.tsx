@@ -31,7 +31,6 @@ export const ResolveImageAction = (
 ): void => {
   const image = def.image.calculated;
   if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image) || !(image instanceof CalculatedImage)) {
-    drawImagePlaceholder(ctx, def);
     return;
   }
 
@@ -45,18 +44,4 @@ const imageTimeoutReached = (image: unknown): boolean => {
 
 const imageIsBeingLoaded = (image: unknown): boolean => {
   return image === IMAGE_LOADING_STATUS;
-}
-
-const drawImagePlaceholder = (
-  ctx: CanvasRenderingContext2D,
-  def: IImageDef,
-): void => {
-  const { start: { x, y }, size: { w, h } } = def.area!;
-  ctx.save();
-  ctx.rect(x, y, w, h);
-  ctx.fillStyle = 'rgba(246, 248, 250, .25)'
-  ctx.strokeStyle = '#080808'
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
 }

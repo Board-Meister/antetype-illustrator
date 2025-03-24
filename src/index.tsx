@@ -1,16 +1,16 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
-import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type {
   Modules, DrawEvent, CalcEvent, IBaseDef, IParentDef, ModulesEvent
 } from "@boardmeister/antetype-core"
 import type Illustrator from "@src/module";
 import type { IIllustrator } from "@src/module";
-import { IPolygonArgs } from "@src/type/polygon.d";
-import { IImageArg } from "@src/type/image.d";
-import { ITextArgs } from "@src/type/text.d";
-import { IGroupArgs } from "@src/type/group.d";
+import type { IPolygonArgs } from "@src/type/polygon.d";
+import type { IImageArg } from "@src/type/image.d";
+import type { ITextArgs } from "@src/type/text.d";
+import type { IGroupArgs } from "@src/type/group.d";
+import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 
 export interface ModulesWithCore extends Modules {
   illustrator: IIllustrator;
@@ -97,12 +97,12 @@ export class AntetypeIllustrator {
 
 const EnAntetypeIllustrator: IInjectable<IInjected>&ISubscriber = AntetypeIllustrator;
 
-export { IIllustrator } from '@src/module';
-export { Event, ICalcEvent } from '@src/type/event.d';
-export { IPolygonDef } from "@src/type/polygon.d";
-export { IImageDef } from "@src/type/image.d";
-export { ITextDef } from "@src/type/text.d";
-export { IGroupDef } from "@src/type/group.d";
+export type { IIllustrator } from '@src/module';
+export type { Event, ICalcEvent } from '@src/type/event.d';
+export type { IPolygonDef } from "@src/type/polygon.d";
+export type { IImageDef } from "@src/type/image.d";
+export type { ITextDef } from "@src/type/text.d";
+export type { IGroupDef } from "@src/type/group.d";
 export default EnAntetypeIllustrator;
 
 type Assign<T, R> = T & R;
