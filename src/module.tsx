@@ -1,18 +1,31 @@
 import type { IStart, Layout, Module } from "@boardmeister/antetype-core";
 import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
-import { IPolygonDef, PolygonActions } from "@src/type/polygon.d";
-import { IImageDef } from "@src/type/image.d";
+import { IPolygonArgs, IPolygonDef, PolygonActions } from "@src/type/polygon.d";
+import { IImageArg, IImageDef } from "@src/type/image.d";
 import { ResolveImageAction } from "@src/action/image";
-import { ITextDef } from "@src/type/text.d";
+import { ITextArgs, ITextDef } from "@src/type/text.d";
 import { ResolveTextAction } from "@src/action/text";
 import { ResolveGroupAction } from "@src/action/group";
-import { IGroupDef } from "@src/type/group.d";
-import type { ICalcEvent, IInjected, ModulesWithCore } from "@src/index";
+import { IGroupArgs, IGroupDef } from "@src/type/group.d";
+import type { ICalcEvent, ModulesWithCore } from "@src/index";
 import { ResolveCalcPolygon, ResolvePolygonSize } from "@src/action/polygon.calc";
 import { ResolveImageCalc } from "@src/action/image.calc";
 import { ResolveTextCalc } from "@src/action/text.calc";
 import { ResolveGroupCalc } from "@src/action/group.calc";
+import type { Herald } from "@boardmeister/herald";
+import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
+import type { DrawEvent, CalcEvent, IBaseDef, IParentDef } from "@boardmeister/antetype-core"
+
+type Assign<T, R> = T & R;
+
+type GenericBaseDef = Assign<IBaseDef|IParentDef, {
+  polygon: IPolygonArgs,
+  image: IImageArg,
+  text: ITextArgs,
+  group: IGroupArgs,
+  layout: IBaseDef[],
+}>;
 
 export interface IIllustrator extends Module {
   reset: () => void;
@@ -32,20 +45,70 @@ export default class Illustrator implements IIllustrator {
   #canvas: HTMLCanvasElement;
   #modules: ModulesWithCore;
   #ctx: CanvasRenderingContext2D;
-  #injected: IInjected;
+  #herald: Herald;
 
   constructor(
     canvas: HTMLCanvasElement|null,
     modules: ModulesWithCore,
-    injected: IInjected,
+    herald: Herald,
   ) {
     if (!canvas) {
       throw new Error('[Antetype Illustrator] Provided canvas is empty')
     }
     this.#canvas = canvas;
     this.#modules = modules;
-    this.#injected = injected;
+    this.#herald = herald;
     this.#ctx = this.#canvas.getContext('2d')!;
+    this.#registerEvents();
+  }
+
+  #registerEvents(): void {
+    const unregister = this.#herald.batch([
+      {
+        event: AntetypeCoreEvent.CLOSE,
+        subscription: (): void => {
+          unregister();
+        }
+      },
+      {
+        event: AntetypeCoreEvent.DRAW,
+        subscription: async (event: CustomEvent<DrawEvent>): Promise<void> => {
+            const { element } = event.detail;
+            const typeToAction: Record<string, (def: GenericBaseDef) => void> = {
+              clear: this.clear.bind(this),
+              polygon: this.polygon.bind(this),
+              image: this.image.bind(this),
+              text: this.text.bind(this),
+              group: this.group.bind(this),
+            };
+
+            const el = typeToAction[element.type]
+            if (typeof el == 'function') {
+              await el(element as GenericBaseDef);
+            }
+          }
+      },
+      {
+        event: AntetypeCoreEvent.CALC,
+        subscription: async (event: CustomEvent<CalcEvent>): Promise<void> => {
+          if (event.detail.element === null) {
+            return;
+          }
+          const { element, sessionId } = event.detail;
+          const typeToAction: Record<string, (def: GenericBaseDef, sessionId?: symbol|null) => Promise<void>> = {
+            polygon: this.polygonCalc.bind(this),
+            image: this.imageCalc.bind(this),
+            text: this.textCalc.bind(this),
+            group: this.groupCalc.bind(this),
+          };
+
+          const el = typeToAction[element.type]
+          if (typeof el == 'function') {
+            await el(element as GenericBaseDef, sessionId);
+          }
+        }
+      }
+    ])
   }
 
   reset(): void {
@@ -119,7 +182,7 @@ export default class Illustrator implements IIllustrator {
 
   async calc<T = Record<string, unknown>>(def: ICalcEvent): Promise<T> {
     const event = new CustomEvent(Event.CALC, { detail: def });
-    await this.#injected.herald.dispatch(event);
+    await this.#herald.dispatch(event);
 
     return event.detail.values as T;
   }

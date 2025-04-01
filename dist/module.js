@@ -1,64 +1,11 @@
 // ../antetype-workspace/dist/index.js
-var s = ((t) => (t.INIT = "antetype.init", t.CLOSE = "antetype.close", t.DRAW = "antetype.draw", t.CALC = "antetype.calc", t.RECALC_FINISHED = "antetype.recalc.finished", t.MODULES = "antetype.modules", t.SETTINGS = "antetype.settings.definition", t))(s || {});
-var Event = /* @__PURE__ */ ((Event22) => {
-  Event22["CALC"] = "antetype.cursor.calc";
-  Event22["POSITION"] = "antetype.cursor.position";
-  Event22["DOWN"] = "antetype.cursor.on.down";
-  Event22["UP"] = "antetype.cursor.on.up";
-  Event22["MOVE"] = "antetype.cursor.on.move";
-  Event22["SLIP"] = "antetype.cursor.on.slip";
-  return Event22;
+var o = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e.SETTINGS = "antetype.settings.definition", e))(o || {});
+var Event = /* @__PURE__ */ ((Event2) => {
+  Event2["CALC"] = "antetype.workspace.calc";
+  return Event2;
 })(Event || {});
-var AntetypeCursor = class {
-  #injected;
-  #module = null;
-  #instance = null;
-  static inject = {
-    minstrel: "boardmeister/minstrel",
-    herald: "boardmeister/herald"
-  };
-  inject(injections) {
-    this.#injected = injections;
-  }
-  async register(event) {
-    const { modules, canvas } = event.detail;
-    if (!this.#module) {
-      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
-      this.#module = (await import(module)).default;
-    }
-    this.#instance = modules.cursor = this.#module({
-      canvas,
-      modules,
-      injected: this.#injected
-    });
-  }
-  // @TODO there is not unregister method to remove all subscriptions
-  draw(event) {
-    if (!this.#instance) {
-      return;
-    }
-    const { element } = event.detail;
-    const typeToAction = {
-      selection: this.#instance.drawSelection
-    };
-    const el = typeToAction[element.type];
-    if (typeof el == "function") {
-      el(element);
-    }
-  }
-  static subscriptions = {
-    [s.MODULES]: "register",
-    [s.DRAW]: "draw"
-  };
-};
-var s2 = ((t) => (t.INIT = "antetype.init", t.CLOSE = "antetype.close", t.DRAW = "antetype.draw", t.CALC = "antetype.calc", t.RECALC_FINISHED = "antetype.recalc.finished", t.MODULES = "antetype.modules", t.SETTINGS = "antetype.settings.definition", t))(s2 || {});
-var Event2 = /* @__PURE__ */ ((Event3) => {
-  Event3["CALC"] = "antetype.workspace.calc";
-  return Event3;
-})(Event2 || {});
 var AntetypeWorkspace = class {
   #module = null;
-  #instance = null;
   #injected;
   static inject = {
     minstrel: "boardmeister/minstrel",
@@ -73,70 +20,10 @@ var AntetypeWorkspace = class {
       const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
       this.#module = (await import(module)).default;
     }
-    this.#instance = modules.workspace = new this.#module(canvas, modules);
-  }
-  draw(event) {
-    if (!this.#instance) {
-      return;
-    }
-    const { element } = event.detail;
-    const typeToAction = {
-      clear: this.#instance.clearCanvas.bind(this.#instance),
-      workspace: this.#instance.drawWorkspace.bind(this.#instance)
-    };
-    const el = typeToAction[element.type];
-    if (typeof el == "function") {
-      el(element);
-    }
-  }
-  setOrigin() {
-    this.#instance?.setOrigin();
-  }
-  restoreOrigin() {
-    this.#instance?.restore();
-  }
-  calc(event) {
-    const values = event.detail.values;
-    const keys = Object.keys(values);
-    for (const key of keys) {
-      values[key] = this.#instance.calc(values[key]);
-    }
-  }
-  subtractWorkspace(event) {
-    event.detail.x -= this.#instance.getLeft();
-    event.detail.y -= this.#instance.getTop();
-  }
-  defineSettings(e) {
-    e.detail.settings.push(this.#instance.getSettingsDefinition());
-  }
-  registerConditionMethods(e) {
-    this.#instance.handleConditionsMethodRegisterMethod(e);
+    modules.workspace = new this.#module(canvas, modules, this.#injected.herald);
   }
   static subscriptions = {
-    [
-      "antetype.workspace.calc"
-      /* CALC */
-    ]: "calc",
-    [s2.MODULES]: "register",
-    [s2.DRAW]: [
-      {
-        method: "draw",
-        priority: 1
-      },
-      {
-        method: "setOrigin",
-        priority: -255
-      },
-      {
-        method: "restoreOrigin",
-        priority: 255
-      }
-    ],
-    // @TODO those bridge listeners will probably be move to the Antetype as a defining tools
-    [Event.POSITION]: "subtractWorkspace",
-    [Event.CALC]: "calc",
-    [s2.SETTINGS]: "defineSettings",
-    "antetype.conditions.method.register": "registerConditionMethods"
+    [o.MODULES]: "register"
   };
 };
 
@@ -1086,20 +973,70 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
   def.area = await ResolveGroupSize(def);
 };
 
+// ../antetype-core/dist/index.js
+var o2 = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e.SETTINGS = "antetype.settings.definition", e))(o2 || {});
+
 // src/module.tsx
 var Illustrator = class {
   #canvas;
   #modules;
   #ctx;
-  #injected;
-  constructor(canvas, modules, injected) {
+  #herald;
+  constructor(canvas, modules, herald) {
     if (!canvas) {
       throw new Error("[Antetype Illustrator] Provided canvas is empty");
     }
     this.#canvas = canvas;
     this.#modules = modules;
-    this.#injected = injected;
+    this.#herald = herald;
     this.#ctx = this.#canvas.getContext("2d");
+    this.#registerEvents();
+  }
+  #registerEvents() {
+    const unregister = this.#herald.batch([
+      {
+        event: o2.CLOSE,
+        subscription: () => {
+          unregister();
+        }
+      },
+      {
+        event: o2.DRAW,
+        subscription: async (event) => {
+          const { element } = event.detail;
+          const typeToAction = {
+            clear: this.clear.bind(this),
+            polygon: this.polygon.bind(this),
+            image: this.image.bind(this),
+            text: this.text.bind(this),
+            group: this.group.bind(this)
+          };
+          const el = typeToAction[element.type];
+          if (typeof el == "function") {
+            await el(element);
+          }
+        }
+      },
+      {
+        event: o2.CALC,
+        subscription: async (event) => {
+          if (event.detail.element === null) {
+            return;
+          }
+          const { element, sessionId } = event.detail;
+          const typeToAction = {
+            polygon: this.polygonCalc.bind(this),
+            image: this.imageCalc.bind(this),
+            text: this.textCalc.bind(this),
+            group: this.groupCalc.bind(this)
+          };
+          const el = typeToAction[element.type];
+          if (typeof el == "function") {
+            await el(element, sessionId);
+          }
+        }
+      }
+    ]);
   }
   reset() {
     this.#canvas.width += 0;
@@ -1157,8 +1094,8 @@ var Illustrator = class {
     ResolveTextAction(this.#ctx, def);
   }
   async calc(def) {
-    const event = new CustomEvent(Event2.CALC, { detail: def });
-    await this.#injected.herald.dispatch(event);
+    const event = new CustomEvent(Event.CALC, { detail: def });
+    await this.#herald.dispatch(event);
     return event.detail.values;
   }
   generateText(value) {

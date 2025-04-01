@@ -80,7 +80,7 @@ declare class _ISubscriber {
 }
 type ISubscriber = typeof _ISubscriber;
 type AmbiguousSubscription = string | Subscription | Subscription[] | EventHandler;
-type EventHandler = (event: CustomEvent) => Promise<void> | void;
+type EventHandler = (event: CustomEvent) => Promise<any> | any;
 type Subscriptions = Record<string, AmbiguousSubscription>;
 interface Subscription {
 	method: string | EventHandler;
@@ -149,13 +149,6 @@ declare type Module$1 = object;
 interface Modules {
 	[key: string]: Module$1 | undefined;
 	core: ICore;
-}
-interface DrawEvent {
-	element: IBaseDef;
-}
-interface CalcEvent {
-	element: IBaseDef | null;
-	sessionId: symbol | null;
 }
 interface ISettingFont {
 	name: string;
@@ -522,8 +515,6 @@ export declare class AntetypeIllustrator {
 	static inject: Record<string, string>;
 	inject(injections: IInjected): void;
 	register(event: CustomEvent<ModulesEvent>): Promise<void>;
-	draw(event: CustomEvent<DrawEvent>): Promise<void>;
-	calc(event: CustomEvent<CalcEvent>): Promise<void>;
 	static subscriptions: Subscriptions;
 }
 declare const EnAntetypeIllustrator: IInjectable<IInjected> & ISubscriber;
