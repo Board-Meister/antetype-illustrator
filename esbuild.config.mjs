@@ -9,8 +9,8 @@ const __dirname = dirname(__filename);
 
 await esbuild.build({
   entryPoints: [
-    resolve(__dirname, 'src/index.tsx'),
-    resolve(__dirname, 'src/module.tsx'),
+    resolve(__dirname, 'src/index.ts'),
+    resolve(__dirname, 'src/module.ts'),
   ],
   bundle: true,
   // minify: true,

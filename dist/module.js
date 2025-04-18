@@ -27,7 +27,7 @@ var AntetypeWorkspace = class {
   };
 };
 
-// src/shared.tsx
+// src/shared.ts
 async function calcFill(illustrator, fill) {
   if (fill.type === "linear") {
     const style = fill.style;
@@ -70,7 +70,7 @@ var generateLinearGradient = (colors, x, y, width, height) => {
   return grd;
 };
 
-// src/action/polygon.tsx
+// src/action/polygon.ts
 var Actions = {
   line: (ctx, x, y) => {
     ctx.lineTo(x, y);
@@ -150,71 +150,71 @@ function ResolvePolygonAction(ctx, action, x, y) {
   objSwitch[action.means](action);
 }
 
-// src/action/image.tsx
+// src/action/image.ts
 var IMAGE_ERROR_STATUS = Symbol("error");
 var IMAGE_TIMEOUT_STATUS = Symbol("timeout");
 var IMAGE_LOADING_STATUS = Symbol("loading");
 var CalculatedImage = class {
   image;
   coords;
-  constructor(image, coords) {
-    this.image = image;
+  constructor(image2, coords) {
+    this.image = image2;
     this.coords = coords;
   }
 };
 var ResolveImageAction = (ctx, def) => {
-  const image = def.image.calculated;
-  if (!image || imageTimeoutReached(image) || imageIsBeingLoaded(image) || !(image instanceof CalculatedImage)) {
+  const image2 = def.image.calculated;
+  if (!image2 || imageTimeoutReached(image2) || imageIsBeingLoaded(image2) || !(image2 instanceof CalculatedImage)) {
     return;
   }
   const { start: { x, y } } = def.area;
-  ctx.drawImage(image.image, x + image.coords.xDiff, y + image.coords.yDiff, image.coords.width, image.coords.height);
+  ctx.drawImage(image2.image, x + image2.coords.xDiff, y + image2.coords.yDiff, image2.coords.width, image2.coords.height);
 };
-var imageTimeoutReached = (image) => {
-  return image === IMAGE_TIMEOUT_STATUS;
+var imageTimeoutReached = (image2) => {
+  return image2 === IMAGE_TIMEOUT_STATUS;
 };
-var imageIsBeingLoaded = (image) => {
-  return image === IMAGE_LOADING_STATUS;
+var imageIsBeingLoaded = (image2) => {
+  return image2 === IMAGE_LOADING_STATUS;
 };
 
-// src/action/text.tsx
+// src/action/text.ts
 var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
 var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x } = def.start, lines = [], previousColumnsLines = 0;
-  const { start: { y }, size: { w }, text } = def, { columns, transY, lineHeight } = text, value = [...text.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
+  const { start: { y }, size: { w }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
   ctx.save();
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   while ((lines = value.splice(0, linesAmount)).length) {
-    lines.forEach((text2, i) => {
-      const nextLine = lines[i + 1] || value[0] || [""];
-      const isLast = i + 1 == lines.length || nextLine[0] == "" || text2[0][text2[0].length - 1] == "\n";
-      const verticalMove = transY + (text2[1] - previousColumnsLines) * lineHeight;
-      fillText(ctx, text2[0], def, x, y, w, verticalMove, isLast);
+    lines.forEach((text3, i2) => {
+      const nextLine = lines[i2 + 1] || value[0] || [""];
+      const isLast = i2 + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
+      const verticalMove = transY + (text3[1] - previousColumnsLines) * lineHeight;
+      fillText(ctx, text3[0], def, x, y, w, verticalMove, isLast);
     });
     previousColumnsLines += lines[lines.length - 1][1] + 1;
     x += columns.gap + w;
   }
   ctx.restore();
 };
-var fillText = (ctx, text, def, x, y, width, transY, isLast) => {
+var fillText = (ctx, text2, def, x, y, width, transY, isLast) => {
   const { color = "#000", outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || "left";
   if (horizontal != "left") {
-    ({ text, x } = alignHorizontally(ctx, horizontal, text, width, isLast, x));
+    ({ text: text2, x } = alignHorizontally(ctx, horizontal, text2, width, isLast, x));
   }
   if (transY > 0) {
     y = y + transY;
   }
   ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
   if (outline) {
-    outlineText(ctx, outline, text, x, y, width);
+    outlineText(ctx, outline, text2, x, y, width);
   }
-  ctx.fillText(text, x, y, width);
+  ctx.fillText(text2, x, y, width);
 };
-var outlineText = (ctx, outline, text, x, y, width) => {
+var outlineText = (ctx, outline, text2, x, y, width) => {
   if (!outline.fill?.style) {
     return;
   }
@@ -222,10 +222,10 @@ var outlineText = (ctx, outline, text, x, y, width) => {
   ctx.lineWidth = outline.thickness;
   ctx.lineJoin = outline.lineJoin ?? "round";
   ctx.miterLimit = outline.miterLimit ?? 2;
-  ctx.strokeText(text, x, y, width);
+  ctx.strokeText(text2, x, y, width);
 };
-var alignHorizontally = (ctx, horizontal, text, width, isLast, x) => {
-  const metrics = ctx.measureText(text);
+var alignHorizontally = (ctx, horizontal, text2, width, isLast, x) => {
+  const metrics = ctx.measureText(text2);
   const realWidth = metrics.width;
   if (horizontal == "center") {
     const transX = (width - realWidth) / 2;
@@ -235,15 +235,15 @@ var alignHorizontally = (ctx, horizontal, text, width, isLast, x) => {
   } else if (horizontal == "right") {
     x = x + width - realWidth;
   } else if (horizontal == "justify" && !isLast) {
-    text = justifyText(text, metrics, width, ctx);
+    text2 = justifyText(text2, metrics, width, ctx);
   }
-  return { text, x };
+  return { text: text2, x };
 };
-var justifyText = (text, metrics, width, ctx) => {
+var justifyText = (text2, metrics, width, ctx) => {
   if (metrics.width >= width) {
-    return text;
+    return text2;
   }
-  const words = text.split(" "), spacingMeasure = ctx.measureText(getSpaceChart()), spacings = Math.floor((width - metrics.width) / spacingMeasure.width), amount = spacings / (words.length - 1);
+  const words = text2.split(" "), spacingMeasure = ctx.measureText(getSpaceChart()), spacings = Math.floor((width - metrics.width) / spacingMeasure.width), amount = spacings / (words.length - 1);
   for (let j = 0; j < words.length - 1; j++) {
     words[j] += getSpaceChart().repeat(amount);
   }
@@ -275,15 +275,15 @@ var prepareFontShorthand = (def, ctx, fontSize) => {
   return fontSh + fontFamily;
 };
 
-// src/action/group.tsx
+// src/action/group.ts
 var ResolveGroupAction = (ctx, modules, def) => {
-  const { group, start } = def;
+  const { group: group2, start } = def;
   if (def.layout.length === 0) {
     return;
   }
   ctx.save();
   ctx.translate(start.x, start.y);
-  if (group.interaction === "fixed") {
+  if (group2.interaction === "fixed") {
     modules.core.view.redraw(def.layout);
   } else {
     drawLayersRelatively(ctx, modules, def);
@@ -314,10 +314,10 @@ var getRowsWidth = (def, rows) => {
   return width;
 };
 var drawLayersRelatively = (ctx, modules, def) => {
-  const { group } = def;
-  const { vertical, horizontal } = group.gap;
+  const { group: group2 } = def;
+  const { vertical, horizontal } = group2.gap;
   const rows = separateIntoRows(def, def.layout);
-  if (group.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
+  if (group2.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
     ctx.beginPath();
     ctx.rect(
       0,
@@ -349,8 +349,8 @@ var separateIntoRows = (def, layout) => {
   const rows = [];
   const generateRow = () => ({ height: 0, width: 0, layers: [] });
   let row = generateRow();
-  layout.forEach((layer, i) => {
-    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i != 0 && def.group.direction === "column") {
+  layout.forEach((layer, i2) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i2 != 0 && def.group.direction === "column") {
       rows.push(row);
       row = generateRow();
     }
@@ -362,7 +362,7 @@ var separateIntoRows = (def, layout) => {
   return rows;
 };
 
-// src/action/polygon.calc.tsx
+// src/action/polygon.calc.ts
 var ResolvePolygonSize = (def) => {
   const size = def.polygon.size;
   return {
@@ -447,7 +447,7 @@ var updateSizeVectors = (def, value, dir) => {
   }
 };
 
-// src/action/image.calc.tsx
+// src/action/image.calc.ts
 var loadedImages = {};
 var cachedBySettings = {};
 var ResolveImageSize = (def) => ({
@@ -501,14 +501,14 @@ var ResolveImageCalc = async (modules, def) => {
   void loadImage(def, source, modules);
 };
 var calculateFromCache = (def, cached) => {
-  const image = def.image, { w, h } = def.size;
+  const image2 = def.image, { w, h } = def.size;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
-    image.fit ?? "default",
+    image2.fit ?? "default",
     cached.width,
     cached.height,
     w,
     h
-  ), xDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
+  ), xDiff = getImageHorizontalDiff(image2.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image2.align?.vertical ?? "center", h, asHeight);
   return new CalculatedImage(
     cached.image,
     {
@@ -521,21 +521,21 @@ var calculateFromCache = (def, cached) => {
 };
 var calculateImage = async (def, source, modules, cacheKey = null) => {
   modules;
-  const image = def.image, { w, h } = def.size, sWidth = source.width || 200, sHeight = source.height || 200;
+  const image2 = def.image, { w, h } = def.size, sWidth = source.width || 200, sHeight = source.height || 200;
   const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
-    image.fit ?? "default",
+    image2.fit ?? "default",
     sWidth,
     sHeight,
     w,
     h
-  ), xDiff = getImageHorizontalDiff(image.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image.align?.vertical ?? "center", h, asHeight);
-  if (image.fit === "crop") {
+  ), xDiff = getImageHorizontalDiff(image2.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image2.align?.vertical ?? "center", h, asHeight);
+  if (image2.fit === "crop") {
     source = await cropImage(source, def);
   }
-  if (image.overcolor) {
+  if (image2.overcolor) {
     source = await overcolorImage(source, def, asWidth, asHeight);
   }
-  if (image.outline) {
+  if (image2.outline) {
     source = await outlineImage(source, def, asWidth, asHeight);
   }
   cachedBySettings[cacheKey ?? getImageCacheKey(def.image)] = {
@@ -553,24 +553,24 @@ var calculateImage = async (def, source, modules, cacheKey = null) => {
     }
   );
 };
-var getImageCacheKey = (image) => JSON.stringify({ ...image, timeout: void 0, calculated: void 0 });
+var getImageCacheKey = (image2) => JSON.stringify({ ...image2, timeout: void 0, calculated: void 0 });
 var loadImage = async (def, src, modules) => {
-  const image = new Image(), { image: { timeout = 3e4 } } = def, view = modules.core.view;
-  image.crossOrigin = "anonymous";
-  image.src = src;
+  const image2 = new Image(), { image: { timeout = 3e4 } } = def, view = modules.core.view;
+  image2.crossOrigin = "anonymous";
+  image2.src = src;
   const promise = new Promise((resolve) => {
     const timeoutTimer = setTimeout(() => {
       def.image.calculated = IMAGE_TIMEOUT_STATUS;
       resolve();
     }, timeout);
-    image.onerror = () => {
+    image2.onerror = () => {
       clearTimeout(timeoutTimer);
       def.image.calculated = IMAGE_ERROR_STATUS;
       resolve();
     };
-    image.onload = async () => {
+    image2.onload = async () => {
       clearTimeout(timeoutTimer);
-      def.image.calculated = await calculateImage(def, image, modules);
+      def.image.calculated = await calculateImage(def, image2, modules);
       view.redrawDebounce();
       resolve();
     };
@@ -578,23 +578,23 @@ var loadImage = async (def, src, modules) => {
   loadedImages[src] = IMAGE_LOADING_STATUS;
   await promise;
 };
-var overcolorImage = async (image, def, asWidth, asHeight) => {
+var overcolorImage = async (image2, def, asWidth, asHeight) => {
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), overcolor = def.image.overcolor;
   canvas.setAttribute("width", String(asWidth));
   canvas.setAttribute("height", String(asHeight));
-  ctx.drawImage(image, 0, 0, asWidth, asHeight);
+  ctx.drawImage(image2, 0, 0, asWidth, asHeight);
   ctx.globalCompositeOperation = "source-in";
   ctx.fillStyle = generateFill(overcolor.fill.type, overcolor.fill.style);
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = "source-over";
-  const imageOvercolored = await canvasToWebp(canvas, image);
+  const imageOvercolored = await canvasToWebp(canvas, image2);
   ctx.drawImage(imageOvercolored, 0, 0, asWidth, asHeight);
   return canvasToWebp(canvas, imageOvercolored);
 };
-var outlineImage = async (image, def, asWidth, asHeight) => {
+var outlineImage = async (image2, def, asWidth, asHeight) => {
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), outline = def.image.outline;
   if (!outline.thickness || !outline.fill) {
-    return image;
+    return image2;
   }
   const thickness = outline.thickness;
   let dArr = [
@@ -618,9 +618,9 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   if (thickness > 5) {
     const granularity = Math.floor(thickness / 2.5);
     let newDArr = [];
-    for (let i = 0; i < dArr.length; i++) {
-      newDArr.push(dArr[i]);
-      const [cX, cY] = dArr[i], [dX, dY] = i + 1 === dArr.length ? dArr[0] : dArr[i + 1];
+    for (let i2 = 0; i2 < dArr.length; i2++) {
+      newDArr.push(dArr[i2]);
+      const [cX, cY] = dArr[i2], [dX, dY] = i2 + 1 === dArr.length ? dArr[0] : dArr[i2 + 1];
       const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
       let x = cX, y = cY;
       while ((trendX > 0 && x + bX < dX || trendX < 0 && x + bX > dX) && (trendY > 0 && y + bY < dY || trendY < 0 && y + bY > dY)) {
@@ -634,11 +634,11 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   }
   canvas.setAttribute("width", String(asWidth + thickness * 2));
   canvas.setAttribute("height", String(asHeight + thickness * 2));
-  for (let i = 0; i < dArr.length; i++) {
+  for (let i2 = 0; i2 < dArr.length; i2++) {
     ctx.drawImage(
-      image,
-      thickness + dArr[i][0] * thickness,
-      thickness + dArr[i][1] * thickness,
+      image2,
+      thickness + dArr[i2][0] * thickness,
+      thickness + dArr[i2][1] * thickness,
       asWidth,
       asHeight
     );
@@ -650,42 +650,42 @@ var outlineImage = async (image, def, asWidth, asHeight) => {
   ctx.fillStyle = generateFill(outline.fill.type, outline.fill.style);
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = "source-over";
-  ctx.drawImage(image, thickness, thickness, asWidth, asHeight);
-  return canvasToWebp(canvas, image);
+  ctx.drawImage(image2, thickness, thickness, asWidth, asHeight);
+  return canvasToWebp(canvas, image2);
 };
 var canvasToWebp = async (canvas, dft) => {
-  const image = new Image();
-  image.src = canvas.toDataURL("image/webp");
+  const image2 = new Image();
+  image2.src = canvas.toDataURL("image/webp");
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       resolve(dft);
     }, 1e3);
-    image.onerror = () => {
+    image2.onerror = () => {
       clearTimeout(timeout);
       resolve(dft);
     };
-    image.onload = () => {
+    image2.onload = () => {
       clearTimeout(timeout);
-      resolve(image);
+      resolve(image2);
     };
   });
 };
-var cropImage = async (image, def) => {
+var cropImage = async (image2, def) => {
   const { w: width, h: height } = def.size;
   let fitTo = def.image.fitTo ?? "auto", x = 0, y = 0;
   if (fitTo === "auto") {
     fitTo = height > width ? "height" : "width";
   }
   if (fitTo === "height") {
-    x = (width - image.width * (height / image.height)) / 2;
+    x = (width - image2.width * (height / image2.height)) / 2;
   } else if (fitTo === "width") {
-    y = (height - image.height * (width / image.width)) / 2;
+    y = (height - image2.height * (width / image2.width)) / 2;
   }
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
   canvas.setAttribute("width", String(width));
   canvas.setAttribute("height", String(height));
-  ctx.drawImage(image, x, y, width - x * 2, height - y * 2);
-  return canvasToWebp(canvas, image);
+  ctx.drawImage(image2, x, y, width - x * 2, height - y * 2);
+  return canvasToWebp(canvas, image2);
 };
 var calculateAspectRatioFit = (fit, srcWidth, srcHeight, maxWidth, maxHeight) => {
   if (fit === "stretch" || fit === "crop") {
@@ -722,7 +722,7 @@ var getImageHorizontalDiff = (align, width, asWidth) => {
   return (width - asWidth) / 2;
 };
 
-// src/action/text.calc.tsx
+// src/action/text.calc.ts
 var ResolveTextSize = (def) => {
   let fontSize = def.text.font?.size;
   if (!fontSize || typeof fontSize == "string") {
@@ -800,13 +800,13 @@ var ResolveTextCalc = async (def, modules, ctx) => {
 };
 var prepare = (def, ctx, width) => {
   const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
-  let { value: text } = def.text;
+  let { value: text2 } = def.text;
   ctx.save();
   ctx.font = prepareFontShorthand(def, ctx, String(fontSize));
   ctx.textBaseline = textBaseline;
   const colWidth = calcColumnWidth(width, columns);
-  text = addSpacing(def, text);
-  const lines = getTextLines(def, text, ctx, colWidth);
+  text2 = addSpacing(def, text2);
+  const lines = getTextLines(def, text2, ctx, colWidth);
   ctx.restore();
   return {
     lines,
@@ -816,27 +816,27 @@ var prepare = (def, ctx, width) => {
     columns
   };
 };
-var getTextLines = (def, text, ctx, width) => {
+var getTextLines = (def, text2, ctx, width) => {
   if (!def.text.wrap) {
-    return [[text, 0]];
+    return [[text2, 0]];
   }
   const rows = [];
-  let words = text.split(/[^\S\r\n]/), line = "", i = 0;
+  let words = text2.split(/[^\S\r\n]/), line = "", i2 = 0;
   while (words.length > 0) {
     const newLinePos = words[0].search(/[\r\n]/);
     if (newLinePos !== -1) {
       const newLine = words[0].substring(0, newLinePos);
-      rows.push([(line + " " + newLine).trim() + "\n", i]);
+      rows.push([(line + " " + newLine).trim() + "\n", i2]);
       line = "";
-      i++;
+      i2++;
       words[0] = words[0].substring(newLinePos + 1);
       continue;
     }
     const metrics = ctx.measureText(line + words[0]);
     if (metrics.width > width) {
       if (line.length > 0) {
-        rows.push([line.trim(), i]);
-        i++;
+        rows.push([line.trim(), i2]);
+        i2++;
       }
       line = "";
     }
@@ -844,15 +844,15 @@ var getTextLines = (def, text, ctx, width) => {
     words = words.splice(1);
   }
   if (line.length > 0) {
-    rows.push([line.replace(/^\s+/, ""), i]);
+    rows.push([line.replace(/^\s+/, ""), i2]);
   }
   return rows;
 };
-var addSpacing = (def, text) => {
+var addSpacing = (def, text2) => {
   if (!def.text.spacing) {
-    return text;
+    return text2;
   }
-  return text.split("").join(getSpaceChart().repeat(def.text.spacing));
+  return text2.split("").join(getSpaceChart().repeat(def.text.spacing));
 };
 var calcColumnWidth = (rWidth, columns) => {
   return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
@@ -874,7 +874,7 @@ var calcVerticalMove = (height, lineHeight, lines, vAlign) => {
   return 0;
 };
 
-// src/action/group.calc.tsx
+// src/action/group.calc.ts
 var ResolveGroupSize = async (def) => {
   let area;
   if (def.group.interaction === "static") {
@@ -919,8 +919,8 @@ var ResolveGroupSizeForFixed = (def) => {
   const area = generateArea(def);
   const skipW = !!area.size.w;
   const skipH = !!area.size.h;
-  for (let i = 0; i < def.layout.length; i++) {
-    const subArea = def.layout[i].area;
+  for (let i2 = 0; i2 < def.layout.length; i2++) {
+    const subArea = def.layout[i2].area;
     if (!subArea) {
       continue;
     }
@@ -938,7 +938,7 @@ var ResolveGroupSizeForFixed = (def) => {
   return area;
 };
 var ResolveGroupCalc = async (modules, def, sessionId) => {
-  const { group } = def;
+  const { group: group2 } = def;
   def.size = await modules.illustrator.calc({
     layerType: "group",
     purpose: "size",
@@ -953,13 +953,13 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
   });
   def.start.y ??= 0;
   def.start.x ??= 0;
-  group.gap = await modules.illustrator.calc({
+  group2.gap = await modules.illustrator.calc({
     layerType: "group",
     purpose: "gap",
-    values: group.gap ?? { vertical: 0, horizontal: 0 }
+    values: group2.gap ?? { vertical: 0, horizontal: 0 }
   });
-  group.gap.vertical ??= 0;
-  group.gap.horizontal ??= 0;
+  group2.gap.vertical ??= 0;
+  group2.gap.horizontal ??= 0;
   const settings = modules.core.setting.get("workspace") ?? {};
   settings.relative ??= {};
   const pRelHeight = settings.relative.height;
@@ -967,16 +967,142 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
   if (!isNaN(def.size.h)) settings.relative.height = def.size.h;
   if (!isNaN(def.size.w)) settings.relative.width = def.size.w;
   def.layout = await modules.core.view.recalculate(def, def.layout, sessionId);
-  group.interaction ??= "fixed";
+  group2.interaction ??= "fixed";
   settings.relative.height = pRelHeight;
   settings.relative.width = pRelWidth;
   def.area = await ResolveGroupSize(def);
 };
 
 // ../antetype-core/dist/index.js
-var o2 = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e.SETTINGS = "antetype.settings.definition", e))(o2 || {});
+var o2 = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition" };
+var i = class {
+  #e;
+  #n = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  async #t(e, n) {
+    let t = this.#e.minstrel.getResourceUrl(this, "core.js");
+    return this.#n = (await import(t)).default, this.#n({ canvas: n, modules: e, herald: this.#e.herald });
+  }
+  async register(e) {
+    let { modules: n, canvas: t } = e.detail;
+    n.core = await this.#t(n, t);
+  }
+  static subscriptions = { [o2.MODULES]: "register" };
+};
 
-// src/module.tsx
+// src/definition/group.ts
+var group = () => ({
+  group: {
+    clip: "boolean",
+    interaction: "string",
+    direction: "string",
+    wrap: "boolean",
+    gap: {
+      vertical: "number",
+      horizontal: "number"
+    }
+  }
+});
+var group_default = group;
+
+// src/definition/image.ts
+var image = () => ({
+  image: {
+    timeout: "number",
+    fit: "string",
+    overcolor: {
+      fill: "string"
+    },
+    outline: {
+      thickness: "number",
+      fill: "string"
+    },
+    align: {
+      vertical: "string",
+      horizontal: "string"
+    },
+    fitTo: "string",
+    src: "string"
+  }
+});
+var image_default = image;
+
+// src/definition/polygon.ts
+var polygon = () => ({
+  polygon: {
+    steps: [
+      {
+        means: "string",
+        args: {
+          x: "number",
+          y: "number",
+          cp1x: "number",
+          cp1y: "number",
+          cp2x: "number",
+          cp2y: "number",
+          thickness: "number",
+          fill: "string",
+          lineJoin: "string",
+          miterLimit: "number"
+        }
+      }
+    ],
+    size: {
+      negative: {
+        x: "number",
+        y: "number"
+      },
+      positive: {
+        x: "number",
+        y: "number"
+      }
+    }
+  }
+});
+var polygon_default = polygon;
+
+// src/definition/text.ts
+var text = () => ({
+  text: {
+    value: "string",
+    align: {
+      vertical: "string",
+      horizontal: "string"
+    },
+    columns: {
+      amount: "number",
+      gap: "number"
+    },
+    font: {
+      style: "string",
+      family: "string",
+      weight: "string",
+      size: "string",
+      stretch: "string",
+      variant: "string",
+      height: "string"
+    },
+    spacing: "number",
+    textBaseline: "string",
+    wrap: "boolean",
+    lineHeight: "number",
+    color: "string",
+    outline: {
+      fill: "string",
+      thickness: "number",
+      lineJoin: "string",
+      miterLimit: "number",
+      transY: "number",
+      lines: [["string", "number"]]
+    }
+  }
+});
+var text_default = text;
+
+// src/module.ts
 var Illustrator = class {
   #canvas;
   #modules;
@@ -1034,6 +1160,16 @@ var Illustrator = class {
           if (typeof el == "function") {
             await el(element, sessionId);
           }
+        }
+      },
+      {
+        event: o2.TYPE_DEFINITION,
+        subscription: (event) => {
+          const definitions = event.detail.definitions;
+          definitions.text = text_default();
+          definitions.group = group_default();
+          definitions.image = image_default();
+          definitions.polygon = polygon_default();
         }
       }
     ]);
@@ -1162,7 +1298,7 @@ var Illustrator = class {
     };
   }
   generateGroup(layout) {
-    const group = {
+    const group2 = {
       type: "group",
       start: {
         x: 0,
@@ -1177,12 +1313,12 @@ var Illustrator = class {
     };
     for (const layer of layout) {
       layer.hierarchy = {
-        parent: group,
-        position: group.layout.length
+        parent: group2,
+        position: group2.layout.length
       };
-      group.layout.push(layer);
+      group2.layout.push(layer);
     }
-    return group;
+    return group2;
   }
 };
 export {

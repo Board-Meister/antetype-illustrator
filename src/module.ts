@@ -1,4 +1,4 @@
-import type { IStart, Layout, Module } from "@boardmeister/antetype-core";
+import type { IStart, Layout, Module, TypeDefinitionEvent } from "@boardmeister/antetype-core";
 import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonArgs, IPolygonDef, PolygonActions } from "@src/type/polygon.d";
@@ -16,6 +16,10 @@ import { ResolveGroupCalc } from "@src/action/group.calc";
 import type { Herald } from "@boardmeister/herald";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type { DrawEvent, CalcEvent, IBaseDef, IParentDef } from "@boardmeister/antetype-core"
+import getGroupDefinition from "@src/definition/group";
+import getImageDefinition from "@src/definition/image";
+import getPolygonDefinition from "@src/definition/polygon";
+import getTextDefinition from "@src/definition/text";
 
 type Assign<T, R> = T & R;
 
@@ -106,6 +110,16 @@ export default class Illustrator implements IIllustrator {
           if (typeof el == 'function') {
             await el(element as GenericBaseDef, sessionId);
           }
+        }
+      },
+      {
+        event: AntetypeCoreEvent.TYPE_DEFINITION,
+        subscription: (event: TypeDefinitionEvent): void => {
+          const definitions = event.detail.definitions;
+          definitions.text = getTextDefinition();
+          definitions.group = getGroupDefinition();
+          definitions.image = getImageDefinition();
+          definitions.polygon = getPolygonDefinition();
         }
       }
     ])

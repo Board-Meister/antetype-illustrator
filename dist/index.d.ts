@@ -99,9 +99,9 @@ interface IEventRegistration {
 	sort?: boolean;
 	symbol?: symbol | null;
 }
-interface IInjection extends Record<string, object> {
+interface IInjection extends Record<string, object | undefined> {
 	subscribers: ISubscriberObject[];
-	marshal: Marshal;
+	marshal?: Marshal;
 }
 declare class Herald {
 	#private;
@@ -150,6 +150,11 @@ interface Modules {
 	[key: string]: Module$1 | undefined;
 	core: ICore;
 }
+type ITypeDefinitionPrimitive = "boolean" | "string" | "number";
+type TypeDefinition = {
+	[key: string]: ITypeDefinitionPrimitive | TypeDefinition | TypeDefinition[];
+} | (ITypeDefinitionPrimitive)[] | TypeDefinition[];
+type ITypeDefinitionMap = Record<string, TypeDefinition>;
 interface ISettingFont {
 	name: string;
 	url: string;
@@ -250,6 +255,7 @@ interface ICore extends Module$1 {
 	meta: {
 		document: IDocumentDef;
 		generateId: () => string;
+		layerDefinitions: () => ITypeDefinitionMap;
 	};
 	clone: {
 		definitions: (data: IBaseDef) => Promise<IBaseDef>;
@@ -454,6 +460,7 @@ interface ITextArgs {
 	lineHeight?: XValue;
 	color?: FillStyle | FillTypes;
 	outline?: ITextOutline;
+	// Calculated do not set!
 	transY?: number;
 	lines?: TextLines;
 }
