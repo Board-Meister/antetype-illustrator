@@ -1,3 +1,23 @@
+// ../antetype-core/dist/index.js
+var o = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
+var i = class {
+  #e;
+  #n = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  async #t(e, n) {
+    let t = this.#e.minstrel.getResourceUrl(this, "core.js");
+    return this.#n = (await import(t)).default, this.#n({ canvas: n, modules: e, herald: this.#e.herald });
+  }
+  async register(e) {
+    let { modules: n, canvas: t } = e.detail;
+    n.core = await this.#t(n, t);
+  }
+  static subscriptions = { [o.MODULES]: "register" };
+};
+
 // ../antetype-workspace/dist/index.js
 var s = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
 var d = class {
@@ -17,8 +37,8 @@ var d = class {
   }
   static subscriptions = { [s.MODULES]: "register" };
 };
-var o = ((e) => (e.CALC = "antetype.workspace.calc", e))(o || {});
-var i = class {
+var o2 = ((e) => (e.CALC = "antetype.workspace.calc", e))(o2 || {});
+var i2 = class {
   #e = null;
   #t;
   static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
@@ -34,6 +54,734 @@ var i = class {
     r.workspace = new this.#e(a, r, this.#t.herald);
   }
   static subscriptions = { [s.MODULES]: "register" };
+};
+
+// ../antetype-core/src/type.d.ts
+var Event = {
+  INIT: "antetype.init",
+  CLOSE: "antetype.close",
+  DRAW: "antetype.draw",
+  CALC: "antetype.calc",
+  RECALC_FINISHED: "antetype.recalc.finished",
+  MODULES: "antetype.modules",
+  SETTINGS: "antetype.settings.definition",
+  TYPE_DEFINITION: "antetype.layer.type.definition",
+  FONTS_LOADED: "antetype.font.loaded"
+};
+
+// ../antetype-core/src/component/clone.ts
+function Clone({ canvas }) {
+  const ctx = canvas.getContext("2d");
+  const maxDepth = 50;
+  const originalSymbol = Symbol("original");
+  const cloneSymbol = Symbol("clone");
+  const isObject = (value) => {
+    return typeof value === "object" && !Array.isArray(value) && value !== null;
+  };
+  const getOriginal = function(object) {
+    return object[originalSymbol] ?? object;
+  };
+  const getClone = function(object) {
+    return object[cloneSymbol] ?? object;
+  };
+  const iterateResolveAndCloneObject = async (object, recursive, depth = 0) => {
+    if (recursive.has(object)) {
+      return recursive.get(object);
+    }
+    if (object[originalSymbol] || object.type === "document") {
+      return object;
+    }
+    const clone = {};
+    recursive.set(object, clone);
+    clone[originalSymbol] = object;
+    object[cloneSymbol] = clone;
+    if (maxDepth <= depth + 1) {
+      console.error("We've reach limit depth!", object);
+      throw new Error("limit reached");
+    }
+    for (const key of Object.keys(object)) {
+      let result = await resolve(object[key], object);
+      if (isObject(result)) {
+        result = await iterateResolveAndCloneObject(result, recursive, depth + 1);
+      } else if (Array.isArray(result)) {
+        result = await iterateResolveAndCloneArray(result, recursive, depth + 1);
+      }
+      clone[key] = result;
+    }
+    ;
+    return clone;
+  };
+  const iterateResolveAndCloneArray = async (object, recursive, depth = 0) => {
+    const clone = [];
+    if (maxDepth <= depth + 1) {
+      console.error("We've reach limit depth!", object);
+      throw new Error("limit reached");
+    }
+    for (const value of object) {
+      let result = await resolve(value, object);
+      if (isObject(result)) {
+        result = await iterateResolveAndCloneObject(result, recursive, depth + 1);
+      } else if (Array.isArray(result)) {
+        result = await iterateResolveAndCloneArray(result, recursive, depth + 1);
+      }
+      clone.push(result);
+    }
+    ;
+    return clone;
+  };
+  const resolve = async (value, object) => {
+    return typeof value == "function" ? await value(ctx, object) : value;
+  };
+  const cloneDefinition = async (data) => {
+    return await iterateResolveAndCloneObject(data, /* @__PURE__ */ new WeakMap());
+  };
+  const isClone = (layer) => !!layer[originalSymbol];
+  return {
+    isClone,
+    cloneDefinition,
+    getClone,
+    getOriginal
+  };
+}
+
+// ../antetype-core/src/core.ts
+function Core(parameters) {
+  const {
+    herald
+  } = parameters;
+  const sessionQueue = [];
+  const calcQueue = [];
+  const layerPolicy = Symbol("layer");
+  const { cloneDefinition, isClone, getOriginal, getClone } = Clone(parameters);
+  const __DOCUMENT = {
+    type: "document",
+    base: [],
+    layout: [],
+    start: { x: 0, y: 0 },
+    size: { w: 0, h: 0 },
+    settings: {
+      core: {
+        fonts: []
+      }
+    }
+  };
+  console.log(__DOCUMENT);
+  const debounce = (func, timeout = 100) => {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      if (args[0] === "clear") {
+        return;
+      }
+      timer = setTimeout(() => {
+        void func.apply({}, args);
+      }, timeout);
+    };
+  };
+  const debounceRecalculatedEvent = debounce(() => {
+    void herald.dispatch(new CustomEvent(Event.RECALC_FINISHED));
+  });
+  const debounceCalcQueueCheck = debounce(async () => {
+    if (calcQueue.length == 0) {
+      return;
+    }
+    await calcQueue.shift()();
+    debounceCalcQueueCheck();
+  });
+  const draw = (element) => {
+    herald.dispatchSync(new CustomEvent(Event.DRAW, { detail: { element } }));
+  };
+  const redraw = (layout = __DOCUMENT.layout) => {
+    for (const layer of layout) {
+      draw(layer);
+    }
+  };
+  const assignHierarchy = (element, parent, position) => {
+    element.hierarchy ??= {
+      parent,
+      position
+    };
+    if (parent) {
+      element.hierarchy.parent = parent;
+    }
+    if (position) {
+      element.hierarchy.position = position;
+    }
+  };
+  const moveCalculationToQueue = (func) => {
+    let trigger = false;
+    const awaitQueue = (resolve) => {
+      setTimeout(() => {
+        if (!trigger) {
+          awaitQueue(resolve);
+          return;
+        }
+        void func().then((result) => {
+          resolve(result);
+        });
+      });
+    };
+    const promise = new Promise((resolve) => {
+      awaitQueue(resolve);
+    });
+    calcQueue.push(() => {
+      trigger = true;
+      return promise;
+    });
+    debounceCalcQueueCheck();
+    return promise;
+  };
+  const calc = async (element, parent = null, position = null, currentSession = null) => {
+    if (currentSession !== (sessionQueue[0] ?? null)) {
+      return moveCalculationToQueue(() => calc(element, parent, position, currentSession));
+    }
+    const original = getOriginal(element);
+    position ??= original.hierarchy?.position ?? 0;
+    assignHierarchy(original, parent ? getOriginal(parent) : null, position);
+    const event = new CustomEvent(Event.CALC, { detail: { element, sessionId: currentSession } });
+    await herald.dispatch(event);
+    const clone = event.detail.element;
+    if (clone !== null) {
+      markAsLayer(clone);
+      assignHierarchy(clone, parent ? getClone(parent) : null, position);
+    }
+    return clone;
+  };
+  const generateId = () => Math.random().toString(16).slice(2);
+  const isLayer = (layer) => getClone(layer)[layerPolicy] === true;
+  const markAsLayer = (layer) => {
+    layer[layerPolicy] = true;
+    getOriginal(layer).id ??= generateId();
+    const clone = getClone(layer);
+    if (!clone.id) {
+      Object.defineProperty(clone, "id", {
+        get() {
+          return getOriginal(layer).id;
+        }
+      });
+    }
+    return layer;
+  };
+  const startSession = () => {
+    const sessionId = Symbol("illustrator_session_id" + String(Math.random()));
+    sessionQueue.push(sessionId);
+    return sessionId;
+  };
+  const stopSession = () => {
+    sessionQueue.shift();
+  };
+  const recalculate = async (parent = __DOCUMENT, layout = __DOCUMENT.base, startedSession = null) => {
+    const currentSession = startedSession ?? startSession();
+    markAsLayer(parent);
+    const calculated = [];
+    for (let i3 = 0; i3 < layout.length; i3++) {
+      const calcLayer = await calc(layout[i3], parent, i3, currentSession);
+      if (calcLayer !== null) calculated.push(calcLayer);
+    }
+    parent.layout = calculated;
+    debounceRecalculatedEvent();
+    if (!startedSession) {
+      stopSession();
+    }
+    return calculated;
+  };
+  const calcAndUpdateLayer = async (original) => {
+    if (!original.hierarchy?.parent) {
+      return;
+    }
+    const position = original.hierarchy.position;
+    const parent = original.hierarchy.parent;
+    const newLayer = await calc(original, parent, position);
+    if (newLayer === null) {
+      removeVolatile(original);
+      return;
+    }
+    getClone(parent).layout[position] = newLayer;
+  };
+  const move = async (original, newStart) => {
+    original.start = newStart;
+    await calcAndUpdateLayer(original);
+  };
+  const resize = async (original, newSize) => {
+    original.size = newSize;
+    await calcAndUpdateLayer(original);
+  };
+  const add = (def, parent = null, position = null) => {
+    if (parent && isClone(parent)) {
+      parent = getOriginal(parent);
+    }
+    let layout = parent ? parent.layout : __DOCUMENT.base;
+    parent ??= __DOCUMENT;
+    if (parent.base) {
+      layout = parent.base;
+    }
+    position ??= layout.length;
+    insert(def, parent, position, layout);
+  };
+  const addVolatile = (def, parent = null, position = null) => {
+    if (parent && !isClone(parent)) {
+      parent = getClone(parent);
+    }
+    parent ??= __DOCUMENT;
+    position ??= parent.layout.length;
+    insert(def, parent, position, parent.layout);
+  };
+  const insert = (def, parent, position, layout) => {
+    layout.splice(position, 0, def);
+    def.hierarchy = {
+      position,
+      parent
+    };
+    recalculatePositionInLayout(layout);
+  };
+  const recalculatePositionInLayout = (layout) => {
+    for (let i3 = 0; i3 < layout.length; i3++) {
+      const layer = layout[i3];
+      if (!layer.hierarchy) {
+        continue;
+      }
+      layer.hierarchy.position = i3;
+    }
+  };
+  const remove = (def) => {
+    if (!def.hierarchy?.parent) {
+      return;
+    }
+    const position = def.hierarchy.position;
+    const parent = getOriginal(def.hierarchy.parent);
+    const layout = (parent?.type === "document" ? parent.base : parent?.layout) ?? [];
+    if (layout[position] !== getOriginal(def)) {
+      return;
+    }
+    layout.splice(position, 1);
+    recalculatePositionInLayout(layout);
+  };
+  const removeVolatile = (def) => {
+    if (!def.hierarchy?.parent) {
+      return;
+    }
+    const position = def.hierarchy.position;
+    const parent = getClone(def.hierarchy.parent);
+    const layout = parent.layout;
+    if (layout[position] !== getClone(def)) {
+      return;
+    }
+    layout.splice(position, 1);
+    recalculatePositionInLayout(layout);
+  };
+  const loadFont = async (font) => {
+    try {
+      const myFont = new FontFace(font.name, "url(" + font.url + ")");
+      document.fonts.add(await myFont.load());
+      module.view.redrawDebounce();
+    } catch (error) {
+      console.error("Font couldn't be loaded:", font.name + ",", font.url, error);
+    }
+  };
+  const retrieveSettingsDefinition = async function(additional = {}) {
+    const event = new CustomEvent(Event.SETTINGS, {
+      detail: {
+        settings: [],
+        additional
+      }
+    });
+    await herald.dispatch(event);
+    return event.detail.settings;
+  };
+  const setSetting = (path, value, settings) => {
+    if (path.length <= 1) {
+      settings[path[0]] = value;
+      return;
+    }
+    settings[path[0]] ??= {};
+    if (typeof settings[path[0]] !== "object" || settings[path[0]] === null) {
+      console.warn("Cannot set setting, due to one of destination not being an object", path, settings, value);
+      return;
+    }
+    setSetting(path.slice(1), value, settings[path[0]]);
+  };
+  const getSetting = (path, settings) => {
+    if (path.length <= 1) {
+      return settings[path[0]];
+    }
+    if (!settings[path[0]]) {
+      return void 0;
+    }
+    return getSetting(path.slice(1), settings[path[0]]);
+  };
+  const setSettingsDefinition = (e) => {
+    const settings = e.detail.settings;
+    const generateFonts = () => {
+      const definitions = [];
+      for (const font of __DOCUMENT.settings?.core?.fonts ?? []) {
+        definitions.push([[
+          {
+            type: "asset",
+            name: "url",
+            label: "File",
+            value: font.url
+          },
+          {
+            type: "title",
+            name: "name",
+            label: "Name",
+            value: font.name
+          }
+        ]]);
+      }
+      return definitions;
+    };
+    settings.push({
+      details: {
+        label: "Core"
+      },
+      name: "core",
+      tabs: [
+        {
+          label: "Font",
+          fields: [
+            [{
+              label: "Fonts",
+              type: "container",
+              fields: [
+                [{
+                  name: "fonts",
+                  type: "list",
+                  label: "Fonts List",
+                  template: [
+                    [
+                      {
+                        type: "asset",
+                        name: "url",
+                        label: "File",
+                        value: ""
+                      },
+                      {
+                        type: "title",
+                        name: "name",
+                        label: "Name",
+                        value: ""
+                      }
+                    ]
+                  ],
+                  entry: {
+                    url: "",
+                    name: ""
+                  },
+                  fields: generateFonts()
+                }]
+              ]
+            }]
+          ]
+        }
+      ]
+    });
+  };
+  const layerDefinitions = () => {
+    const event = new CustomEvent(Event.TYPE_DEFINITION, {
+      detail: {
+        definitions: {}
+      }
+    });
+    herald.dispatchSync(event);
+    return event.detail.definitions;
+  };
+  const getModule = () => ({
+    meta: {
+      document: __DOCUMENT,
+      generateId,
+      layerDefinitions
+    },
+    clone: {
+      definitions: cloneDefinition,
+      getOriginal,
+      getClone
+    },
+    manage: {
+      markAsLayer,
+      remove,
+      removeVolatile,
+      add,
+      addVolatile,
+      calcAndUpdateLayer
+    },
+    view: {
+      calc,
+      recalculate,
+      draw,
+      redraw,
+      redrawDebounce: debounce(redraw),
+      move,
+      resize
+    },
+    policies: {
+      isLayer,
+      isClone
+    },
+    font: {
+      load: loadFont
+    },
+    setting: {
+      set(name, value) {
+        const path = name.split(".");
+        if (!path.slice(-1)) {
+          path.pop();
+        }
+        setSetting(path, value, __DOCUMENT.settings);
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+      get(name) {
+        const path = name.split(".");
+        if (!path.slice(-1)) {
+          path.pop();
+        }
+        return getSetting(path, __DOCUMENT.settings) ?? null;
+      },
+      has: function(name) {
+        return !!(this.get(name) ?? false);
+      },
+      retrieve: retrieveSettingsDefinition
+    }
+  });
+  const module = getModule();
+  const isObject = (item) => !!(item && typeof item === "object" && !Array.isArray(item));
+  const mergeDeep = (target, ...sources) => {
+    if (!sources.length) return target;
+    const source = sources.shift();
+    if (isObject(target) && isObject(source)) {
+      for (const key in source) {
+        const sEl = source[key];
+        if (isObject(sEl)) {
+          const tEl = target[key];
+          if (!tEl) Object.assign(target, { [key]: {} });
+          mergeDeep(target[key], sEl);
+        } else {
+          Object.assign(target, { [key]: sEl });
+        }
+      }
+    }
+    return mergeDeep(target, ...sources);
+  };
+  const init = async (base, settings) => {
+    for (const key in settings) {
+      module.setting.set(key, settings[key]);
+    }
+    const doc = __DOCUMENT;
+    doc.settings = mergeDeep({}, doc.settings, settings);
+    doc.base = base;
+    void Promise.all((module.setting.get("core.fonts") ?? []).map((font) => module.font.load(font))).then(() => {
+      void herald.dispatch(new CustomEvent(Event.FONTS_LOADED));
+    });
+    doc.layout = await module.view.recalculate(doc, doc.base);
+    module.view.redraw(doc.layout);
+    return doc;
+  };
+  const unregister = herald.batch([
+    {
+      event: Event.CLOSE,
+      subscription: () => {
+        unregister();
+      }
+    },
+    {
+      event: Event.INIT,
+      subscription: (event) => {
+        const { base, settings } = event.detail;
+        return init(base, settings);
+      }
+    },
+    {
+      event: Event.SETTINGS,
+      subscription: (e) => {
+        setSettingsDefinition(e);
+      }
+    },
+    {
+      event: Event.CALC,
+      subscription: [
+        {
+          priority: -255,
+          method: async (event) => {
+            if (event.detail.element === null) {
+              return;
+            }
+            event.detail.element = await module.clone.definitions(event.detail.element);
+          }
+        }
+      ]
+    }
+  ]);
+  return module;
+}
+
+// ../herald/dist/index.js
+var __classPrivateFieldGet = function(receiver, state, kind, f) {
+  if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+  return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var __classPrivateFieldSet = function(receiver, state, value, kind, f) {
+  if (kind === "m") throw new TypeError("Private method is not writable");
+  if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+  return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+};
+var _Herald_instances;
+var _Herald_injected;
+var _Herald_subscribers;
+var _Herald_subscribersMap;
+var _Herald_continueDispatching;
+var _Herald_validateEvent;
+var _Herald_prepareSubscribers;
+var _Herald_getSubscriberMethod;
+var _Herald_isObject;
+var _Herald_sortSubscribers;
+var _Herald_sort;
+var Herald = class {
+  constructor() {
+    _Herald_instances.add(this);
+    _Herald_injected.set(this, {
+      subscribers: []
+    });
+    _Herald_subscribers.set(this, {});
+    _Herald_subscribersMap.set(this, {});
+  }
+  inject(injections) {
+    if (!__classPrivateFieldGet(this, _Herald_injected, "f"))
+      return;
+    __classPrivateFieldSet(this, _Herald_injected, injections, "f");
+    __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_sortSubscribers).call(this);
+  }
+  async dispatch(event) {
+    __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_validateEvent).call(this, event);
+    for (const subscriber of __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_prepareSubscribers).call(this, event.type)) {
+      try {
+        await __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_getSubscriberMethod).call(this, subscriber)(event);
+        if (__classPrivateFieldGet(this, _Herald_instances, "m", _Herald_continueDispatching).call(this, event)) {
+          break;
+        }
+      } catch (e) {
+        console.error("Dispatcher error:", e);
+        throw e;
+      }
+    }
+  }
+  dispatchSync(event) {
+    __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_validateEvent).call(this, event);
+    for (const subscriber of __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_prepareSubscribers).call(this, event.type)) {
+      try {
+        __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_getSubscriberMethod).call(this, subscriber)(event);
+        if (__classPrivateFieldGet(this, _Herald_instances, "m", _Herald_continueDispatching).call(this, event)) {
+          break;
+        }
+      } catch (e) {
+        console.error("Dispatcher error:", e);
+        throw e;
+      }
+    }
+  }
+  batch(events) {
+    const unregistrations = [];
+    events.forEach(({ event, subscription, constraint = null, sort = true, symbol = null }) => {
+      unregistrations.push(this.register(event, subscription, constraint, sort, symbol));
+    });
+    return () => {
+      unregistrations.forEach((unregistration) => {
+        unregistration();
+      });
+    };
+  }
+  register(event, subscription, constraint = null, sort = true, symbol = null) {
+    symbol ?? (symbol = Symbol("event"));
+    const subs = Array.isArray(subscription) ? subscription : [
+      typeof subscription == "object" ? subscription : { method: subscription }
+    ];
+    for (const sub of subs) {
+      sub.priority ?? (sub.priority = 0);
+      if (sub.priority < -256 || sub.priority > 256) {
+        console.error("Subscriber priority must be in range -256:256", { [event]: sub });
+        throw new Error("Error above stopped registration of an event");
+      }
+      sub.constraint ?? (sub.constraint = constraint);
+    }
+    __classPrivateFieldGet(this, _Herald_subscribers, "f")[event] = [
+      ...__classPrivateFieldGet(this, _Herald_subscribers, "f")[event] ?? [],
+      ...subs
+    ];
+    __classPrivateFieldGet(this, _Herald_subscribersMap, "f")[symbol] = [
+      ...__classPrivateFieldGet(this, _Herald_subscribersMap, "f")[symbol] ?? [],
+      ...subs
+    ];
+    sort && __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_sort).call(this, event);
+    return () => {
+      this.unregister(event, symbol);
+    };
+  }
+  unregister(event, symbol) {
+    if (!__classPrivateFieldGet(this, _Herald_subscribersMap, "f")[symbol]) {
+      console.warn("Tried to unregister not registered events", event);
+      return;
+    }
+    const events = [...__classPrivateFieldGet(this, _Herald_subscribers, "f")[event]];
+    __classPrivateFieldGet(this, _Herald_subscribersMap, "f")[symbol].forEach((sub) => {
+      const index = events.indexOf(sub);
+      if (index !== -1)
+        events.splice(index, 1);
+      else
+        throw new Error("Attempt to remove event from wrong collection");
+    });
+    __classPrivateFieldGet(this, _Herald_subscribers, "f")[event] = events;
+    delete __classPrivateFieldGet(this, _Herald_subscribersMap, "f")[symbol];
+  }
+};
+_Herald_injected = /* @__PURE__ */ new WeakMap(), _Herald_subscribers = /* @__PURE__ */ new WeakMap(), _Herald_subscribersMap = /* @__PURE__ */ new WeakMap(), _Herald_instances = /* @__PURE__ */ new WeakSet(), _Herald_continueDispatching = function _Herald_continueDispatching2(event) {
+  return event.cancelBubble;
+}, _Herald_validateEvent = function _Herald_validateEvent2(event) {
+  if (!(event instanceof CustomEvent)) {
+    throw new Error("Event passed to dispatcher must be of type CustomEvent");
+  }
+}, _Herald_prepareSubscribers = function _Herald_prepareSubscribers2(key) {
+  return [...__classPrivateFieldGet(this, _Herald_subscribers, "f")[key] ?? []];
+}, _Herald_getSubscriberMethod = function _Herald_getSubscriberMethod2(subscriber) {
+  const constraint = subscriber.constraint, { marshal = null } = __classPrivateFieldGet(this, _Herald_injected, "f"), module = typeof constraint == "string" ? marshal?.get(constraint) : constraint;
+  let method = subscriber.method;
+  if (module && typeof method == "string") {
+    method = module[method] ?? null;
+    if (method) {
+      method = method.bind(module);
+    }
+  }
+  if (typeof method != "function") {
+    console.error("Error below references this object", constraint);
+    throw new Error("Module " + String(constraint.constructor ?? constraint) + " doesn't have non-static method " + String(subscriber.method));
+  }
+  return method;
+}, _Herald_isObject = function _Herald_isObject2(x) {
+  return typeof x === "object" && !Array.isArray(x) && x !== null;
+}, _Herald_sortSubscribers = function _Herald_sortSubscribers2() {
+  const { marshal = null, subscribers = [] } = __classPrivateFieldGet(this, _Herald_injected, "f");
+  __classPrivateFieldSet(this, _Herald_subscribers, {}, "f");
+  subscribers.forEach((subscriberObject) => {
+    const subscriptions = subscriberObject.module.subscriptions ?? subscriberObject.module.constructor?.subscriptions;
+    if (typeof subscriptions != "object") {
+      return;
+    }
+    if (!__classPrivateFieldGet(this, _Herald_instances, "m", _Herald_isObject).call(this, subscriptions)) {
+      return;
+    }
+    Object.keys(subscriptions).forEach((moduleName) => {
+      this.register(moduleName, subscriptions[moduleName], marshal?.getModuleConstraint(subscriberObject.config) ?? null, false);
+    });
+  });
+  Object.keys(__classPrivateFieldGet(this, _Herald_subscribers, "f")).forEach((event) => {
+    __classPrivateFieldGet(this, _Herald_instances, "m", _Herald_sort).call(this, event);
+  });
+}, _Herald_sort = function _Herald_sort2(event) {
+  __classPrivateFieldGet(this, _Herald_subscribers, "f")[event].sort((a, b) => a.priority - b.priority);
+};
+Herald.inject = {
+  "marshal": "boardmeister/marshal",
+  "subscribers": "!subscriber"
 };
 
 // src/shared.ts
@@ -987,26 +1735,6 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
   def.area = await ResolveGroupSize(def);
 };
 
-// ../antetype-core/dist/index.js
-var o2 = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
-var i2 = class {
-  #e;
-  #n = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(e) {
-    this.#e = e;
-  }
-  async #t(e, n) {
-    let t = this.#e.minstrel.getResourceUrl(this, "core.js");
-    return this.#n = (await import(t)).default, this.#n({ canvas: n, modules: e, herald: this.#e.herald });
-  }
-  async register(e) {
-    let { modules: n, canvas: t } = e.detail;
-    n.core = await this.#t(n, t);
-  }
-  static subscriptions = { [o2.MODULES]: "register" };
-};
-
 // src/definition/group.ts
 var group = () => ({
   group: {
@@ -1135,13 +1863,13 @@ var Illustrator = class {
   #registerEvents() {
     const unregister = this.#herald.batch([
       {
-        event: o2.CLOSE,
+        event: o.CLOSE,
         subscription: () => {
           unregister();
         }
       },
       {
-        event: o2.DRAW,
+        event: o.DRAW,
         subscription: async (event) => {
           const { element } = event.detail;
           const typeToAction = {
@@ -1158,7 +1886,7 @@ var Illustrator = class {
         }
       },
       {
-        event: o2.CALC,
+        event: o.CALC,
         subscription: async (event) => {
           if (event.detail.element === null) {
             return;
@@ -1177,7 +1905,7 @@ var Illustrator = class {
         }
       },
       {
-        event: o2.TYPE_DEFINITION,
+        event: o.TYPE_DEFINITION,
         subscription: (event) => {
           const definitions = event.detail.definitions;
           definitions.text = text_default();
@@ -1244,7 +1972,7 @@ var Illustrator = class {
     ResolveTextAction(this.#ctx, def);
   }
   async calc(def) {
-    const event = new CustomEvent(o.CALC, { detail: def });
+    const event = new CustomEvent(o2.CALC, { detail: def });
     await this.#herald.dispatch(event);
     return event.detail.values;
   }
@@ -1335,6 +2063,218 @@ var Illustrator = class {
     return group2;
   }
 };
-export {
-  Illustrator as default
+
+// test/helpers/definition.helper.ts
+var generateRandomLayer = (type) => ({
+  type,
+  start: { x: Math.random(), y: Math.random() },
+  size: { w: Math.random(), h: Math.random() },
+  _mark: Math.random()
+});
+var initialize = (herald, layout = null, settings = {}) => {
+  return herald.dispatch(new CustomEvent(o.INIT, {
+    detail: {
+      base: layout ?? [
+        generateRandomLayer("clear1"),
+        generateRandomLayer("clear2"),
+        generateRandomLayer("clear3"),
+        generateRandomLayer("clear4")
+      ],
+      settings
+    }
+  }));
 };
+var close = (herald) => {
+  return herald.dispatch(new CustomEvent(o.CLOSE));
+};
+
+// test/calculate.spec.ts
+describe("Values are properly calculated for", () => {
+  let illustrator, core;
+  const herald = new Herald();
+  const canvas = document.createElement("canvas");
+  const obj = jasmine.objectContaining;
+  beforeEach(() => {
+    core = Core({ herald, canvas });
+    const modules = { core };
+    illustrator = new Illustrator(canvas, modules, herald);
+    modules.illustrator = illustrator;
+    const unregister = herald.batch([
+      {
+        event: o.CLOSE,
+        subscription: () => {
+          unregister();
+        }
+      },
+      {
+        // Mock event handle to mark each send value (by adding one to it)
+        event: o2.CALC,
+        subscription: (e) => {
+          const values = e.detail.values;
+          const keys = Object.keys(values);
+          for (const key of keys) {
+            values[key] = Number(values[key]) + 1;
+          }
+        }
+      }
+    ]);
+  });
+  afterEach(async () => {
+    await close(herald);
+  });
+  const generateMinimalTextDetails = () => ({
+    value: "text text text text",
+    font: { size: 12 },
+    lineHeight: 12,
+    columns: { gap: 1, amount: 1 },
+    outline: { fill: { type: "default", style: "" }, thickness: 1 }
+  });
+  it("text layer", async () => {
+    await initialize(herald, [
+      {
+        type: "text",
+        start: { x: 1, y: 1 },
+        size: { w: 100, h: 100 },
+        text: generateMinimalTextDetails()
+      },
+      {
+        type: "text",
+        start: { x: 0, y: 0 },
+        size: { w: 99, h: 99 },
+        text: Object.assign(generateMinimalTextDetails(), {
+          align: {
+            vertical: "center",
+            horizontal: "center"
+          },
+          font: { size: 11 },
+          lineHeight: 11,
+          outline: void 0,
+          columns: void 0
+        })
+      },
+      {
+        type: "text",
+        start: { x: 0, y: 0 },
+        size: { w: 49, h: 49 },
+        text: Object.assign(generateMinimalTextDetails(), {
+          wrap: true
+        })
+      }
+    ]);
+    const textLayer = core.meta.document.layout[0];
+    const textCenterLayer = core.meta.document.layout[1];
+    const textSliceLayer = core.meta.document.layout[2];
+    expect(textLayer).toEqual(obj({
+      area: obj({
+        start: obj({ x: 2, y: 2 }),
+        size: obj({ w: 101, h: 101 })
+      }),
+      start: obj({ x: 2, y: 2 }),
+      size: obj({ w: 101, h: 101 }),
+      text: obj({
+        value: "text text text text",
+        font: obj({
+          size: 13
+        }),
+        lineHeight: 13,
+        columns: obj({
+          gap: 2
+        }),
+        outline: obj({
+          thickness: 2
+        }),
+        transY: 0,
+        lines: [["text text text text", 0]]
+      })
+    }));
+    expect(textCenterLayer).toEqual(obj({
+      text: obj({
+        font: obj({
+          size: 12
+        }),
+        lineHeight: 12,
+        transY: 44,
+        // (100 - 12) / 2 => (height / fontSize) / 2
+        lines: [["text text text text", 0]]
+      })
+    }));
+    expect(textSliceLayer.text.lines).toEqual([
+      ["text text", 0],
+      ["text text", 1]
+    ]);
+  });
+  it("image layer", async () => {
+    await initialize(herald, [
+      {
+        type: "image",
+        start: { x: 1, y: 1 },
+        size: { w: 100, h: 100 },
+        image: {
+          src: "/__spec__/asset/image-calc.jpg",
+          timeout: 5e3,
+          outline: {
+            thickness: 1
+          }
+        }
+      }
+    ], {
+      illustrator: {
+        image: {
+          // Stops the calculation until image either loads or returns an error
+          waitForLoad: true
+        }
+      }
+    });
+    const imageLayer = core.meta.document.layout[0];
+    expect(imageLayer).toEqual(obj({
+      area: obj({
+        start: obj({ x: 2, y: 2 }),
+        size: obj({ w: 101, h: 101 })
+      }),
+      start: obj({ x: 2, y: 2 }),
+      size: obj({ w: 101, h: 101 }),
+      image: obj({
+        outline: obj({
+          thickness: 2
+        })
+      })
+    }));
+    expect(imageLayer.image.calculated).toBeInstanceOf(CalculatedImage);
+  });
+  it("group layer", async () => {
+    await initialize(herald, [
+      {
+        type: "group",
+        start: { x: 0, y: 0 },
+        size: { w: 100, h: 100 },
+        group: {},
+        layout: [
+          {
+            type: "image",
+            start: { x: 0, y: 0 },
+            size: { w: 0, h: 0 },
+            image: {}
+          }
+        ]
+      }
+    ]);
+    expect(core.meta.document.layout[0]).toEqual(obj({
+      area: obj({
+        start: obj({ x: 1, y: 1 }),
+        size: obj({ w: 101, h: 101 })
+      }),
+      start: obj({ x: 1, y: 1 }),
+      size: obj({ w: 101, h: 101 }),
+      layout: [
+        obj({
+          area: obj({
+            start: obj({ x: 1, y: 1 }),
+            size: obj({ w: 1, h: 1 })
+          }),
+          start: obj({ x: 1, y: 1 }),
+          size: obj({ w: 1, h: 1 })
+        })
+      ]
+    }));
+  });
+});

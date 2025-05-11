@@ -28,13 +28,14 @@ export const ResolveImageCalc = async (
   modules: ModulesWithCore,
   def: IImageDef,
 ): Promise<void> => {
-  def.size = await modules.illustrator.calc<IImageDef['size']>({
+  const illustrator = modules.illustrator!;
+  def.size = await illustrator.calc<IImageDef['size']>({
     layerType: 'image',
     purpose: 'size',
     values: def.size,
   });
 
-  def.start = await modules.illustrator.calc<IImageDef['start']>({
+  def.start = await illustrator.calc<IImageDef['start']>({
     layerType: 'image',
     purpose: 'position',
     values: def.start,
@@ -42,8 +43,8 @@ export const ResolveImageCalc = async (
 
   def.area = ResolveImageSize(def);
 
-  if (def.image.outline?.thickness) {
-    def.image.outline.thickness = (await modules.illustrator.calc<{ thickness: number }>({
+  if (def.image?.outline?.thickness) {
+    def.image.outline.thickness = (await illustrator.calc<{ thickness: number }>({
       layerType: 'image',
       purpose: 'thickness',
       values: {
@@ -78,7 +79,13 @@ export const ResolveImageCalc = async (
     return;
   }
 
-  void loadImage(def, source, modules);
+  const waitforLoad = modules.core.setting.get<boolean>('illustrator.image.waitForLoad')
+  const promise = loadImage(def, source, modules);
+  if (waitforLoad) {
+    await promise;
+  } else {
+    void promise;
+  }
 }
 const calculateFromCache = (
   def: IImageDef,
@@ -113,10 +120,9 @@ const calculateFromCache = (
 const calculateImage = async (
   def: IImageDef,
   source: HTMLImageElement,
-  modules: ModulesWithCore,
+  _modules: ModulesWithCore,
   cacheKey: string|null = null,
 ): Promise<CalculatedImage> => {
-  modules;
   const image = def.image,
     { w, h } =  def.size,
     // @TODO well it doesn't really matter what you use here? I don't understand why but it works??
@@ -174,16 +180,16 @@ const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore):
   image.crossOrigin = 'anonymous';
   image.src = src;
 
-  const promise = new Promise<void>(resolve => {
+  const promise = new Promise<void>((resolve, reject) => {
     const timeoutTimer = setTimeout(() => {
       def.image.calculated = IMAGE_TIMEOUT_STATUS;
-      resolve();
+      reject(new Error('Image loading reached a timeout: ' + src));
     }, timeout);
 
-    image.onerror = () => {
+    image.onerror = e => {
       clearTimeout(timeoutTimer);
       def.image.calculated = IMAGE_ERROR_STATUS;
-      resolve();
+      reject(e);
     };
 
     image.onload = async () => {

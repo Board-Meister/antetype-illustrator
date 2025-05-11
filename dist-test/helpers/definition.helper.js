@@ -18,32 +18,31 @@ var i = class {
   static subscriptions = { [o.MODULES]: "register" };
 };
 
-// src/index.ts
-var AntetypeIllustrator = class {
-  #module = null;
-  #injected;
-  static inject = {
-    minstrel: "boardmeister/minstrel",
-    herald: "boardmeister/herald"
-  };
-  inject(injections) {
-    this.#injected = injections;
-  }
-  async register(event) {
-    const { modules, canvas } = event.detail;
-    if (!this.#module) {
-      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
-      this.#module = (await import(module)).default;
+// test/helpers/definition.helper.ts
+var generateRandomLayer = (type) => ({
+  type,
+  start: { x: Math.random(), y: Math.random() },
+  size: { w: Math.random(), h: Math.random() },
+  _mark: Math.random()
+});
+var initialize = (herald, layout = null, settings = {}) => {
+  return herald.dispatch(new CustomEvent(o.INIT, {
+    detail: {
+      base: layout ?? [
+        generateRandomLayer("clear1"),
+        generateRandomLayer("clear2"),
+        generateRandomLayer("clear3"),
+        generateRandomLayer("clear4")
+      ],
+      settings
     }
-    modules.illustrator = new this.#module(canvas, modules, this.#injected.herald);
-  }
-  static subscriptions = {
-    [o.MODULES]: "register"
-  };
+  }));
 };
-var EnAntetypeIllustrator = AntetypeIllustrator;
-var src_default = EnAntetypeIllustrator;
+var close = (herald) => {
+  return herald.dispatch(new CustomEvent(o.CLOSE));
+};
 export {
-  AntetypeIllustrator,
-  src_default as default
+  close,
+  generateRandomLayer,
+  initialize
 };

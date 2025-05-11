@@ -112,6 +112,8 @@ export const ResolveGroupCalc = async (
   group.gap.vertical ??= 0;
   group.gap.horizontal ??= 0;
 
+  // @TODO maybe do it differently? Maybe make workspace look "up" and if there is a parent
+  // @TODO which is not a document - it will get its sizes?
   /* Set relative sizes */
   const settings = (modules.core!.setting.get('workspace') ?? {}) as IWorkspaceSettings;
   settings.relative ??= {};

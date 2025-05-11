@@ -3,11 +3,11 @@ import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
 import type { Modules, ModulesEvent } from "@boardmeister/antetype-core"
 import type Illustrator from "@src/module";
-import type { IIllustrator } from "@src/module";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
+import type { IIllustrator } from "@src/module";
 
 export interface ModulesWithCore extends Modules {
-  illustrator: IIllustrator;
+  illustrator?: IIllustrator;
 }
 
 export interface IInjected extends Record<string, object> {
