@@ -953,21 +953,22 @@ var ResolveGroupSizeForFixed = (def) => {
 };
 var ResolveGroupCalc = async (modules, def, sessionId) => {
   const { group: group2 } = def;
-  def.size = await modules.illustrator.calc({
+  const illustrator = modules.illustrator;
+  def.size = await illustrator.calc({
     layerType: "group",
     purpose: "size",
     values: def.size ?? { w: 0, h: 0 }
   });
   def.size.w ??= NaN;
   def.size.h ??= NaN;
-  def.start = await modules.illustrator.calc({
+  def.start = await illustrator.calc({
     layerType: "group",
     purpose: "position",
     values: def.start ?? { x: 0, y: 0 }
   });
   def.start.y ??= 0;
   def.start.x ??= 0;
-  group2.gap = await modules.illustrator.calc({
+  group2.gap = await illustrator.calc({
     layerType: "group",
     purpose: "gap",
     values: group2.gap ?? { vertical: 0, horizontal: 0 }
