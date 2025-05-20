@@ -1,4 +1,4 @@
-// ../antetype-workspace/dist/index.js
+// node_modules/@boardmeister/antetype-workspace/dist/index.js
 var s = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
 var d = class {
   #e;
@@ -988,7 +988,7 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
   def.area = await ResolveGroupSize(def);
 };
 
-// ../antetype-core/dist/index.js
+// node_modules/@boardmeister/antetype-core/dist/index.js
 var o2 = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
 var i2 = class {
   #e;

@@ -1,12 +1,13 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions  } from "@boardmeister/herald"
-import type { Modules, ModulesEvent } from "@boardmeister/antetype-core"
+import type { ICore, Modules, ModulesEvent } from "@boardmeister/antetype-core"
 import type Illustrator from "@src/module";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type { IIllustrator } from "@src/module";
 
 export interface ModulesWithCore extends Modules {
+  core: ICore;
   illustrator?: IIllustrator;
 }
 

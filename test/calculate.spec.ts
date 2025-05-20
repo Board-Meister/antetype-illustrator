@@ -1,6 +1,6 @@
 import { Event as CoreEvent, type ICore } from '@boardmeister/antetype-core';
 import { Event as WorkspaceEvent, ICalcEvent } from '@boardmeister/antetype-workspace';
-import Core from "@boardmeister/antetype-core/src/core";
+import Core from "@boardmeister/antetype-core/dist/core";
 import { Herald } from '@boardmeister/herald';
 import type { IGroupDef, IImageDef, ITextDef, ModulesWithCore } from '@src/index';
 import Illustrator from '@src/module';
