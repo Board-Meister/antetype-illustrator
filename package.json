@@ -1,6 +1,6 @@
 {
   "name": "@boardmeister/antetype-illustrator",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An additional module for antetype package for writing shapes on canvas",
   "type": "module",
   "main": "dist/index.js",
