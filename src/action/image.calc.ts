@@ -2,7 +2,7 @@ import type { ICore, IArea } from "@boardmeister/antetype-core";
 import { HorizontalAlignType, IImageArg, IImageDef, ImageFit, VerticalAlignType } from "@src/type/image.d";
 import { CalculatedImage, IMAGE_ERROR_STATUS, IMAGE_LOADING_STATUS, IMAGE_TIMEOUT_STATUS } from "@src/action/image";
 import { generateFill } from "@src/shared";
-import { ModulesWithCore } from "@src/index";
+import { ModulesWithCore } from "@src/type/type.d";
 
 const loadedImages: Record<string, CalculatedImage|symbol> = {};
 const cachedBySettings: Record<string, CachedImage> = {};

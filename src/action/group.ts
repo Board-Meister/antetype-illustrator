@@ -1,6 +1,6 @@
 import type { IBaseDef } from "@boardmeister/antetype-core";
 import { IGroupDef } from "@src/type/group.d";
-import { ModulesWithCore } from "@src/index";
+import type { ModulesWithCore } from "@src/type/type.d";
 
 export const ResolveGroupAction = (
   ctx: CanvasRenderingContext2D,

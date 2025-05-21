@@ -1,7 +1,7 @@
 import type { IArea } from "@boardmeister/antetype-core";
 import type { IWorkspaceSettings } from "@boardmeister/antetype-workspace";
 import { IGroupDef } from "@src/type/group.d";
-import { ModulesWithCore } from "@src/index";
+import { ModulesWithCore } from "@src/type/type.d";
 import { getRowsHeight, getRowsWidth, separateIntoRows } from "@src/action/group";
 import type Illustrator from "@src/module";
 
