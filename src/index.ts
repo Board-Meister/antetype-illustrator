@@ -9,3 +9,5 @@ import Illustrator from "@src/module";
 export {
   Illustrator,
 };
+
+export { ID, VERSION } from "@src/module.conf";

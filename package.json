@@ -1,6 +1,6 @@
 {
   "name": "@boardmeister/antetype-illustrator",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "An additional module for antetype package for drawing on canvas",
   "type": "module",
   "main": "dist/index.js",
@@ -30,8 +30,8 @@
     "url": "https://github.com/Board-Meister/antetype-illustrator/issues"
   },
   "dependencies": {
-    "@boardmeister/antetype-core": "^0.0.3",
-    "@boardmeister/antetype-workspace": "^0.0.3",
+    "@boardmeister/antetype-core": "^0.0.5",
+    "@boardmeister/antetype-workspace": "^0.0.4",
     "@boardmeister/herald": "^0.0.1",
     "@boardmeister/marshal": "^0.0.2",
     "csstype": "^3.1.3"
