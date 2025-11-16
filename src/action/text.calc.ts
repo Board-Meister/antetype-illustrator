@@ -3,6 +3,7 @@ import { ITextColumns, ITextDef, VerticalAlign } from "@src/type/text.d";
 import { calcFill } from "@src/shared";
 import { IIllustrator } from "@src/module";
 import { getFontSize, getFontSizeForCalc, getSpaceChart, prepareFontShorthand, TextLines } from "@src/action/text";
+import type { Context } from "@src/type/type";
 
 export const ResolveTextSize = (def: ITextDef): IArea => {
   let fontSize = def.text.font?.size;
@@ -25,7 +26,7 @@ export const ResolveTextSize = (def: ITextDef): IArea => {
 export const ResolveTextCalc = async (
   def: ITextDef,
   modules: Modules,
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
 ): Promise<ITextDef> => {
   const illustrator = modules.illustrator as IIllustrator;
   def.size = await illustrator.calc<ITextDef['size']>({
@@ -109,7 +110,7 @@ interface IPreparedTextProperties {
 
 const prepare = (
   def: ITextDef,
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   width: number,
 ): IPreparedTextProperties => {
   const columns = def.text.columns ?? { gap: 0, amount: 1 },
@@ -135,7 +136,7 @@ const prepare = (
   }
 }
 
-const getTextLines = (def: ITextDef, text: string, ctx: CanvasRenderingContext2D, width: number): TextLines => {
+const getTextLines = (def: ITextDef, text: string, ctx: Context, width: number): TextLines => {
   if (!def.text.wrap) {
     return [[text, 0]];
   }

@@ -20,9 +20,10 @@ describe('Layer is properly drawn', () => {
   canvas.style.width = '200px';
   document.body.appendChild(canvas)
   beforeEach(() => {
-    core = Core({ herald, canvas }) as ICore;
+    core = Core({ herald }) as ICore;
     const modules = { core } as ModulesWithCore;
-    illustrator = new Illustrator(canvas, modules, herald);
+    illustrator = new Illustrator(modules, herald);
+    core.meta.setCanvas(canvas);
     modules.illustrator = illustrator;
     const unregister = herald.batch([
       {

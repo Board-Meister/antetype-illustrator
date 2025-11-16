@@ -1,9 +1,9 @@
 import type { IBaseDef } from "@boardmeister/antetype-core";
 import { IGroupDef } from "@src/type/group.d";
-import type { ModulesWithCore } from "@src/type/type.d";
+import type { Context, ModulesWithCore } from "@src/type/type.d";
 
 export const ResolveGroupAction = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   modules: ModulesWithCore,
   def: IGroupDef,
 ): void => {
@@ -68,7 +68,7 @@ export const getRowsWidth = (
 }
 
 const drawLayersRelatively = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   modules: ModulesWithCore,
   def: IGroupDef,
 ): void => {

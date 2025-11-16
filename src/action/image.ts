@@ -1,4 +1,5 @@
 import { IImageDef } from "@src/type/image.d";
+import type { Context } from "@src/type/type";
 
 export const IMAGE_ERROR_STATUS = Symbol('error');
 export const IMAGE_TIMEOUT_STATUS = Symbol('timeout');
@@ -26,7 +27,7 @@ export class CalculatedImage {
 }
 
 export const ResolveImageAction = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   def: IImageDef,
 ): void => {
   const image = def.image.calculated;

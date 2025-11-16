@@ -6,3 +6,5 @@ export interface ModulesWithCore extends Modules {
   core: ICore;
   illustrator?: IIllustrator;
 }
+
+export type Context = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;

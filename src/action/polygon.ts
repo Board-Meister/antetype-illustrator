@@ -4,13 +4,14 @@ import {
   IBegin, IClose, ICurve, IFill, IFillDefault, IFillLinear, ILine, IMove, IStroke, LineJoin,
 } from "@src/type/polygon.d";
 import { generateFill } from "@src/shared";
+import type { Context } from "@src/type/type";
 
 const Actions = {
-  line: (ctx: CanvasRenderingContext2D, x: XValue, y: YValue): void => {
+  line: (ctx: Context, x: XValue, y: YValue): void => {
     ctx.lineTo(x, y);
   },
   curve: (
-    ctx: CanvasRenderingContext2D,
+    ctx: Context,
     cp1x: XValue,
     cp1y: YValue,
     cp2x: XValue,
@@ -21,7 +22,7 @@ const Actions = {
     ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curveX, curveY);
   },
   stroke: (
-    ctx: CanvasRenderingContext2D,
+    ctx: Context,
     thickness: XValue = 5,
     fill: FillStyle = '#000',
     lineJoin: LineJoin = 'round',
@@ -35,14 +36,14 @@ const Actions = {
     ctx.stroke();
     ctx.restore();
   },
-  begin: (ctx: CanvasRenderingContext2D, x: XValue, y: YValue): void => {
+  begin: (ctx: Context, x: XValue, y: YValue): void => {
     ctx.beginPath();
     ctx.moveTo(x, y);
   },
-  move: (ctx: CanvasRenderingContext2D, x: XValue, y: YValue): void => {
+  move: (ctx: Context, x: XValue, y: YValue): void => {
     ctx.moveTo(x, y);
   },
-  fill: (ctx: CanvasRenderingContext2D, fill: IFillDefault|IFillLinear): void => {
+  fill: (ctx: Context, fill: IFillDefault|IFillLinear): void => {
     if (!fill.type) {
       (fill as IFillDefault).type = 'default';
     }
@@ -52,10 +53,10 @@ const Actions = {
     ctx.fill();
     ctx.fillStyle = tmp;
   },
-  close: (ctx: CanvasRenderingContext2D): void => {
+  close: (ctx: Context): void => {
     ctx.closePath();
   },
-  default: (ctx: CanvasRenderingContext2D, x: XValue, y: YValue): void => Actions.line(ctx, x, y),
+  default: (ctx: Context, x: XValue, y: YValue): void => Actions.line(ctx, x, y),
 }
 
 export interface PolygonActionTypes {
@@ -76,7 +77,7 @@ export type PActions<K extends keyof PActionTypes = keyof PActionTypes>
 export type Actions = { [K in keyof PActionTypes]: (action: PActions<K>) => void }
 
 export function ResolvePolygonAction<K extends keyof PolygonActionTypes>(
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   action: PActions<K>,
   x: XValue,
   y: YValue,

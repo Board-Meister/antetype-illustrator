@@ -47,24 +47,25 @@ export interface IIllustrator extends Module {
 }
 
 export default class Illustrator implements IIllustrator {
-  #canvas: HTMLCanvasElement;
   #modules: ModulesWithCore;
-  #ctx: CanvasRenderingContext2D;
   #herald: Herald;
 
   constructor(
-    canvas: HTMLCanvasElement|null,
     modules: ModulesWithCore,
     herald: Herald,
   ) {
+    this.#modules = modules;
+    this.#herald = herald;
+    this.#registerEvents();
+  }
+
+  #ctx(): CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D {
+    const canvas = this.#modules.core.meta.getCanvas();
     if (!canvas) {
       throw new Error('[Antetype Illustrator] Provided canvas is empty')
     }
-    this.#canvas = canvas;
-    this.#modules = modules;
-    this.#herald = herald;
-    this.#ctx = this.#canvas.getContext('2d')!;
-    this.#registerEvents();
+
+    return canvas.getContext('2d')!;
   }
 
   #registerEvents(): void {
@@ -127,15 +128,15 @@ export default class Illustrator implements IIllustrator {
   }
 
   reset(): void {
-    this.#canvas.width += 0;
+    this.#ctx().canvas.width += 0;
   }
 
   clear(): void {
-    this.#ctx.clearRect(
+    this.#ctx().clearRect(
       0,
       0,
-      this.#canvas.width,
-      this.#canvas.height,
+      this.#ctx().canvas.width,
+      this.#ctx().canvas.height,
     );
   }
 
@@ -144,7 +145,7 @@ export default class Illustrator implements IIllustrator {
   }
 
   group(def: IGroupDef): void {
-    ResolveGroupAction(this.#ctx, this.#modules, def);
+    ResolveGroupAction(this.#ctx(), this.#modules, def);
   }
 
   async polygonCalc(def: IPolygonDef): Promise<void> {
@@ -166,7 +167,7 @@ export default class Illustrator implements IIllustrator {
   }
 
   polygon({ polygon: { steps }, start: { x, y } }: IPolygonDef): void {
-    const ctx = this.#ctx;
+    const ctx = this.#ctx();
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -184,15 +185,15 @@ export default class Illustrator implements IIllustrator {
   }
 
   image(def: IImageDef): void {
-    ResolveImageAction(this.#ctx, def);
+    ResolveImageAction(this.#ctx(), def);
   }
 
   async textCalc(def: ITextDef): Promise<void> {
-    await ResolveTextCalc(def, this.#modules, this.#ctx);
+    await ResolveTextCalc(def, this.#modules, this.#ctx());
   }
 
   text(def: ITextDef): void {
-    ResolveTextAction(this.#ctx, def);
+    ResolveTextAction(this.#ctx(), def);
   }
 
   async calc<T = Record<string, unknown>>(def: ICalcEvent): Promise<T> {

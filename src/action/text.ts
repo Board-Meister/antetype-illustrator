@@ -1,5 +1,6 @@
 import { HorizontalAlign, ITextDef, ITextOutline } from "@src/type/text.d";
 import { generateFill } from "@src/shared";
+import type { Context } from "@src/type/type";
 
 export declare type TextLines = { 0: string, 1: number }[];
 export const getFontSizeForCalc = (def: ITextDef): string => String(def.text.font?.size ?? 10);
@@ -10,7 +11,7 @@ export const getSpaceChart = (): string => String.fromCharCode(8202);
  * More text effects https://stackoverflow.com/a/55790112/11495586
  */
 export const ResolveTextAction = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   def: ITextDef,
 ): void => {
   let { x } = def.start,
@@ -44,7 +45,7 @@ export const ResolveTextAction = (
 }
 
 const fillText = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   text: string,
   def: ITextDef,
   x: number,
@@ -74,7 +75,7 @@ const fillText = (
 }
 
 const outlineText = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   outline: ITextOutline,
   text: string,
   x: number,
@@ -93,7 +94,7 @@ const outlineText = (
 }
 
 const alignHorizontally = (
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
   horizontal: HorizontalAlign,
   text: string,
   width: number,
@@ -120,7 +121,7 @@ const justifyText = (
   text: string,
   metrics: TextMetrics,
   width: number,
-  ctx: CanvasRenderingContext2D,
+  ctx: Context,
 ): string => {
   if (metrics.width >= width) {
     return text;
@@ -141,7 +142,7 @@ const justifyText = (
 
 // Order when joining: font-style* font-variant* font-weight* font-stretch* font-size/line-height* font-family
 // values with "*" are optional
-export const prepareFontShorthand = (def: ITextDef, ctx: CanvasRenderingContext2D, fontSize: string): string => {
+export const prepareFontShorthand = (def: ITextDef, ctx: Context, fontSize: string): string => {
   const { font = null } = def.text;
   if (!font) {
     return ctx.font;

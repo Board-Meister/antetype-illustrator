@@ -15,9 +15,10 @@ describe('Values are properly calculated for', () => {
   const canvas = document.createElement('canvas');
   const obj = jasmine.objectContaining;
   beforeEach(() => {
-    core = Core({ herald, canvas }) as ICore;
+    core = Core({ herald }) as ICore;
     const modules = { core } as ModulesWithCore;
-    illustrator = new Illustrator(canvas, modules, herald);
+    illustrator = new Illustrator(modules, herald);
+    core.meta.setCanvas(canvas);
     modules.illustrator = illustrator;
     const unregister = herald.batch([
       {
