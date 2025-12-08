@@ -16,7 +16,7 @@ await esbuild.build({
     resolve(__dirname, 'src/module.conf.ts'),
   ],
   bundle: true,
-  minify: true,
+  // minify: true,
   format: 'esm',
   outdir: './dist',
   platform: 'browser',

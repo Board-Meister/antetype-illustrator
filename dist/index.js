@@ -1,3 +1,1715 @@
-var ye=(t=>(t.CALC="antetype.illustrator.calc",t))(ye||{});var M=(e=>(e.CALC="antetype.workspace.calc",e))(M||{}),de=(e=>(e.WEBP="image/webp",e.PNG="image/png",e.JPG="image/jpeg",e))(de||{}),R=(e=>(e.CALC="antetype.cursor.calc",e.POSITION="antetype.cursor.position",e.DOWN="antetype.cursor.on.down",e.UP="antetype.cursor.on.up",e.MOVE="antetype.cursor.on.move",e.SLIP="antetype.cursor.on.slip",e.RESIZED="antetype.cursor.on.resized",e))(R||{}),V={INIT:"antetype.init",CLOSE:"antetype.close",DRAW:"antetype.draw",CALC:"antetype.calc",RECALC_FINISHED:"antetype.recalc.finished",MODULES:"antetype.modules",SETTINGS:"antetype.settings.definition",TYPE_DEFINITION:"antetype.layer.type.definition",FONTS_LOADED:"antetype.font.loaded"},fe="core",ve="0.0.5",ct=class{#e;#t=null;#i=null;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#e=e}async loadModules(e,t){return(await this.#a()).loadModules(e,t)}register(e){let{registration:t}=e.detail;t[fe]={load:async()=>(this.#t??=(await this.#r("core.js")).default,(i,r)=>this.#t({canvas:r,modules:i,herald:this.#e.herald})),version:ve}}static subscriptions={[V.MODULES]:"register"};#r(e){return import(this.#e.marshal.getResourceUrl(this,e))}async#a(){return this.#i??=(await this.#r("helper.js")).default,new this.#i(this.#e.herald)}},Ie=(e=>(e.SAVE="antetype.memento.save",e))(Ie||{}),U={INIT:"antetype.init",CLOSE:"antetype.close",DRAW:"antetype.draw",CALC:"antetype.calc",RECALC_FINISHED:"antetype.recalc.finished",MODULES:"antetype.modules",SETTINGS:"antetype.settings.definition",TYPE_DEFINITION:"antetype.layer.type.definition",FONTS_LOADED:"antetype.font.loaded"},we="core",be="0.0.5",ut=class{#e;#t=null;#i=null;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#e=e}async loadModules(e,t){return(await this.#a()).loadModules(e,t)}register(e){let{registration:t}=e.detail;t[we]={load:async()=>(this.#t??=(await this.#r("core.js")).default,(i,r)=>this.#t({canvas:r,modules:i,herald:this.#e.herald})),version:be}}static subscriptions={[U.MODULES]:"register"};#r(e){return import(this.#e.marshal.getResourceUrl(this,e))}async#a(){return this.#i??=(await this.#r("helper.js")).default,new this.#i(this.#e.herald)}},xe="memento",Te="0.0.4",ht=class{#e;#t=null;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#e=e}register(e){let{registration:t}=e.detail;t[xe]={load:async()=>{if(!this.#t){let i=this.#e.marshal.getResourceUrl(this,"module.js");this.#t=(await import(i)).default}return(i,r)=>this.#t({canvas:r,modules:i,herald:this.#e.herald})},version:Te}}static subscriptions={[U.MODULES]:"register"}},Ce="cursor",Se="0.0.5",pt=class{#e;#t=null;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#e=e}register(e){let{registration:t}=e.detail;t[Ce]={load:async()=>{if(!this.#t){let i=this.#e.marshal.getResourceUrl(this,"module.js");this.#t=(await import(i)).default}return(i,r)=>this.#t({canvas:r,modules:i,herald:this.#e.herald})},version:Se}}static subscriptions={[V.MODULES]:"register"}},C={INIT:"antetype.init",CLOSE:"antetype.close",DRAW:"antetype.draw",CALC:"antetype.calc",RECALC_FINISHED:"antetype.recalc.finished",MODULES:"antetype.modules",SETTINGS:"antetype.settings.definition",TYPE_DEFINITION:"antetype.layer.type.definition",FONTS_LOADED:"antetype.font.loaded"},De="core",Ee="0.0.5",gt=class{#e;#t=null;#i=null;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#e=e}async loadModules(e,t){return(await this.#a()).loadModules(e,t)}register(e){let{registration:t}=e.detail;t[De]={load:async()=>(this.#t??=(await this.#r("core.js")).default,(i,r)=>this.#t({canvas:r,modules:i,herald:this.#e.herald})),version:Ee}}static subscriptions={[C.MODULES]:"register"};#r(e){return import(this.#e.marshal.getResourceUrl(this,e))}async#a(){return this.#i??=(await this.#r("helper.js")).default,new this.#i(this.#e.herald)}},mt=class{#canvas;#modules;#herald;#ctx;#translationSet=0;#drawWorkspace=!0;#isExporting=!1;#quality=1;#scale=1;#translate={left:0,top:0};constructor(e,t,i){if(!e)throw new Error("[Antetype Workspace] Provided canvas is empty");this.#canvas=e,this.#updateCanvas(),this.#modules=t,this.#ctx=this.#canvas.getContext("2d"),this.#observeCanvasResize(),this.#herald=i,this.subscribe()}subscribe(){let e=this.#herald.batch([{event:C.CLOSE,subscription:()=>{e()}},{event:"antetype.workspace.calc",subscription:this.calcEventHandle.bind(this)},{event:C.DRAW,subscription:[{method:t=>{let{element:i}=t.detail,r={clear:this.clearCanvas.bind(this),workspace:this.drawWorkspace.bind(this)}[i.type];typeof r=="function"&&r(i)},priority:1},{method:()=>{this.setOrigin()},priority:-255},{method:()=>{this.restore()},priority:255}]},{event:R.POSITION,subscription:t=>{t.detail.x-=this.getLeft(),t.detail.y-=this.getTop()}},{event:R.CALC,subscription:this.calcEventHandle.bind(this)},{event:C.SETTINGS,subscription:t=>{t.detail.settings.push(this.getSettingsDefinition())}},{event:"antetype.conditions.method.register",subscription:t=>{this.handleConditionsMethodRegisterMethod(t)}}])}calcEventHandle(e){let t=e.detail.values,i=Object.keys(t);for(let r of i)t[r]=this.calc(t[r])}#observeCanvasResize(){new ResizeObserver(()=>{!this.#updateCanvas()||!this.#modules.core||this.#modules.core.view.recalculate().then(()=>{this.#modules.core.view.redraw()})}).observe(this.#canvas)}#updateCanvas(){let e=this.#canvas.offsetWidth*this.#quality,t=this.#canvas.offsetHeight*this.#quality,i=Number(this.#canvas.getAttribute("width")),r=Number(this.#canvas.getAttribute("height"));return!t||!e||i===e&&r===t?!1:(this.#canvas.setAttribute("height",String(t)),this.#canvas.setAttribute("width",String(e)),!0)}setTranslateLeft(e){this.#translate.left=e}setTranslateTop(e){this.#translate.top=e}getTranslate(){return this.#translate}setQuality(e){if(isNaN(e))throw new Error("Workspace quality must be a number");this.#quality=Number(e),this.#updateCanvas()}getQuality(){return this.#quality}getScale(){return this.#scale}setScale(e){if(isNaN(e))throw new Error("Workspace scale must be a number");this.#scale=e}scale(e){return e*this.#scale*this.#quality}typeToExt(e){return e=="image/png"?"png":e=="image/jpeg"?"jpg":"webp"}async download(e){let t=document.createElement("a");t.download=e.filename+"."+this.typeToExt(e.type);let i=URL.createObjectURL(await this.export(e));t.href=i,t.click(),URL.revokeObjectURL(i)}#updateQualityBasedOnDpi(e){let t=e*11.692913385826772,i=this.getSize().height/this.#quality;this.setQuality(t/i)}async export({type:e="image/webp",quality:t=.9,dpi:i=300}={}){let r=this.#modules.core.view,s=this.#drawWorkspace;try{this.#drawWorkspace=!1,this.setExporting(!0),this.#updateQualityBasedOnDpi(i),this.#updateCanvas(),await r.recalculate(),r.redraw();let a=await this.#canvasToBlob(e,t);if(!a)throw new Error("Couldn't export canvas workspace");return a}finally{this.#drawWorkspace=s,this.setExporting(!1),this.setQuality(1),this.#updateCanvas(),await r.recalculate(),r.redraw()}}#canvasToBlob(e="image/webp",t=.9){let{width:i,height:r}=this.getSize(),s=this.getTop(),a=this.getLeft(),o=this.#ctx.getImageData(a,s,i,r),n=document.createElement("canvas");return n.width=i,n.height=r,n.getContext("2d").putImageData(o,0,0),new Promise(l=>{let u=setTimeout(()=>{l(null)},3e4);n.toBlob(c=>{clearTimeout(u),l(c)},e,t)})}clearCanvas(){this.#ctx.clearRect(-this.getLeft(),-this.getTop(),this.#canvas.width,this.#canvas.height)}setExporting(e){this.#isExporting=e}isExporting(){return this.#isExporting}drawWorkspace(){if(this.#isExporting)return;let e=this.#ctx;e.save();let{height:t,width:i}=this.getSize();e.fillStyle="#FFF",e.fillRect(0,0,i,t),e.restore()}getLeft(){let e=this.#ctx,{width:t}=this.getSize();return(Number(e.canvas.getAttribute("width"))-t)/2+this.getTranslate().left}getTop(){let e=this.#ctx,{height:t}=this.getSize();return(Number(e.canvas.getAttribute("height"))-t)/2+this.getTranslate().top}setOrigin(){if(this.#translationSet++,this.#translationSet>1)return;let e=this.#ctx;e.save(),e.translate(this.getLeft(),this.getTop())}restore(){this.#translationSet--,this.#translationSet==0&&this.#ctx.restore()}toRelative(e,t="x",i=3){let{height:r,width:s}=this.#getSizeRelative();e=Math.round((e+Number.EPSILON)*10**i)/10**i;let a=e/r*100,o="h%";return t==="x"&&(a=e/s*100,o="w%"),String(Math.round((a+Number.EPSILON)*10**i)/10**i)+o}calc(operation,quiet=!1){if(typeof operation=="number")return this.scale(operation);if(typeof operation!="string"||operation.match(/[^-()\d/*+.pxw%hv ]/g))return console.warn("Calculation contains invalid characters!",operation),NaN;let convertUnitToNumber=(e,t=2)=>Number(e.slice(0,e.length-t)),{height:aHeight,width:aWidth}=this.getSize(),{height,width}=this.#getSizeRelative(),unitsTranslator={px:e=>convertUnitToNumber(e),"w%":e=>convertUnitToNumber(e)/100*width,"h%":e=>convertUnitToNumber(e)/100*height,vh:e=>convertUnitToNumber(e)/100*aHeight,vw:e=>convertUnitToNumber(e)/100*aWidth,default:e=>e},calculation="";operation.split(" ").forEach(e=>{e=e.trim();let t=e[e.length-1],i=e[e.length-2],r=(unitsTranslator[i+t]||unitsTranslator.default)(e);typeof r=="number"&&(r=this.#decimal(r)),calculation+=String(r)});let result;try{result=eval(calculation)}catch(e){result=void 0,quiet||console.warn("Invalid calculation! Tried to calculate from",calculation)}return result==null?NaN:this.#decimal(result)}#decimal(e,t=2){return+e.toFixed(t)}#getSystem(){return this.#modules.core}#getSettings(){let e=this.#ctx.canvas.offsetHeight,t=this.#getSystem().setting.get("workspace")??{};if(isNaN(Number(t.height))&&(t.height=e),isNaN(Number(t.width))){let i=.707070707;t.width=Math.round(e*i)}return t}getSize(){let{width:e,height:t}=this.#getSettings(),i=e/t,r=this.#ctx.canvas.offsetHeight,s=r*i;return s>this.#ctx.canvas.offsetWidth&&(s=this.#ctx.canvas.offsetWidth,r=s/i),{width:this.scale(s),height:this.scale(r)}}#getSizeRelative(){let e=this.#getSettings(),{width:t,height:i}=this.getSize(),r=e.relative?.width??t,s=e.relative?.height??i,a=r/s,o={width:e.relative?.width??0,height:e.relative?.height??0},n=this.#ctx.canvas.offsetHeight;return o.width||(o.width=this.scale(n*a)),o.height||(o.height=this.scale(n)),o.width>this.scale(this.#ctx.canvas.offsetWidth)&&(o.width=this.scale(this.#ctx.canvas.offsetWidth),o.height=this.scale(this.#ctx.canvas.offsetWidth/a)),{width:o.width,height:o.height}}handleConditionsMethodRegisterMethod(e){let{methods:t}=e.detail;t.hideOnExport={name:"Hide on export",type:"hide-export",resolve:({event:i})=>{this.isExporting()&&(i.detail.element=null)}}}getSettingsDefinition(){let e=this.#getSettings();return{details:{label:"Workspace"},name:"workspace",tabs:[{label:"General",fields:[[{label:"Dimensions",type:"container",fields:[[{label:"Height",type:"number",name:"height",value:e.height},{label:"Width",type:"number",name:"width",value:e.width}]]}]]}]}}},Ae="workspace",ze="0.0.4",yt=class{#e=null;#t;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#t=e}register(e){let{registration:t}=e.detail;t[Ae]={load:async()=>{if(!this.#e){let i=this.#t.marshal.getResourceUrl(this,"module.js");this.#e=(await import(i)).default}return(i,r)=>new this.#e(r,i,this.#t.herald)},version:ze}}static subscriptions={[C.MODULES]:"register"}};async function E(e,t){if(t.type==="linear"){let i=t.style;i.pos=await e.calc({layerType:"polygon-fill-linear",purpose:"position",values:i.pos}),i.size=await e.calc({layerType:"polygon-fill-linear",purpose:"size",values:i.size})}return t}function y(e,t){let i={default:r=>r,linear:r=>Le(r.colors,r.pos.x,r.pos.y,r.size.w,r.size.h)};return(i[e]||i.default)(t)}var Le=(e,t,i,r,s)=>{let n=document.createElement("canvas").getContext("2d").createLinearGradient(t,i,r,s);return e.forEach(l=>{n.addColorStop(l.offset,l.color)}),n};var d={line:(e,t,i)=>{e.lineTo(t,i)},curve:(e,t,i,r,s,a,o)=>{e.bezierCurveTo(t,i,r,s,a,o)},stroke:(e,t=5,i="#000",r="round",s=2)=>{e.save(),e.strokeStyle=i,e.lineWidth=t,e.lineJoin=r,e.miterLimit=s,e.stroke(),e.restore()},begin:(e,t,i)=>{e.beginPath(),e.moveTo(t,i)},move:(e,t,i)=>{e.moveTo(t,i)},fill:(e,t)=>{t.type||(t.type="default");let i=e.fillStyle;e.fillStyle=y(t.type,t.style),e.fill(),e.fillStyle=i},close:e=>{e.closePath()},default:(e,t,i)=>d.line(e,t,i)};function _(e,t,i,r){let s={fill:a=>{d.fill(e,a.args)},line:a=>{d.line(e,a.args.x+i,a.args.y+r)},curve:a=>{d.curve(e,a.args.cp1x+i,a.args.cp1y+r,a.args.cp2x+i,a.args.cp2y+r,a.args.x+i,a.args.y+r)},stroke:a=>{d.stroke(e,a.args.thickness??5,a.args.fill??"#000",a.args.lineJoin??"round",a.args.miterLimit??2)},begin:a=>{d.begin(e,a.args.x+i,a.args.y+r)},move:a=>{d.move(e,a.args.x+i,a.args.y+r)},close:()=>d.close(e)};s[t.means]&&s[t.means](t)}var B=Symbol("error"),P=Symbol("timeout"),k=Symbol("loading"),I=class{image;coords;constructor(t,i){this.image=t,this.coords=i}},Y=(e,t)=>{let i=t.image.calculated;if(!i||Ne(i)||Re(i)||!(i instanceof I))return;let{start:{x:r,y:s}}=t.area;e.drawImage(i.image,r+i.coords.xDiff,s+i.coords.yDiff,i.coords.width,i.coords.height)},Ne=e=>e===P,Re=e=>e===k;var X=e=>String(e.text.font?.size??10),F=e=>Number(e.text.font?.size??10),A=()=>"\u200A",K=(e,t)=>{let{x:i}=t.start,r=[],s=0,{start:{y:a},size:{w:o},text:n}=t,{columns:l,transY:u,lineHeight:c}=n,h=[...n.lines],p=Math.ceil(h.length/l.amount),{textBaseline:w="top"}=t.text;for(e.save(),e.font=O(t,e,String(F(t))),e.textBaseline=w;(r=h.splice(0,p)).length;)r.forEach((g,v)=>{let b=r[v+1]||h[0]||[""],x=v+1==r.length||b[0]==""||g[0][g[0].length-1]==`
-`,T=u+(g[1]-s)*c;Me(e,g[0],t,i,a,o,T,x)}),s+=r[r.length-1][1]+1,i+=l.gap+o;e.restore()},Me=(e,t,i,r,s,a,o,n)=>{let{color:l="#000",outline:u=null}=i.text,c=i.text.align?.horizontal||"left";c!="left"&&({text:t,x:r}=ke(e,c,t,a,n,r)),o>0&&(s=s+o),e.fillStyle=typeof l=="object"?y(l.type,l.style):l,u&&Pe(e,u,t,r,s,a),e.fillText(t,r,s,a)},Pe=(e,t,i,r,s,a)=>{t.fill?.style&&(e.strokeStyle=y(t.fill.type,t.fill.style),e.lineWidth=t.thickness,e.lineJoin=t.lineJoin??"round",e.miterLimit=t.miterLimit??2,e.strokeText(i,r,s,a))},ke=(e,t,i,r,s,a)=>{let o=e.measureText(i),n=o.width;if(t=="center"){let l=(r-n)/2;l>0&&(a=a+l)}else t=="right"?a=a+r-n:t=="justify"&&!s&&(i=Fe(i,o,r,e));return{text:i,x:a}},Fe=(e,t,i,r)=>{if(t.width>=i)return e;let s=e.split(" "),a=r.measureText(A()),o=Math.floor((i-t.width)/a.width),n=o/(s.length-1);for(let l=0;l<s.length-1;l++)s[l]+=A().repeat(n);return s.join(" ")},O=(e,t,i)=>{let{font:r=null}=e.text;if(!r)return t.font;i=i+"px ";let s=(r.family||"serif")+" ",a=(r.weight??100)+" ",o="";return r.style&&(o+=r.style+" "),r.variant&&(o+=r.variant+" "),o+=a,r.stretch&&(o+=r.stretch+" "),o+=i,r.height&&(o+="/"+r.height+" "),o+s};var q=(e,t,i)=>{let{group:r,start:s}=i;i.layout.length!==0&&(e.save(),e.translate(s.x,s.y),r.interaction==="fixed"?t.core.view.redraw(i.layout):Oe(e,t,i),e.restore())},G=(e,t)=>{let i=0,r=e.group.gap.horizontal;return t.forEach(s=>{i+=s.height+r}),i-r},H=(e,t)=>{let i=0,r=e.group.gap.vertical;return t.forEach(s=>{e.group.direction==="column"?i=Math.max(i,s.width):i+=s.width+r}),e.group.direction==="row"&&(i-=r),i},Oe=(e,t,i)=>{let{group:r}=i,{vertical:s,horizontal:a}=r.gap,o=j(i,i.layout);r.clip&&(!isNaN(i.size?.w)||!isNaN(i.size?.h))&&(e.beginPath(),e.rect(0,0,isNaN(i.size.w)?H(i,o):i.size.w,isNaN(i.size.h)?G(i,o):i.size.h),e.clip());let n=0,l=0;o.forEach(u=>{u.layers.forEach(c=>{c.def.start.x=l,c.def.start.y=n,c.def.area&&(c.def.area.start.x=l,c.def.area.start.y=n),t.core.view.draw(c.def),l+=c.def.size.w+s}),l=0,n+=u.height+a})},j=(e,t)=>{let{size:i}=e,r=[],s=()=>({height:0,width:0,layers:[]}),a=s();return t.forEach((o,n)=>{(e.group.wrap&&i.w!=0&&a.width+o.size.w>i.w||n!=0&&e.group.direction==="column")&&(r.push(a),a=s()),a.layers.push({x:a.width,def:o}),a.height<o.size.h&&(a.height=o.size.h),a.width+=o.size.w+e.group.gap.vertical}),r.push(a),r};var J=e=>{let t=e.polygon.size;return{start:{x:e.start.x+t.negative.x,y:e.start.y+t.negative.y},size:{w:t.positive.x-t.negative.x,h:t.positive.y-t.negative.y}}},Q=async(e,t,i)=>{let r=i.illustrator,s={close:()=>{},fill:async a=>{await E(r,a.args)},line:async a=>{a.args=await r.calc({layerType:"polygon-line",purpose:"position",values:a.args}),m(e,a.args.x,"x"),m(e,a.args.y,"y")},curve:async a=>{a.args=await r.calc({layerType:"polygon-curve",purpose:"position",values:a.args}),m(e,a.args.x,"x"),m(e,a.args.cp1x,"x"),m(e,a.args.cp2x,"x"),m(e,a.args.y,"y"),m(e,a.args.cp2y,"y")},stroke:async a=>{a.args.thickness=(await r.calc({layerType:"polygon-stroke",purpose:"thickness",values:{thickness:a.args.thickness??5}})).thickness},begin:async a=>{a.args=await r.calc({layerType:"polygon-begin",purpose:"position",values:a.args}),m(e,a.args.x,"x"),m(e,a.args.y,"y")},move:async a=>{a.args=await r.calc({layerType:"polygon-move",purpose:"position",values:a.args})}};t.means||(t.means="line"),s[t.means]&&await s[t.means](t)},m=(e,t,i)=>{if(t<0){let r=e.polygon.size.negative;r[i]=Math.min(r[i],t)}else{let r=e.polygon.size.positive;r[i]=Math.max(r[i],t)}};var Ge={},Z={},He=e=>({start:{x:e.start.x,y:e.start.y},size:{h:e.size.h,w:e.size.w}}),$=async(e,t)=>{let i=e.illustrator;t.size=await i.calc({layerType:"image",purpose:"size",values:t.size}),t.start=await i.calc({layerType:"image",purpose:"position",values:t.start}),t.area=He(t),t.image?.outline?.thickness&&(t.image.outline.thickness=(await i.calc({layerType:"image",purpose:"thickness",values:{thickness:t.image.outline.thickness}})).thickness);let r=te(t.image),s=Z[r];if(s){t.image.calculated=je(t,s);return}if(t.image.src instanceof Image){t.image.calculated=await ee(t,t.image.src,e,r);return}if(typeof t.image.src!="string")return;let a=t.image.src;if(typeof a!="string"||!a.startsWith("blob:http")&&!a.startsWith("http")&&!a.startsWith("/")){console.warn("Image `"+a+"` has invalid source");return}let o=e.core.setting.get("illustrator.image.waitForLoad"),n=We(t,a,e);o&&await n},je=(e,t)=>{let i=e.image,{w:r,h:s}=e.size,{width:a,height:o}=ie(i.fit??"default",t.width,t.height,r,s),n=ae(i.align?.horizontal??"center",r,a),l=re(i.align?.vertical??"center",s,o);return new I(t.image,{xDiff:n,yDiff:l,width:a,height:o})},ee=async(e,t,i,r=null)=>{let s=e.image,{w:a,h:o}=e.size,n=t.width||200,l=t.height||200,{width:u,height:c}=ie(s.fit??"default",n,l,a,o),h=ae(s.align?.horizontal??"center",a,u),p=re(s.align?.vertical??"center",o,c);return s.fit==="crop"&&(t=await _e(t,e)),s.overcolor&&(t=await Ve(t,e,u,c)),s.outline&&(t=await Ue(t,e,u,c)),Z[r??te(e.image)]={image:t,width:n,height:l},new I(t,{xDiff:h,yDiff:p,width:u,height:c})},te=e=>JSON.stringify({...e,timeout:void 0,calculated:void 0}),We=async(e,t,i)=>{let r=new Image,{image:{timeout:s=3e4}}=e,a=i.core.view;r.crossOrigin="anonymous",r.src=t;let o=new Promise((n,l)=>{let u=setTimeout(()=>{e.image.calculated=P,l(new Error("Image loading reached a timeout: "+t))},s);r.onerror=c=>{clearTimeout(u),e.image.calculated=B,l(c)},r.onload=async()=>{clearTimeout(u),e.image.calculated=await ee(e,r,i),a.redrawDebounce(),n()}});Ge[t]=k,await o},Ve=async(e,t,i,r)=>{let s=document.createElement("canvas"),a=s.getContext("2d"),o=t.image.overcolor;s.setAttribute("width",String(i)),s.setAttribute("height",String(r)),a.drawImage(e,0,0,i,r),a.globalCompositeOperation="source-in",a.fillStyle=y(o.fill.type,o.fill.style),a.fillRect(0,0,s.width,s.height),a.globalCompositeOperation="source-over";let n=await z(s,e);return a.drawImage(n,0,0,i,r),z(s,n)},Ue=async(e,t,i,r)=>{let s=document.createElement("canvas"),a=s.getContext("2d"),o=t.image.outline;if(!o.thickness||!o.fill)return e;let n=o.thickness,l=[[-.75,-.75],[0,-1],[.75,-.75],[1,0],[.75,.75],[0,1],[-.75,.75],[-1,0]];if(n>5){let u=Math.floor(n/2.5),c=[];for(let h=0;h<l.length;h++){c.push(l[h]);let[p,w]=l[h],[g,v]=h+1===l.length?l[0]:l[h+1],b=p>g?-1:1,x=w>v?-1:1,T=Math.abs(p-g)/u*b,N=Math.abs(w-v)/u*x,W=[],S=p,D=w;for(;(b>0&&S+T<g||b<0&&S+T>g)&&(x>0&&D+N<v||x<0&&D+N>v);)S+=T,D+=N,W.push([S,D]);c=c.concat(W)}l=c}s.setAttribute("width",String(i+n*2)),s.setAttribute("height",String(r+n*2));for(let u=0;u<l.length&&(a.drawImage(e,n+l[u][0]*n,n+l[u][1]*n,i,r),n!==0);u++);return a.globalCompositeOperation="source-in",a.fillStyle=y(o.fill.type,o.fill.style),a.fillRect(0,0,s.width,s.height),a.globalCompositeOperation="source-over",a.drawImage(e,n,n,i,r),z(s,e)},z=async(e,t)=>{let i=new Image;return i.src=e.toDataURL("image/webp"),new Promise(r=>{let s=setTimeout(()=>{r(t)},1e3);i.onerror=()=>{clearTimeout(s),r(t)},i.onload=()=>{clearTimeout(s),r(i)}})},_e=async(e,t)=>{let{w:i,h:r}=t.size,s=t.image.fitTo??"auto",a=0,o=0;s==="auto"&&(s=r>i?"height":"width"),s==="height"?a=(i-e.width*(r/e.height))/2:s==="width"&&(o=(r-e.height*(i/e.width))/2);let n=document.createElement("canvas"),l=n.getContext("2d");return n.setAttribute("width",String(i)),n.setAttribute("height",String(r)),l.drawImage(e,a,o,i-a*2,r-o*2),z(n,e)},ie=(e,t,i,r,s)=>e==="stretch"||e==="crop"?{width:r,height:s}:Be(t,i,r,s),Be=(e,t,i,r)=>{let s=Math.min(i/e,r/t),a=e*s,o=t*s;return{width:a,height:o}},re=(e,t,i)=>e=="top"?0:e=="bottom"?t-i:(t-i)/2,ae=(e,t,i)=>e=="left"?0:e=="right"?t-i:(t-i)/2;var Ye=e=>{let t=e.text.font?.size;return(!t||typeof t=="string")&&(t=0),{start:{y:e.start.y,x:e.start.x},size:{w:e.size.w,h:e.size.h??(e.text.lineHeight??t)*(e.text.lines?.length??0)}}},se=async(e,t,i)=>{let r=t.illustrator;e.size=await r.calc({layerType:"text",purpose:"size",values:e.size}),e.start=await r.calc({layerType:"text",purpose:"position",values:e.start});let{outlineThickness:s,fontSize:a,gap:o,lineHeight:n}=await r.calc({layerType:"text",purpose:"prepare",values:{fontSize:X(e),lineHeight:e.text.lineHeight??0,gap:e.text.columns?.gap??0,outlineThickness:e.text.outline?.thickness??0}});e.text.lineHeight&&(e.text.lineHeight=n),e.text.outline?.thickness&&(e.text.outline.thickness=s),e.text.columns=e.text.columns??{amount:1,gap:0},e.text.columns.gap=o,e.text.font=e.text.font??{},e.text.font.size=a,typeof e.text.color?.type=="string"&&await E(r,e.text.color);let{lines:l,lineHeight:u,width:c,columns:h,fontSize:p}=Xe(e,i,e.size.w);return e.text.transY=Ze(e.size.h,u,l,e.text.align?.vertical||"top"),Qe()&&(e.start.y-=p*.2),e.text.lineHeight=u,e.text.font.size=p,e.text.columns=h,e.size.w=c,e.text.lines=l,e.area=Ye(e),e},Xe=(e,t,i)=>{let r=e.text.columns??{gap:0,amount:1},s=F(e),{textBaseline:a="top"}=e.text,{value:o}=e.text;t.save(),t.font=O(e,t,String(s)),t.textBaseline=a;let n=Je(i,r);o=qe(e,o);let l=Ke(e,o,t,n);return t.restore(),{lines:l,fontSize:s,lineHeight:e.text.lineHeight??s,width:n,columns:r}},Ke=(e,t,i,r)=>{if(!e.text.wrap)return[[t,0]];let s=[],a=t.split(/[^\S\r\n]/),o="",n=0;for(;a.length>0;){let l=a[0].search(/[\r\n]/);if(l!==-1){let c=a[0].substring(0,l);s.push([(o+" "+c).trim()+`
-`,n]),o="",n++,a[0]=a[0].substring(l+1);continue}i.measureText(o+a[0]).width>r&&(o.length>0&&(s.push([o.trim(),n]),n++),o=""),o+=" "+a[0],a=a.splice(1)}return o.length>0&&s.push([o.replace(/^\s+/,""),n]),s},qe=(e,t)=>e.text.spacing?t.split("").join(A().repeat(e.text.spacing)):t,Je=(e,t)=>(e-(t.amount-1)*t.gap)/t.amount,Qe=()=>/^((?!chrome|android).)*safari/i.test(navigator.userAgent),Ze=(e,t,i,r)=>{if(!e||i.length*t>=e)return 0;let s=e-i.length*t;return r==="center"?s/2:r==="bottom"?s:0};var $e=async e=>{let t;return e.group.interaction==="static"?t=et(e):(t=tt(e),t.start.y+=e.start.y,t.start.x+=e.start.x),e.group.clip&&(isNaN(e.size.h)||(t.size.h=e.size.h),isNaN(e.size.w)||(t.size.w=e.size.w)),t},oe=e=>({size:{w:isNaN(e.size.w??NaN)?0:e.size.w,h:isNaN(e.size.h??NaN)?0:e.size.h},start:{x:0,y:0}}),et=e=>{let t=oe(e),i=j(e,e.layout);return t.size.h||(t.size.h=G(e,i)),t.size.w||(t.size.w=H(e,i)),t.start.x=e.start.x,t.start.y=e.start.y,t},tt=e=>{let t=oe(e),i=!!t.size.w,r=!!t.size.h;for(let s=0;s<e.layout.length;s++){let a=e.layout[s].area;a&&(r||(t.size.h=Math.max(t.size.h,a.size.h+a.start.y)),i||(t.size.w=Math.max(t.size.w,a.size.w+a.start.x)),t.start.y=Math.min(t.start.y,a.start.y),t.start.x=Math.min(t.start.x,a.start.x))}return t.start.y<0&&(t.start.y=0),t.start.x<0&&(t.start.x=0),t},ne=async(e,t,i)=>{let{group:r}=t,s=e.illustrator;t.size=await s.calc({layerType:"group",purpose:"size",values:t.size??{w:0,h:0}}),t.size.w??=NaN,t.size.h??=NaN,t.start=await s.calc({layerType:"group",purpose:"position",values:t.start??{x:0,y:0}}),t.start.y??=0,t.start.x??=0,r.gap=await s.calc({layerType:"group",purpose:"gap",values:r.gap??{vertical:0,horizontal:0}}),r.gap.vertical??=0,r.gap.horizontal??=0;let a=e.core.setting.get("workspace")??{};a.relative??={};let o=a.relative.height,n=a.relative.width;isNaN(t.size.h)||(a.relative.height=t.size.h),isNaN(t.size.w)||(a.relative.width=t.size.w),t.layout=await e.core.view.recalculate(t,t.layout,i),r.interaction??="fixed",a.relative.height=o,a.relative.width=n,t.area=await $e(t)};var f={INIT:"antetype.init",CLOSE:"antetype.close",DRAW:"antetype.draw",CALC:"antetype.calc",RECALC_FINISHED:"antetype.recalc.finished",MODULES:"antetype.modules",SETTINGS:"antetype.settings.definition",TYPE_DEFINITION:"antetype.layer.type.definition",FONTS_LOADED:"antetype.font.loaded",CANVAS_CHANGE:"antetype.canvas.change"};var it="core",rt="0.0.5",Vt=class{#e;#t=null;#i=null;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(e){this.#e=e}async loadModules(e){return(await this.#a()).loadModules(e)}register(e){let{registration:t}=e.detail;t[it]={load:async()=>(this.#t??=(await this.#r("core.js")).default,i=>this.#t({modules:i,herald:this.#e.herald})),version:rt}}static subscriptions={[f.MODULES]:"register"};#r(e){return import(this.#e.marshal.getResourceUrl(this,e))}async#a(){return this.#i??=(await this.#r("helper.js")).default,new this.#i(this.#e.herald)}};var at=()=>({group:{clip:"boolean",interaction:"string",direction:"string",wrap:"boolean",gap:{vertical:"number",horizontal:"number"}}}),le=at;var st=()=>({image:{timeout:"number",fit:"string",overcolor:{fill:"string"},outline:{thickness:"number",fill:"string"},align:{vertical:"string",horizontal:"string"},fitTo:"string",src:"string"}}),ce=st;var ot=()=>({polygon:{steps:[{means:"string",args:{x:"number",y:"number",cp1x:"number",cp1y:"number",cp2x:"number",cp2y:"number",thickness:"number",fill:"string",lineJoin:"string",miterLimit:"number"}}],size:{negative:{x:"number",y:"number"},positive:{x:"number",y:"number"}}}}),ue=ot;var nt=()=>({text:{value:"string",align:{vertical:"string",horizontal:"string"},columns:{amount:"number",gap:"number"},font:{style:"string",family:"string",weight:"string",size:"string",stretch:"string",variant:"string",height:"string"},spacing:"number",textBaseline:"string",wrap:"boolean",lineHeight:"number",color:"string",outline:{fill:"string",thickness:"number",lineJoin:"string",miterLimit:"number",transY:"number",lines:[["string","number"]]}}}),he=nt;var L=class{#e;#t;constructor(t,i){this.#e=t,this.#t=i,this.#r()}#i(){let t=this.#e.core.meta.getCanvas();if(!t)throw new Error("[Antetype Illustrator] Provided canvas is empty");return t.getContext("2d")}#r(){let t=this.#t.batch([{event:f.CLOSE,subscription:()=>{t()}},{event:f.DRAW,subscription:async i=>{let{element:r}=i.detail,a={clear:this.clear.bind(this),polygon:this.polygon.bind(this),image:this.image.bind(this),text:this.text.bind(this),group:this.group.bind(this)}[r.type];typeof a=="function"&&await a(r)}},{event:f.CALC,subscription:async i=>{if(i.detail.element===null)return;let{element:r,sessionId:s}=i.detail,o={polygon:this.polygonCalc.bind(this),image:this.imageCalc.bind(this),text:this.textCalc.bind(this),group:this.groupCalc.bind(this)}[r.type];typeof o=="function"&&await o(r,s)}},{event:f.TYPE_DEFINITION,subscription:i=>{let r=i.detail.definitions;r.text=he(),r.group=le(),r.image=ce(),r.polygon=ue()}}])}reset(){this.#i().canvas.width+=0}clear(){this.#i().clearRect(0,0,this.#i().canvas.width,this.#i().canvas.height)}async groupCalc(t,i=null){await ne(this.#e,t,i)}group(t){q(this.#i(),this.#e,t)}async polygonCalc(t){t.start=await this.calc({layerType:"polygon",purpose:"position",values:t.start}),t.polygon.size={negative:{x:0,y:0},positive:{x:0,y:0}};for(let i of t.polygon.steps)await Q(t,i,this.#e);t.area=J(t)}polygon({polygon:{steps:t},start:{x:i,y:r}}){let s=this.#i();s.save(),s.beginPath(),s.moveTo(i,r);for(let a of t)_(s,a,i,r);s.closePath(),s.restore()}async imageCalc(t){await $(this.#e,t)}image(t){Y(this.#i(),t)}async textCalc(t){await se(t,this.#e,this.#i())}text(t){K(this.#i(),t)}async calc(t){let i=new CustomEvent(M.CALC,{detail:t});return await this.#t.dispatch(i),i.detail.values}generateText(t){return{type:"text",start:{x:0,y:0},size:{w:300,h:100},text:{value:t,font:{family:"Arial",weight:400,size:30}}}}generateImage(t){return{type:"image",start:{x:0,y:0},size:{w:300,h:300},image:{src:t}}}generatePolygon(t=[]){return{type:"polygon",start:{x:0,y:0},size:{w:NaN,h:NaN},polygon:{steps:t,size:{negative:{x:0,y:0},positive:{x:0,y:0}}}}}generateGroup(t){let i={type:"group",start:{x:0,y:0},size:{w:NaN,h:NaN},group:{},layout:[]};for(let r of t)r.hierarchy={parent:i,position:i.layout.length},i.layout.push(r);return i}};var ge="illustrator",me="0.0.4",pe=class{#e=null;#t;static inject={marshal:"boardmeister/marshal",herald:"boardmeister/herald"};inject(t){this.#t=t}register(t){let{registration:i}=t.detail;i[ge]={load:async()=>{if(!this.#e){let r=this.#t.marshal.getResourceUrl(this,"module.js");this.#e=(await import(r)).default}return r=>new this.#e(r,this.#t.herald)},version:me}}static subscriptions={[f.MODULES]:"register"}};export{ye as Event,ge as ID,L as Illustrator,me as VERSION};
+// src/type/event.d.ts
+var Event = /* @__PURE__ */ ((Event2) => {
+  Event2["CALC"] = "antetype.illustrator.calc";
+  return Event2;
+})(Event || {});
+
+// node_modules/@boardmeister/antetype-workspace/dist/index.js
+var d = ((t) => (t.CALC = "antetype.workspace.calc", t))(d || {});
+var p = ((a) => (a.WEBP = "image/webp", a.PNG = "image/png", a.JPG = "image/jpeg", a))(p || {});
+var c = ((e) => (e.CALC = "antetype.cursor.calc", e.POSITION = "antetype.cursor.position", e.DOWN = "antetype.cursor.on.down", e.UP = "antetype.cursor.on.up", e.MOVE = "antetype.cursor.on.move", e.SLIP = "antetype.cursor.on.slip", e.RESIZED = "antetype.cursor.on.resized", e))(c || {});
+var y = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
+var E = "core";
+var S = "0.0.5";
+var L = class {
+  #e;
+  #t = null;
+  #r = null;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  async loadModules(e, t) {
+    return (await this.#i()).loadModules(e, t);
+  }
+  register(e) {
+    let { registration: t } = e.detail;
+    t[E] = { load: async () => (this.#t ??= (await this.#a("core.js")).default, (r, a) => this.#t({ canvas: a, modules: r, herald: this.#e.herald })), version: S };
+  }
+  static subscriptions = { [y.MODULES]: "register" };
+  #a(e) {
+    return import(this.#e.marshal.getResourceUrl(this, e));
+  }
+  async #i() {
+    return this.#r ??= (await this.#a("helper.js")).default, new this.#r(this.#e.herald);
+  }
+};
+var x = ((e) => (e.SAVE = "antetype.memento.save", e))(x || {});
+var m = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
+var C = "core";
+var I = "0.0.5";
+var R = class {
+  #e;
+  #t = null;
+  #r = null;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  async loadModules(e, t) {
+    return (await this.#i()).loadModules(e, t);
+  }
+  register(e) {
+    let { registration: t } = e.detail;
+    t[C] = { load: async () => (this.#t ??= (await this.#a("core.js")).default, (r, a) => this.#t({ canvas: a, modules: r, herald: this.#e.herald })), version: I };
+  }
+  static subscriptions = { [m.MODULES]: "register" };
+  #a(e) {
+    return import(this.#e.marshal.getResourceUrl(this, e));
+  }
+  async #i() {
+    return this.#r ??= (await this.#a("helper.js")).default, new this.#r(this.#e.herald);
+  }
+};
+var T = "memento";
+var D = "0.0.4";
+var A = class {
+  #e;
+  #t = null;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  register(e) {
+    let { registration: t } = e.detail;
+    t[T] = { load: async () => {
+      if (!this.#t) {
+        let r = this.#e.marshal.getResourceUrl(this, "module.js");
+        this.#t = (await import(r)).default;
+      }
+      return (r, a) => this.#t({ canvas: a, modules: r, herald: this.#e.herald });
+    }, version: D };
+  }
+  static subscriptions = { [m.MODULES]: "register" };
+};
+var z = "cursor";
+var O = "0.0.5";
+var j = class {
+  #e;
+  #t = null;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  register(e) {
+    let { registration: t } = e.detail;
+    t[z] = { load: async () => {
+      if (!this.#t) {
+        let r = this.#e.marshal.getResourceUrl(this, "module.js");
+        this.#t = (await import(r)).default;
+      }
+      return (r, a) => this.#t({ canvas: a, modules: r, herald: this.#e.herald });
+    }, version: O };
+  }
+  static subscriptions = { [y.MODULES]: "register" };
+};
+var l = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded" };
+var k = "core";
+var N = "0.0.5";
+var K = class {
+  #e;
+  #t = null;
+  #r = null;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(e) {
+    this.#e = e;
+  }
+  async loadModules(e, t) {
+    return (await this.#i()).loadModules(e, t);
+  }
+  register(e) {
+    let { registration: t } = e.detail;
+    t[k] = { load: async () => (this.#t ??= (await this.#a("core.js")).default, (r, a) => this.#t({ canvas: a, modules: r, herald: this.#e.herald })), version: N };
+  }
+  static subscriptions = { [l.MODULES]: "register" };
+  #a(e) {
+    return import(this.#e.marshal.getResourceUrl(this, e));
+  }
+  async #i() {
+    return this.#r ??= (await this.#a("helper.js")).default, new this.#r(this.#e.herald);
+  }
+};
+var h = class {
+  #canvas;
+  #modules;
+  #herald;
+  #ctx;
+  #translationSet = 0;
+  #drawWorkspace = true;
+  #isExporting = false;
+  #quality = 1;
+  #scale = 1;
+  #translate = { left: 0, top: 0 };
+  constructor(e, t, r) {
+    if (!e) throw new Error("[Antetype Workspace] Provided canvas is empty");
+    this.#canvas = e, this.#updateCanvas(), this.#modules = t, this.#ctx = this.#canvas.getContext("2d"), this.#observeCanvasResize(), this.#herald = r, this.subscribe();
+  }
+  subscribe() {
+    let e = this.#herald.batch([{ event: l.CLOSE, subscription: () => {
+      e();
+    } }, { event: "antetype.workspace.calc", subscription: this.calcEventHandle.bind(this) }, { event: l.DRAW, subscription: [{ method: (t) => {
+      let { element: r } = t.detail, i = { clear: this.clearCanvas.bind(this), workspace: this.drawWorkspace.bind(this) }[r.type];
+      typeof i == "function" && i(r);
+    }, priority: 1 }, { method: () => {
+      this.setOrigin();
+    }, priority: -255 }, { method: () => {
+      this.restore();
+    }, priority: 255 }] }, { event: c.POSITION, subscription: (t) => {
+      t.detail.x -= this.getLeft(), t.detail.y -= this.getTop();
+    } }, { event: c.CALC, subscription: this.calcEventHandle.bind(this) }, { event: l.SETTINGS, subscription: (t) => {
+      t.detail.settings.push(this.getSettingsDefinition());
+    } }, { event: "antetype.conditions.method.register", subscription: (t) => {
+      this.handleConditionsMethodRegisterMethod(t);
+    } }]);
+  }
+  calcEventHandle(e) {
+    let t = e.detail.values, r = Object.keys(t);
+    for (let a of r) t[a] = this.calc(t[a]);
+  }
+  #observeCanvasResize() {
+    new ResizeObserver(() => {
+      !this.#updateCanvas() || !this.#modules.core || this.#modules.core.view.recalculate().then(() => {
+        this.#modules.core.view.redraw();
+      });
+    }).observe(this.#canvas);
+  }
+  #updateCanvas() {
+    let e = this.#canvas.offsetWidth * this.#quality, t = this.#canvas.offsetHeight * this.#quality, r = Number(this.#canvas.getAttribute("width")), a = Number(this.#canvas.getAttribute("height"));
+    return !t || !e || r === e && a === t ? false : (this.#canvas.setAttribute("height", String(t)), this.#canvas.setAttribute("width", String(e)), true);
+  }
+  setTranslateLeft(e) {
+    this.#translate.left = e;
+  }
+  setTranslateTop(e) {
+    this.#translate.top = e;
+  }
+  getTranslate() {
+    return this.#translate;
+  }
+  setQuality(e) {
+    if (isNaN(e)) throw new Error("Workspace quality must be a number");
+    this.#quality = Number(e), this.#updateCanvas();
+  }
+  getQuality() {
+    return this.#quality;
+  }
+  getScale() {
+    return this.#scale;
+  }
+  setScale(e) {
+    if (isNaN(e)) throw new Error("Workspace scale must be a number");
+    this.#scale = e;
+  }
+  scale(e) {
+    return e * this.#scale * this.#quality;
+  }
+  typeToExt(e) {
+    return e == "image/png".toString() ? "png" : e == "image/jpeg".toString() ? "jpg" : "webp";
+  }
+  async download(e) {
+    let t = document.createElement("a");
+    t.download = e.filename + "." + this.typeToExt(e.type);
+    let r = URL.createObjectURL(await this.export(e));
+    t.href = r, t.click(), URL.revokeObjectURL(r);
+  }
+  #updateQualityBasedOnDpi(e) {
+    let a = e * 11.692913385826772, i = this.getSize().height / this.#quality;
+    this.setQuality(a / i);
+  }
+  async export({ type: e = "image/webp", quality: t = 0.9, dpi: r = 300 } = {}) {
+    let a = this.#modules.core.view, i = this.#drawWorkspace;
+    try {
+      this.#drawWorkspace = false, this.setExporting(true), this.#updateQualityBasedOnDpi(r), this.#updateCanvas(), await a.recalculate(), a.redraw();
+      let n = await this.#canvasToBlob(e, t);
+      if (!n) throw new Error("Couldn't export canvas workspace");
+      return n;
+    } finally {
+      this.#drawWorkspace = i, this.setExporting(false), this.setQuality(1), this.#updateCanvas(), await a.recalculate(), a.redraw();
+    }
+  }
+  #canvasToBlob(e = "image/webp", t = 0.9) {
+    let { width: r, height: a } = this.getSize(), i = this.getTop(), n = this.getLeft(), s = this.#ctx.getImageData(n, i, r, a), o = document.createElement("canvas");
+    return o.width = r, o.height = a, o.getContext("2d").putImageData(s, 0, 0), new Promise((u2) => {
+      let w = setTimeout(() => {
+        u2(null);
+      }, 3e4);
+      o.toBlob((b) => {
+        clearTimeout(w), u2(b);
+      }, e, t);
+    });
+  }
+  clearCanvas() {
+    this.#ctx.clearRect(-this.getLeft(), -this.getTop(), this.#canvas.width, this.#canvas.height);
+  }
+  setExporting(e) {
+    this.#isExporting = e;
+  }
+  isExporting() {
+    return this.#isExporting;
+  }
+  drawWorkspace() {
+    if (this.#isExporting) return;
+    let e = this.#ctx;
+    e.save();
+    let { height: t, width: r } = this.getSize();
+    e.fillStyle = "#FFF", e.fillRect(0, 0, r, t), e.restore();
+  }
+  getLeft() {
+    let e = this.#ctx, { width: t } = this.getSize();
+    return (Number(e.canvas.getAttribute("width")) - t) / 2 + this.getTranslate().left;
+  }
+  getTop() {
+    let e = this.#ctx, { height: t } = this.getSize();
+    return (Number(e.canvas.getAttribute("height")) - t) / 2 + this.getTranslate().top;
+  }
+  setOrigin() {
+    if (this.#translationSet++, this.#translationSet > 1) return;
+    let e = this.#ctx;
+    e.save(), e.translate(this.getLeft(), this.getTop());
+  }
+  restore() {
+    this.#translationSet--, this.#translationSet == 0 && this.#ctx.restore();
+  }
+  toRelative(e, t = "x", r = 3) {
+    let { height: a, width: i } = this.#getSizeRelative();
+    e = Math.round((e + Number.EPSILON) * 10 ** r) / 10 ** r;
+    let n = e / a * 100, s = "h%";
+    return t === "x" && (n = e / i * 100, s = "w%"), String(Math.round((n + Number.EPSILON) * 10 ** r) / 10 ** r) + s;
+  }
+  calc(operation, quiet = false) {
+    if (typeof operation == "number") return this.scale(operation);
+    if (typeof operation != "string" || operation.match(/[^-()\d/*+.pxw%hv ]/g)) return console.warn("Calculation contains invalid characters!", operation), NaN;
+    let convertUnitToNumber = (e, t = 2) => Number(e.slice(0, e.length - t)), { height: aHeight, width: aWidth } = this.getSize(), { height, width } = this.#getSizeRelative(), unitsTranslator = { px: (e) => convertUnitToNumber(e), "w%": (e) => convertUnitToNumber(e) / 100 * width, "h%": (e) => convertUnitToNumber(e) / 100 * height, vh: (e) => convertUnitToNumber(e) / 100 * aHeight, vw: (e) => convertUnitToNumber(e) / 100 * aWidth, default: (e) => e }, calculation = "";
+    operation.split(" ").forEach((e) => {
+      e = e.trim();
+      let t = e[e.length - 1], r = e[e.length - 2], a = (unitsTranslator[r + t] || unitsTranslator.default)(e);
+      typeof a == "number" && (a = this.#decimal(a)), calculation += String(a);
+    });
+    let result;
+    try {
+      result = eval(calculation);
+    } catch (e) {
+      result = void 0, quiet || console.warn("Invalid calculation! Tried to calculate from", calculation);
+    }
+    return result == null ? NaN : this.#decimal(result);
+  }
+  #decimal(e, t = 2) {
+    return +e.toFixed(t);
+  }
+  #getSystem() {
+    return this.#modules.core;
+  }
+  #getSettings() {
+    let e = this.#ctx.canvas.offsetHeight, t = this.#getSystem().setting.get("workspace") ?? {};
+    if (isNaN(Number(t.height)) && (t.height = e), isNaN(Number(t.width))) {
+      let r = 0.707070707;
+      t.width = Math.round(e * r);
+    }
+    return t;
+  }
+  getSize() {
+    let { width: e, height: t } = this.#getSettings(), r = e / t, a = this.#ctx.canvas.offsetHeight, i = a * r;
+    return i > this.#ctx.canvas.offsetWidth && (i = this.#ctx.canvas.offsetWidth, a = i / r), { width: this.scale(i), height: this.scale(a) };
+  }
+  #getSizeRelative() {
+    let e = this.#getSettings(), { width: t, height: r } = this.getSize(), a = e.relative?.width ?? t, i = e.relative?.height ?? r, n = a / i, s = { width: e.relative?.width ?? 0, height: e.relative?.height ?? 0 }, o = this.#ctx.canvas.offsetHeight;
+    return s.width || (s.width = this.scale(o * n)), s.height || (s.height = this.scale(o)), s.width > this.scale(this.#ctx.canvas.offsetWidth) && (s.width = this.scale(this.#ctx.canvas.offsetWidth), s.height = this.scale(this.#ctx.canvas.offsetWidth / n)), { width: s.width, height: s.height };
+  }
+  handleConditionsMethodRegisterMethod(e) {
+    let { methods: t } = e.detail;
+    t.hideOnExport = { name: "Hide on export", type: "hide-export", resolve: ({ event: r }) => {
+      this.isExporting() && (r.detail.element = null);
+    } };
+  }
+  getSettingsDefinition() {
+    let e = this.#getSettings();
+    return { details: { label: "Workspace" }, name: "workspace", tabs: [{ label: "General", fields: [[{ label: "Dimensions", type: "container", fields: [[{ label: "Height", type: "number", name: "height", value: e.height }, { label: "Width", type: "number", name: "width", value: e.width }]] }]] }] };
+  }
+};
+var f = "workspace";
+var v = "0.0.4";
+var g = class {
+  #e = null;
+  #t;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#t = t;
+  }
+  register(t) {
+    let { registration: r } = t.detail;
+    r[f] = { load: async () => {
+      if (!this.#e) {
+        let a = this.#t.marshal.getResourceUrl(this, "module.js");
+        this.#e = (await import(a)).default;
+      }
+      return (a, i) => new this.#e(i, a, this.#t.herald);
+    }, version: v };
+  }
+  static subscriptions = { [l.MODULES]: "register" };
+};
+
+// src/shared.ts
+async function calcFill(illustrator, fill) {
+  if (fill.type === "linear") {
+    const style = fill.style;
+    style.pos = await illustrator.calc({
+      layerType: "polygon-fill-linear",
+      purpose: "position",
+      values: style.pos
+    });
+    style.size = await illustrator.calc({
+      layerType: "polygon-fill-linear",
+      purpose: "size",
+      values: style.size
+    });
+  }
+  return fill;
+}
+function generateFill(type, style) {
+  const filTypes = {
+    "default": (style2) => {
+      return style2;
+    },
+    linear: (style2) => {
+      return generateLinearGradient(
+        style2.colors,
+        style2.pos.x,
+        style2.pos.y,
+        style2.size.w,
+        style2.size.h
+      );
+    }
+  };
+  return (filTypes[type] || filTypes["default"])(style);
+}
+var generateLinearGradient = (colors, x2, y2, width2, height2) => {
+  const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
+  const grd = ctx.createLinearGradient(x2, y2, width2, height2);
+  colors.forEach((color) => {
+    grd.addColorStop(color.offset, color.color);
+  });
+  return grd;
+};
+
+// src/action/polygon.ts
+var Actions = {
+  line: (ctx, x2, y2) => {
+    ctx.lineTo(x2, y2);
+  },
+  curve: (ctx, cp1x, cp1y, cp2x, cp2y, curveX, curveY) => {
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curveX, curveY);
+  },
+  stroke: (ctx, thickness = 5, fill = "#000", lineJoin = "round", miterLimit = 2) => {
+    ctx.save();
+    ctx.strokeStyle = fill;
+    ctx.lineWidth = thickness;
+    ctx.lineJoin = lineJoin;
+    ctx.miterLimit = miterLimit;
+    ctx.stroke();
+    ctx.restore();
+  },
+  begin: (ctx, x2, y2) => {
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+  },
+  move: (ctx, x2, y2) => {
+    ctx.moveTo(x2, y2);
+  },
+  fill: (ctx, fill) => {
+    if (!fill.type) {
+      fill.type = "default";
+    }
+    const tmp = ctx.fillStyle;
+    ctx.fillStyle = generateFill(fill.type, fill.style);
+    ctx.fill();
+    ctx.fillStyle = tmp;
+  },
+  close: (ctx) => {
+    ctx.closePath();
+  },
+  default: (ctx, x2, y2) => Actions.line(ctx, x2, y2)
+};
+function ResolvePolygonAction(ctx, action, x2, y2) {
+  const objSwitch = {
+    fill: (action2) => {
+      Actions.fill(ctx, action2.args);
+    },
+    line: (action2) => {
+      Actions.line(ctx, action2.args.x + x2, action2.args.y + y2);
+    },
+    curve: (action2) => {
+      Actions.curve(
+        ctx,
+        action2.args.cp1x + x2,
+        action2.args.cp1y + y2,
+        action2.args.cp2x + x2,
+        action2.args.cp2y + y2,
+        action2.args.x + x2,
+        action2.args.y + y2
+      );
+    },
+    stroke: (action2) => {
+      Actions.stroke(
+        ctx,
+        action2.args.thickness ?? 5,
+        action2.args.fill ?? "#000",
+        action2.args.lineJoin ?? "round",
+        action2.args.miterLimit ?? 2
+      );
+    },
+    begin: (action2) => {
+      Actions.begin(ctx, action2.args.x + x2, action2.args.y + y2);
+    },
+    move: (action2) => {
+      Actions.move(ctx, action2.args.x + x2, action2.args.y + y2);
+    },
+    close: () => Actions.close(ctx)
+  };
+  if (!objSwitch[action.means]) {
+    return;
+  }
+  objSwitch[action.means](action);
+}
+
+// src/action/image.ts
+var IMAGE_ERROR_STATUS = Symbol("error");
+var IMAGE_TIMEOUT_STATUS = Symbol("timeout");
+var IMAGE_LOADING_STATUS = Symbol("loading");
+var CalculatedImage = class {
+  image;
+  coords;
+  constructor(image2, coords) {
+    this.image = image2;
+    this.coords = coords;
+  }
+};
+var ResolveImageAction = (ctx, def) => {
+  const image2 = def.image.calculated;
+  if (!image2 || imageTimeoutReached(image2) || imageIsBeingLoaded(image2) || !(image2 instanceof CalculatedImage)) {
+    return;
+  }
+  const { start: { x: x2, y: y2 } } = def.area;
+  ctx.drawImage(image2.image, x2 + image2.coords.xDiff, y2 + image2.coords.yDiff, image2.coords.width, image2.coords.height);
+};
+var imageTimeoutReached = (image2) => {
+  return image2 === IMAGE_TIMEOUT_STATUS;
+};
+var imageIsBeingLoaded = (image2) => {
+  return image2 === IMAGE_LOADING_STATUS;
+};
+
+// src/action/text.ts
+var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
+var getFontSize = (def) => Number(def.text.font?.size ?? 10);
+var getSpaceChart = () => String.fromCharCode(8202);
+var ResolveTextAction = (ctx, def) => {
+  let { x: x2 } = def.start, lines = [], previousColumnsLines = 0;
+  const { start: { y: y2 }, size: { w }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
+  ctx.save();
+  ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
+  ctx.textBaseline = textBaseline;
+  while ((lines = value.splice(0, linesAmount)).length) {
+    lines.forEach((text3, i) => {
+      const nextLine = lines[i + 1] || value[0] || [""];
+      const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
+      const verticalMove = transY + (text3[1] - previousColumnsLines) * lineHeight;
+      fillText(ctx, text3[0], def, x2, y2, w, verticalMove, isLast);
+    });
+    previousColumnsLines += lines[lines.length - 1][1] + 1;
+    x2 += columns.gap + w;
+  }
+  ctx.restore();
+};
+var fillText = (ctx, text2, def, x2, y2, width2, transY, isLast) => {
+  const { color = "#000", outline = null } = def.text;
+  const horizontal = def.text.align?.horizontal || "left";
+  if (horizontal != "left") {
+    ({ text: text2, x: x2 } = alignHorizontally(ctx, horizontal, text2, width2, isLast, x2));
+  }
+  if (transY > 0) {
+    y2 = y2 + transY;
+  }
+  ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
+  if (outline) {
+    outlineText(ctx, outline, text2, x2, y2, width2);
+  }
+  ctx.fillText(text2, x2, y2, width2);
+};
+var outlineText = (ctx, outline, text2, x2, y2, width2) => {
+  if (!outline.fill?.style) {
+    return;
+  }
+  ctx.strokeStyle = generateFill(outline.fill.type, outline.fill.style);
+  ctx.lineWidth = outline.thickness;
+  ctx.lineJoin = outline.lineJoin ?? "round";
+  ctx.miterLimit = outline.miterLimit ?? 2;
+  ctx.strokeText(text2, x2, y2, width2);
+};
+var alignHorizontally = (ctx, horizontal, text2, width2, isLast, x2) => {
+  const metrics = ctx.measureText(text2);
+  const realWidth = metrics.width;
+  if (horizontal == "center") {
+    const transX = (width2 - realWidth) / 2;
+    if (transX > 0) {
+      x2 = x2 + transX;
+    }
+  } else if (horizontal == "right") {
+    x2 = x2 + width2 - realWidth;
+  } else if (horizontal == "justify" && !isLast) {
+    text2 = justifyText(text2, metrics, width2, ctx);
+  }
+  return { text: text2, x: x2 };
+};
+var justifyText = (text2, metrics, width2, ctx) => {
+  if (metrics.width >= width2) {
+    return text2;
+  }
+  const words = text2.split(" "), spacingMeasure = ctx.measureText(getSpaceChart()), spacings = Math.floor((width2 - metrics.width) / spacingMeasure.width), amount = spacings / (words.length - 1);
+  for (let j2 = 0; j2 < words.length - 1; j2++) {
+    words[j2] += getSpaceChart().repeat(amount);
+  }
+  return words.join(" ");
+};
+var prepareFontShorthand = (def, ctx, fontSize) => {
+  const { font = null } = def.text;
+  if (!font) {
+    return ctx.font;
+  }
+  fontSize = fontSize + "px ";
+  const fontFamily = (font.family || "serif") + " ";
+  const fontWeight = (font.weight ?? 100) + " ";
+  let fontSh = "";
+  if (font.style) {
+    fontSh += font.style + " ";
+  }
+  if (font.variant) {
+    fontSh += font.variant + " ";
+  }
+  fontSh += fontWeight;
+  if (font.stretch) {
+    fontSh += font.stretch + " ";
+  }
+  fontSh += fontSize;
+  if (font.height) {
+    fontSh += "/" + font.height + " ";
+  }
+  return fontSh + fontFamily;
+};
+
+// src/action/group.ts
+var ResolveGroupAction = (ctx, modules, def) => {
+  const { group: group2, start } = def;
+  if (def.layout.length === 0) {
+    return;
+  }
+  ctx.save();
+  ctx.translate(start.x, start.y);
+  if (group2.interaction === "fixed") {
+    modules.core.view.redraw(def.layout);
+  } else {
+    drawLayersRelatively(ctx, modules, def);
+  }
+  ctx.restore();
+};
+var getRowsHeight = (def, rows) => {
+  let height2 = 0;
+  const horizontal = def.group.gap.horizontal;
+  rows.forEach((row) => {
+    height2 += row.height + horizontal;
+  });
+  return height2 - horizontal;
+};
+var getRowsWidth = (def, rows) => {
+  let width2 = 0;
+  const vertical = def.group.gap.vertical;
+  rows.forEach((row) => {
+    if (def.group.direction === "column") {
+      width2 = Math.max(width2, row.width);
+    } else {
+      width2 += row.width + vertical;
+    }
+  });
+  if (def.group.direction === "row") {
+    width2 -= vertical;
+  }
+  return width2;
+};
+var drawLayersRelatively = (ctx, modules, def) => {
+  const { group: group2 } = def;
+  const { vertical, horizontal } = group2.gap;
+  const rows = separateIntoRows(def, def.layout);
+  if (group2.clip && (!isNaN(def.size?.w) || !isNaN(def.size?.h))) {
+    ctx.beginPath();
+    ctx.rect(
+      0,
+      0,
+      isNaN(def.size.w) ? getRowsWidth(def, rows) : def.size.w,
+      isNaN(def.size.h) ? getRowsHeight(def, rows) : def.size.h
+    );
+    ctx.clip();
+  }
+  let currentHeight = 0;
+  let xShift = 0;
+  rows.forEach((row) => {
+    row.layers.forEach((layer) => {
+      layer.def.start.x = xShift;
+      layer.def.start.y = currentHeight;
+      if (layer.def.area) {
+        layer.def.area.start.x = xShift;
+        layer.def.area.start.y = currentHeight;
+      }
+      modules.core.view.draw(layer.def);
+      xShift += layer.def.size.w + vertical;
+    });
+    xShift = 0;
+    currentHeight += row.height + horizontal;
+  });
+};
+var separateIntoRows = (def, layout) => {
+  const { size } = def;
+  const rows = [];
+  const generateRow = () => ({ height: 0, width: 0, layers: [] });
+  let row = generateRow();
+  layout.forEach((layer, i) => {
+    if (def.group.wrap && size.w != 0 && row.width + layer.size.w > size.w || i != 0 && def.group.direction === "column") {
+      rows.push(row);
+      row = generateRow();
+    }
+    row.layers.push({ x: row.width, def: layer });
+    if (row.height < layer.size.h) row.height = layer.size.h;
+    row.width += layer.size.w + def.group.gap.vertical;
+  });
+  rows.push(row);
+  return rows;
+};
+
+// src/action/polygon.calc.ts
+var ResolvePolygonSize = (def) => {
+  const size = def.polygon.size;
+  return {
+    start: {
+      x: def.start.x + size.negative.x,
+      y: def.start.y + size.negative.y
+    },
+    size: {
+      w: size.positive.x - size.negative.x,
+      h: size.positive.y - size.negative.y
+    }
+  };
+};
+var ResolveCalcPolygon = async (def, action, modules) => {
+  const illustrator = modules.illustrator;
+  const objSwitch = {
+    close: () => {
+    },
+    fill: async (action2) => {
+      await calcFill(illustrator, action2.args);
+    },
+    line: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-line",
+        purpose: "position",
+        values: action2.args
+      });
+      updateSizeVectors(def, action2.args.x, "x");
+      updateSizeVectors(def, action2.args.y, "y");
+    },
+    curve: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-curve",
+        purpose: "position",
+        values: action2.args
+      });
+      updateSizeVectors(def, action2.args.x, "x");
+      updateSizeVectors(def, action2.args.cp1x, "x");
+      updateSizeVectors(def, action2.args.cp2x, "x");
+      updateSizeVectors(def, action2.args.y, "y");
+      updateSizeVectors(def, action2.args.cp2y, "y");
+    },
+    stroke: async (action2) => {
+      action2.args.thickness = (await illustrator.calc({
+        layerType: "polygon-stroke",
+        purpose: "thickness",
+        values: { thickness: action2.args.thickness ?? 5 }
+      })).thickness;
+    },
+    begin: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-begin",
+        purpose: "position",
+        values: action2.args
+      });
+      updateSizeVectors(def, action2.args.x, "x");
+      updateSizeVectors(def, action2.args.y, "y");
+    },
+    move: async (action2) => {
+      action2.args = await illustrator.calc({
+        layerType: "polygon-move",
+        purpose: "position",
+        values: action2.args
+      });
+    }
+  };
+  if (!action.means) {
+    action.means = "line";
+  }
+  if (!objSwitch[action.means]) {
+    return;
+  }
+  await objSwitch[action.means](action);
+};
+var updateSizeVectors = (def, value, dir) => {
+  if (value < 0) {
+    const n = def.polygon.size.negative;
+    n[dir] = Math.min(n[dir], value);
+  } else {
+    const p2 = def.polygon.size.positive;
+    p2[dir] = Math.max(p2[dir], value);
+  }
+};
+
+// src/action/image.calc.ts
+var loadedImages = {};
+var cachedBySettings = {};
+var ResolveImageSize = (def) => ({
+  start: {
+    x: def.start.x,
+    y: def.start.y
+  },
+  size: {
+    h: def.size.h,
+    w: def.size.w
+  }
+});
+var ResolveImageCalc = async (modules, def) => {
+  const illustrator = modules.illustrator;
+  def.size = await illustrator.calc({
+    layerType: "image",
+    purpose: "size",
+    values: def.size
+  });
+  def.start = await illustrator.calc({
+    layerType: "image",
+    purpose: "position",
+    values: def.start
+  });
+  def.area = ResolveImageSize(def);
+  if (def.image?.outline?.thickness) {
+    def.image.outline.thickness = (await illustrator.calc({
+      layerType: "image",
+      purpose: "thickness",
+      values: {
+        thickness: def.image.outline.thickness
+      }
+    })).thickness;
+  }
+  const cacheKey = getImageCacheKey(def.image), cached = cachedBySettings[cacheKey];
+  if (cached) {
+    def.image.calculated = calculateFromCache(def, cached);
+    return;
+  }
+  if (def.image.src instanceof Image) {
+    def.image.calculated = await calculateImage(def, def.image.src, modules, cacheKey);
+    return;
+  }
+  if (typeof def.image.src != "string") {
+    return;
+  }
+  const source = def.image.src;
+  if (typeof source != "string" || !source.startsWith("blob:http") && !source.startsWith("http") && !source.startsWith("/")) {
+    console.warn("Image `" + source + "` has invalid source");
+    return;
+  }
+  const waitforLoad = modules.core.setting.get("illustrator.image.waitForLoad");
+  const promise = loadImage(def, source, modules);
+  if (waitforLoad) {
+    await promise;
+  } else {
+  }
+};
+var calculateFromCache = (def, cached) => {
+  const image2 = def.image, { w, h: h2 } = def.size;
+  const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
+    image2.fit ?? "default",
+    cached.width,
+    cached.height,
+    w,
+    h2
+  ), xDiff = getImageHorizontalDiff(image2.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image2.align?.vertical ?? "center", h2, asHeight);
+  return new CalculatedImage(
+    cached.image,
+    {
+      xDiff,
+      yDiff,
+      width: asWidth,
+      height: asHeight
+    }
+  );
+};
+var calculateImage = async (def, source, _modules, cacheKey = null) => {
+  const image2 = def.image, { w, h: h2 } = def.size, sWidth = source.width || 200, sHeight = source.height || 200;
+  const { width: asWidth, height: asHeight } = calculateAspectRatioFit(
+    image2.fit ?? "default",
+    sWidth,
+    sHeight,
+    w,
+    h2
+  ), xDiff = getImageHorizontalDiff(image2.align?.horizontal ?? "center", w, asWidth), yDiff = getImageVerticalDiff(image2.align?.vertical ?? "center", h2, asHeight);
+  if (image2.fit === "crop") {
+    source = await cropImage(source, def);
+  }
+  if (image2.overcolor) {
+    source = await overcolorImage(source, def, asWidth, asHeight);
+  }
+  if (image2.outline) {
+    source = await outlineImage(source, def, asWidth, asHeight);
+  }
+  cachedBySettings[cacheKey ?? getImageCacheKey(def.image)] = {
+    image: source,
+    width: sWidth,
+    height: sHeight
+  };
+  return new CalculatedImage(
+    source,
+    {
+      xDiff,
+      yDiff,
+      width: asWidth,
+      height: asHeight
+    }
+  );
+};
+var getImageCacheKey = (image2) => JSON.stringify({ ...image2, timeout: void 0, calculated: void 0 });
+var loadImage = async (def, src, modules) => {
+  const image2 = new Image(), { image: { timeout = 3e4 } } = def, view = modules.core.view;
+  image2.crossOrigin = "anonymous";
+  image2.src = src;
+  const promise = new Promise((resolve, reject) => {
+    const timeoutTimer = setTimeout(() => {
+      def.image.calculated = IMAGE_TIMEOUT_STATUS;
+      reject(new Error("Image loading reached a timeout: " + src));
+    }, timeout);
+    image2.onerror = (e) => {
+      clearTimeout(timeoutTimer);
+      def.image.calculated = IMAGE_ERROR_STATUS;
+      reject(e);
+    };
+    image2.onload = async () => {
+      clearTimeout(timeoutTimer);
+      def.image.calculated = await calculateImage(def, image2, modules);
+      view.redrawDebounce();
+      resolve();
+    };
+  });
+  loadedImages[src] = IMAGE_LOADING_STATUS;
+  await promise;
+};
+var overcolorImage = async (image2, def, asWidth, asHeight) => {
+  const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), overcolor = def.image.overcolor;
+  canvas.setAttribute("width", String(asWidth));
+  canvas.setAttribute("height", String(asHeight));
+  ctx.drawImage(image2, 0, 0, asWidth, asHeight);
+  ctx.globalCompositeOperation = "source-in";
+  ctx.fillStyle = generateFill(overcolor.fill.type, overcolor.fill.style);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = "source-over";
+  const imageOvercolored = await canvasToWebp(canvas, image2);
+  ctx.drawImage(imageOvercolored, 0, 0, asWidth, asHeight);
+  return canvasToWebp(canvas, imageOvercolored);
+};
+var outlineImage = async (image2, def, asWidth, asHeight) => {
+  const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d"), outline = def.image.outline;
+  if (!outline.thickness || !outline.fill) {
+    return image2;
+  }
+  const thickness = outline.thickness;
+  let dArr = [
+    [-0.75, -0.75],
+    // ↖️
+    [0, -1],
+    // ⬆️
+    [0.75, -0.75],
+    // ↗️
+    [1, 0],
+    // ➡️
+    [0.75, 0.75],
+    // ↘️
+    [0, 1],
+    // ⬇️
+    [-0.75, 0.75],
+    // ↙️
+    [-1, 0]
+    // ⬅️
+  ];
+  if (thickness > 5) {
+    const granularity = Math.floor(thickness / 2.5);
+    let newDArr = [];
+    for (let i = 0; i < dArr.length; i++) {
+      newDArr.push(dArr[i]);
+      const [cX, cY] = dArr[i], [dX, dY] = i + 1 === dArr.length ? dArr[0] : dArr[i + 1];
+      const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
+      let x2 = cX, y2 = cY;
+      while ((trendX > 0 && x2 + bX < dX || trendX < 0 && x2 + bX > dX) && (trendY > 0 && y2 + bY < dY || trendY < 0 && y2 + bY > dY)) {
+        x2 += bX;
+        y2 += bY;
+        between.push([x2, y2]);
+      }
+      newDArr = newDArr.concat(between);
+    }
+    dArr = newDArr;
+  }
+  canvas.setAttribute("width", String(asWidth + thickness * 2));
+  canvas.setAttribute("height", String(asHeight + thickness * 2));
+  for (let i = 0; i < dArr.length; i++) {
+    ctx.drawImage(
+      image2,
+      thickness + dArr[i][0] * thickness,
+      thickness + dArr[i][1] * thickness,
+      asWidth,
+      asHeight
+    );
+    if (thickness === 0) {
+      break;
+    }
+  }
+  ctx.globalCompositeOperation = "source-in";
+  ctx.fillStyle = generateFill(outline.fill.type, outline.fill.style);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.drawImage(image2, thickness, thickness, asWidth, asHeight);
+  return canvasToWebp(canvas, image2);
+};
+var canvasToWebp = async (canvas, dft) => {
+  const image2 = new Image();
+  image2.src = canvas.toDataURL("image/webp");
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      resolve(dft);
+    }, 1e3);
+    image2.onerror = () => {
+      clearTimeout(timeout);
+      resolve(dft);
+    };
+    image2.onload = () => {
+      clearTimeout(timeout);
+      resolve(image2);
+    };
+  });
+};
+var cropImage = async (image2, def) => {
+  const { w: width2, h: height2 } = def.size;
+  let fitTo = def.image.fitTo ?? "auto", x2 = 0, y2 = 0;
+  if (fitTo === "auto") {
+    fitTo = height2 > width2 ? "height" : "width";
+  }
+  if (fitTo === "height") {
+    x2 = (width2 - image2.width * (height2 / image2.height)) / 2;
+  } else if (fitTo === "width") {
+    y2 = (height2 - image2.height * (width2 / image2.width)) / 2;
+  }
+  const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
+  canvas.setAttribute("width", String(width2));
+  canvas.setAttribute("height", String(height2));
+  ctx.drawImage(image2, x2, y2, width2 - x2 * 2, height2 - y2 * 2);
+  return canvasToWebp(canvas, image2);
+};
+var calculateAspectRatioFit = (fit, srcWidth, srcHeight, maxWidth, maxHeight) => {
+  if (fit === "stretch" || fit === "crop") {
+    return {
+      width: maxWidth,
+      height: maxHeight
+    };
+  }
+  return getResized(srcWidth, srcHeight, maxWidth, maxHeight);
+};
+var getResized = (srcWidth, srcHeight, maxWidth, maxHeight) => {
+  const ratio = Math.min(maxWidth / srcWidth, maxHeight / srcHeight), width2 = srcWidth * ratio, height2 = srcHeight * ratio;
+  return {
+    width: width2,
+    height: height2
+  };
+};
+var getImageVerticalDiff = (align, height2, asHeight) => {
+  if (align == "top") {
+    return 0;
+  }
+  if (align == "bottom") {
+    return height2 - asHeight;
+  }
+  return (height2 - asHeight) / 2;
+};
+var getImageHorizontalDiff = (align, width2, asWidth) => {
+  if (align == "left") {
+    return 0;
+  }
+  if (align == "right") {
+    return width2 - asWidth;
+  }
+  return (width2 - asWidth) / 2;
+};
+
+// src/action/text.calc.ts
+var ResolveTextSize = (def) => {
+  let fontSize = def.text.font?.size;
+  if (!fontSize || typeof fontSize == "string") {
+    fontSize = 0;
+  }
+  return {
+    start: {
+      y: def.start.y,
+      x: def.start.x
+    },
+    size: {
+      w: def.size.w,
+      h: def.size.h ?? (def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0)
+    }
+  };
+};
+var ResolveTextCalc = async (def, modules, ctx) => {
+  const illustrator = modules.illustrator;
+  def.size = await illustrator.calc({
+    layerType: "text",
+    purpose: "size",
+    values: def.size
+  });
+  def.start = await illustrator.calc({
+    layerType: "text",
+    purpose: "position",
+    values: def.start
+  });
+  const {
+    outlineThickness,
+    fontSize,
+    gap,
+    lineHeight
+  } = await illustrator.calc({
+    layerType: "text",
+    purpose: "prepare",
+    values: {
+      fontSize: getFontSizeForCalc(def),
+      lineHeight: def.text.lineHeight ?? 0,
+      gap: def.text.columns?.gap ?? 0,
+      outlineThickness: def.text.outline?.thickness ?? 0
+    }
+  });
+  if (def.text.lineHeight) {
+    def.text.lineHeight = lineHeight;
+  }
+  if (def.text.outline?.thickness) {
+    def.text.outline.thickness = outlineThickness;
+  }
+  def.text.columns = def.text.columns ?? { amount: 1, gap: 0 };
+  def.text.columns.gap = gap;
+  def.text.font = def.text.font ?? {};
+  def.text.font.size = fontSize;
+  if (typeof def.text.color?.type == "string") {
+    await calcFill(illustrator, def.text.color);
+  }
+  const {
+    lines,
+    lineHeight: preparedLineHeight,
+    width: width2,
+    columns,
+    fontSize: preparedFontSize
+  } = prepare(def, ctx, def.size.w);
+  def.text.transY = calcVerticalMove(def.size.h, preparedLineHeight, lines, def.text.align?.vertical || "top");
+  if (isSafari()) {
+    def.start.y -= preparedFontSize * 0.2;
+  }
+  def.text.lineHeight = preparedLineHeight;
+  def.text.font.size = preparedFontSize;
+  def.text.columns = columns;
+  def.size.w = width2;
+  def.text.lines = lines;
+  def.area = ResolveTextSize(def);
+  return def;
+};
+var prepare = (def, ctx, width2) => {
+  const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
+  let { value: text2 } = def.text;
+  ctx.save();
+  ctx.font = prepareFontShorthand(def, ctx, String(fontSize));
+  ctx.textBaseline = textBaseline;
+  const colWidth = calcColumnWidth(width2, columns);
+  text2 = addSpacing(def, text2);
+  const lines = getTextLines(def, text2, ctx, colWidth);
+  ctx.restore();
+  return {
+    lines,
+    fontSize,
+    lineHeight: def.text.lineHeight ?? fontSize,
+    width: colWidth,
+    columns
+  };
+};
+var getTextLines = (def, text2, ctx, width2) => {
+  if (!def.text.wrap) {
+    return [[text2, 0]];
+  }
+  const rows = [];
+  let words = text2.split(/[^\S\r\n]/), line = "", i = 0;
+  while (words.length > 0) {
+    const newLinePos = words[0].search(/[\r\n]/);
+    if (newLinePos !== -1) {
+      const newLine = words[0].substring(0, newLinePos);
+      rows.push([(line + " " + newLine).trim() + "\n", i]);
+      line = "";
+      i++;
+      words[0] = words[0].substring(newLinePos + 1);
+      continue;
+    }
+    const metrics = ctx.measureText(line + words[0]);
+    if (metrics.width > width2) {
+      if (line.length > 0) {
+        rows.push([line.trim(), i]);
+        i++;
+      }
+      line = "";
+    }
+    line += " " + words[0];
+    words = words.splice(1);
+  }
+  if (line.length > 0) {
+    rows.push([line.replace(/^\s+/, ""), i]);
+  }
+  return rows;
+};
+var addSpacing = (def, text2) => {
+  if (!def.text.spacing) {
+    return text2;
+  }
+  return text2.split("").join(getSpaceChart().repeat(def.text.spacing));
+};
+var calcColumnWidth = (rWidth, columns) => {
+  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
+};
+var isSafari = () => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
+var calcVerticalMove = (height2, lineHeight, lines, vAlign) => {
+  if (!height2 || lines.length * lineHeight >= height2) {
+    return 0;
+  }
+  const diff = height2 - lines.length * lineHeight;
+  if (vAlign === "center") {
+    return diff / 2;
+  }
+  if (vAlign === "bottom") {
+    return diff;
+  }
+  return 0;
+};
+
+// src/action/group.calc.ts
+var ResolveGroupSize = async (def) => {
+  let area;
+  if (def.group.interaction === "static") {
+    area = ResolveGroupSizeForRelative(def);
+  } else {
+    area = ResolveGroupSizeForFixed(def);
+    area.start.y += def.start.y;
+    area.start.x += def.start.x;
+  }
+  if (def.group.clip) {
+    if (!isNaN(def.size.h)) {
+      area.size.h = def.size.h;
+    }
+    if (!isNaN(def.size.w)) {
+      area.size.w = def.size.w;
+    }
+  }
+  return area;
+};
+var generateArea = (def) => {
+  return {
+    size: {
+      w: !isNaN(def.size.w ?? NaN) ? def.size.w : 0,
+      h: !isNaN(def.size.h ?? NaN) ? def.size.h : 0
+    },
+    start: {
+      x: 0,
+      y: 0
+    }
+  };
+};
+var ResolveGroupSizeForRelative = (def) => {
+  const area = generateArea(def);
+  const rows = separateIntoRows(def, def.layout);
+  if (!area.size.h) area.size.h = getRowsHeight(def, rows);
+  if (!area.size.w) area.size.w = getRowsWidth(def, rows);
+  area.start.x = def.start.x;
+  area.start.y = def.start.y;
+  return area;
+};
+var ResolveGroupSizeForFixed = (def) => {
+  const area = generateArea(def);
+  const skipW = !!area.size.w;
+  const skipH = !!area.size.h;
+  for (let i = 0; i < def.layout.length; i++) {
+    const subArea = def.layout[i].area;
+    if (!subArea) {
+      continue;
+    }
+    if (!skipH) area.size.h = Math.max(area.size.h, subArea.size.h + subArea.start.y);
+    if (!skipW) area.size.w = Math.max(area.size.w, subArea.size.w + subArea.start.x);
+    area.start.y = Math.min(area.start.y, subArea.start.y);
+    area.start.x = Math.min(area.start.x, subArea.start.x);
+  }
+  if (area.start.y < 0) {
+    area.start.y = 0;
+  }
+  if (area.start.x < 0) {
+    area.start.x = 0;
+  }
+  return area;
+};
+var ResolveGroupCalc = async (modules, def, sessionId) => {
+  const { group: group2 } = def;
+  const illustrator = modules.illustrator;
+  def.size = await illustrator.calc({
+    layerType: "group",
+    purpose: "size",
+    values: def.size ?? { w: 0, h: 0 }
+  });
+  def.size.w ??= NaN;
+  def.size.h ??= NaN;
+  def.start = await illustrator.calc({
+    layerType: "group",
+    purpose: "position",
+    values: def.start ?? { x: 0, y: 0 }
+  });
+  def.start.y ??= 0;
+  def.start.x ??= 0;
+  group2.gap = await illustrator.calc({
+    layerType: "group",
+    purpose: "gap",
+    values: group2.gap ?? { vertical: 0, horizontal: 0 }
+  });
+  group2.gap.vertical ??= 0;
+  group2.gap.horizontal ??= 0;
+  const settings = modules.core.setting.get("workspace") ?? {};
+  settings.relative ??= {};
+  const pRelHeight = settings.relative.height;
+  const pRelWidth = settings.relative.width;
+  if (!isNaN(def.size.h)) settings.relative.height = def.size.h;
+  if (!isNaN(def.size.w)) settings.relative.width = def.size.w;
+  def.layout = await modules.core.view.recalculate(def, def.layout, sessionId);
+  group2.interaction ??= "fixed";
+  settings.relative.height = pRelHeight;
+  settings.relative.width = pRelWidth;
+  def.area = await ResolveGroupSize(def);
+};
+
+// ../antetype-core/dist/index.js
+var u = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded", CANVAS_CHANGE: "antetype.canvas.change" };
+var E2 = Symbol("original");
+var _ = Symbol("clone");
+var W = Symbol("layer");
+var Y = "core";
+var X = "0.0.5";
+var B = class {
+  #n;
+  #t = null;
+  #e = false;
+  #o = null;
+  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
+  inject(d2) {
+    this.#n = d2;
+  }
+  async loadModules(d2) {
+    return (await this.#r()).loadModules(d2);
+  }
+  register(d2) {
+    let { registration: I2 } = d2.detail;
+    I2[Y] = { load: async () => (!this.#t && !this.#e && (this.#e = new Promise((y2) => {
+      this.#i("core.js").then((l2) => {
+        this.#t = l2.default, this.#e = false, y2();
+      });
+    })), this.#e && await this.#e, console.log("load module3", this.#t), (y2) => this.#t({ modules: y2, herald: this.#n.herald })), version: X };
+  }
+  static subscriptions = { [u.MODULES]: "register" };
+  #i(d2) {
+    return import(this.#n.marshal.getResourceUrl(this, d2));
+  }
+  async #r() {
+    return this.#o ??= (await this.#i("helper.js")).default, new this.#o(this.#n.herald);
+  }
+};
+
+// src/definition/group.ts
+var group = () => ({
+  group: {
+    clip: "boolean",
+    interaction: "string",
+    direction: "string",
+    wrap: "boolean",
+    gap: {
+      vertical: "number",
+      horizontal: "number"
+    }
+  }
+});
+var group_default = group;
+
+// src/definition/image.ts
+var image = () => ({
+  image: {
+    timeout: "number",
+    fit: "string",
+    overcolor: {
+      fill: "string"
+    },
+    outline: {
+      thickness: "number",
+      fill: "string"
+    },
+    align: {
+      vertical: "string",
+      horizontal: "string"
+    },
+    fitTo: "string",
+    src: "string"
+  }
+});
+var image_default = image;
+
+// src/definition/polygon.ts
+var polygon = () => ({
+  polygon: {
+    steps: [
+      {
+        means: "string",
+        args: {
+          x: "number",
+          y: "number",
+          cp1x: "number",
+          cp1y: "number",
+          cp2x: "number",
+          cp2y: "number",
+          thickness: "number",
+          fill: "string",
+          lineJoin: "string",
+          miterLimit: "number"
+        }
+      }
+    ],
+    size: {
+      negative: {
+        x: "number",
+        y: "number"
+      },
+      positive: {
+        x: "number",
+        y: "number"
+      }
+    }
+  }
+});
+var polygon_default = polygon;
+
+// src/definition/text.ts
+var text = () => ({
+  text: {
+    value: "string",
+    align: {
+      vertical: "string",
+      horizontal: "string"
+    },
+    columns: {
+      amount: "number",
+      gap: "number"
+    },
+    font: {
+      style: "string",
+      family: "string",
+      weight: "string",
+      size: "string",
+      stretch: "string",
+      variant: "string",
+      height: "string"
+    },
+    spacing: "number",
+    textBaseline: "string",
+    wrap: "boolean",
+    lineHeight: "number",
+    color: "string",
+    outline: {
+      fill: "string",
+      thickness: "number",
+      lineJoin: "string",
+      miterLimit: "number",
+      transY: "number",
+      lines: [["string", "number"]]
+    }
+  }
+});
+var text_default = text;
+
+// src/module.ts
+var Illustrator = class {
+  #modules2;
+  #herald2;
+  constructor(modules, herald) {
+    this.#modules2 = modules;
+    this.#herald2 = herald;
+    this.#registerEvents();
+  }
+  #ctx2() {
+    const canvas = this.#modules2.core.meta.getCanvas();
+    if (!canvas) {
+      throw new Error("[Antetype Illustrator] Provided canvas is empty");
+    }
+    return canvas.getContext("2d");
+  }
+  #registerEvents(anchor = null) {
+    const unregister = this.#herald2.batch([
+      {
+        event: u.CLOSE,
+        subscription: () => {
+          unregister();
+        },
+        anchor
+      },
+      {
+        event: u.CANVAS_CHANGE,
+        subscription: async ({ detail: { current } }) => {
+          unregister();
+          this.#registerEvents(current);
+        },
+        anchor
+      },
+      {
+        event: u.DRAW,
+        subscription: async (event) => {
+          const { element } = event.detail;
+          const typeToAction = {
+            clear: this.clear.bind(this),
+            polygon: this.polygon.bind(this),
+            image: this.image.bind(this),
+            text: this.text.bind(this),
+            group: this.group.bind(this)
+          };
+          const el = typeToAction[element.type];
+          if (typeof el == "function") {
+            await el(element);
+          }
+        },
+        anchor
+      },
+      {
+        event: u.CALC,
+        subscription: async (event) => {
+          if (event.detail.element === null) {
+            return;
+          }
+          const { element, sessionId } = event.detail;
+          const typeToAction = {
+            polygon: this.polygonCalc.bind(this),
+            image: this.imageCalc.bind(this),
+            text: this.textCalc.bind(this),
+            group: this.groupCalc.bind(this)
+          };
+          const el = typeToAction[element.type];
+          if (typeof el == "function") {
+            await el(element, sessionId);
+          }
+        },
+        anchor
+      },
+      {
+        event: u.TYPE_DEFINITION,
+        subscription: (event) => {
+          const definitions = event.detail.definitions;
+          definitions.text = text_default();
+          definitions.group = group_default();
+          definitions.image = image_default();
+          definitions.polygon = polygon_default();
+        },
+        anchor
+      }
+    ]);
+  }
+  reset() {
+    this.#ctx2().canvas.width += 0;
+  }
+  clear() {
+    this.#ctx2().clearRect(
+      0,
+      0,
+      this.#ctx2().canvas.width,
+      this.#ctx2().canvas.height
+    );
+  }
+  async groupCalc(def, sessionId = null) {
+    await ResolveGroupCalc(this.#modules2, def, sessionId);
+  }
+  group(def) {
+    ResolveGroupAction(this.#ctx2(), this.#modules2, def);
+  }
+  async polygonCalc(def) {
+    def.start = await this.calc({
+      layerType: "polygon",
+      purpose: "position",
+      values: def.start
+    });
+    def.polygon.size = {
+      negative: { x: 0, y: 0 },
+      positive: { x: 0, y: 0 }
+    };
+    for (const step of def.polygon.steps) {
+      await ResolveCalcPolygon(def, step, this.#modules2);
+    }
+    def.area = ResolvePolygonSize(def);
+  }
+  polygon({ polygon: { steps }, start: { x: x2, y: y2 } }) {
+    const ctx = this.#ctx2();
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    for (const step of steps) {
+      ResolvePolygonAction(ctx, step, x2, y2);
+    }
+    ctx.closePath();
+    ctx.restore();
+  }
+  async imageCalc(def) {
+    await ResolveImageCalc(this.#modules2, def);
+  }
+  image(def) {
+    ResolveImageAction(this.#ctx2(), def);
+  }
+  async textCalc(def) {
+    await ResolveTextCalc(def, this.#modules2, this.#ctx2());
+  }
+  text(def) {
+    ResolveTextAction(this.#ctx2(), def);
+  }
+  async calc(def) {
+    const event = new CustomEvent(d.CALC, { detail: def });
+    await this.#herald2.dispatch(event, { origin: this.#modules2.core.meta.getCanvas() });
+    return event.detail.values;
+  }
+  generateText(value) {
+    return {
+      type: "text",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: 300,
+        h: 100
+      },
+      text: {
+        value,
+        font: {
+          family: "Arial",
+          weight: 400,
+          size: 30
+        }
+      }
+    };
+  }
+  generateImage(src) {
+    return {
+      type: "image",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: 300,
+        h: 300
+      },
+      image: {
+        src
+      }
+    };
+  }
+  generatePolygon(steps = []) {
+    return {
+      type: "polygon",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: NaN,
+        h: NaN
+      },
+      polygon: {
+        steps,
+        size: {
+          negative: {
+            x: 0,
+            y: 0
+          },
+          positive: {
+            x: 0,
+            y: 0
+          }
+        }
+      }
+    };
+  }
+  generateGroup(layout) {
+    const group2 = {
+      type: "group",
+      start: {
+        x: 0,
+        y: 0
+      },
+      size: {
+        w: NaN,
+        h: NaN
+      },
+      group: {},
+      layout: []
+    };
+    for (const layer of layout) {
+      layer.hierarchy = {
+        parent: group2,
+        position: group2.layout.length
+      };
+      group2.layout.push(layer);
+    }
+    return group2;
+  }
+};
+
+// src/module.conf.ts
+var ID = "illustrator";
+var VERSION = "0.0.4";
+var AntetypeIllustrator = class {
+  #module = null;
+  #injected;
+  static inject = {
+    marshal: "boardmeister/marshal",
+    herald: "boardmeister/herald"
+  };
+  inject(injections) {
+    this.#injected = injections;
+  }
+  register(event) {
+    const { registration } = event.detail;
+    registration[ID] = {
+      load: async () => {
+        if (!this.#module) {
+          const module = this.#injected.marshal.getResourceUrl(this, "module.js");
+          this.#module = (await import(module)).default;
+        }
+        return (modules) => new this.#module(modules, this.#injected.herald);
+      },
+      version: VERSION
+    };
+  }
+  static subscriptions = {
+    [u.MODULES]: "register"
+  };
+};
+export {
+  Event,
+  ID,
+  Illustrator,
+  VERSION
+};

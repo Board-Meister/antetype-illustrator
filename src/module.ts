@@ -1,4 +1,4 @@
-import type { IStart, Layout, Module, TypeDefinitionEvent } from "@boardmeister/antetype-core";
+import type { Canvas, CanvasChangeEvent, IStart, Layout, Module, TypeDefinitionEvent } from "@boardmeister/antetype-core";
 import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonArgs, IPolygonDef, PolygonActions } from "@src/type/polygon.d";
@@ -68,31 +68,41 @@ export default class Illustrator implements IIllustrator {
     return canvas.getContext('2d')!;
   }
 
-  #registerEvents(): void {
+  #registerEvents(anchor: Canvas|null = null): void {
     const unregister = this.#herald.batch([
       {
         event: AntetypeCoreEvent.CLOSE,
         subscription: (): void => {
           unregister();
-        }
+        },
+        anchor,
+      },
+      {
+        event: AntetypeCoreEvent.CANVAS_CHANGE,
+        subscription: async ({ detail: { current } }: CanvasChangeEvent): Promise<void> => {
+          unregister();
+          this.#registerEvents(current);
+        },
+        anchor,
       },
       {
         event: AntetypeCoreEvent.DRAW,
         subscription: async (event: CustomEvent<DrawEvent>): Promise<void> => {
-            const { element } = event.detail;
-            const typeToAction: Record<string, (def: GenericBaseDef) => void> = {
-              clear: this.clear.bind(this),
-              polygon: this.polygon.bind(this),
-              image: this.image.bind(this),
-              text: this.text.bind(this),
-              group: this.group.bind(this),
-            };
+          const { element } = event.detail;
+          const typeToAction: Record<string, (def: GenericBaseDef) => void> = {
+            clear: this.clear.bind(this),
+            polygon: this.polygon.bind(this),
+            image: this.image.bind(this),
+            text: this.text.bind(this),
+            group: this.group.bind(this),
+          };
 
-            const el = typeToAction[element.type]
-            if (typeof el == 'function') {
-              await el(element as GenericBaseDef);
-            }
+          const el = typeToAction[element.type]
+          if (typeof el == 'function') {
+            await el(element as GenericBaseDef);
           }
+        },
+        anchor,
       },
       {
         event: AntetypeCoreEvent.CALC,
@@ -112,7 +122,8 @@ export default class Illustrator implements IIllustrator {
           if (typeof el == 'function') {
             await el(element as GenericBaseDef, sessionId);
           }
-        }
+        },
+        anchor,
       },
       {
         event: AntetypeCoreEvent.TYPE_DEFINITION,
@@ -122,7 +133,8 @@ export default class Illustrator implements IIllustrator {
           definitions.group = getGroupDefinition();
           definitions.image = getImageDefinition();
           definitions.polygon = getPolygonDefinition();
-        }
+        },
+        anchor,
       }
     ])
   }
@@ -198,7 +210,7 @@ export default class Illustrator implements IIllustrator {
 
   async calc<T = Record<string, unknown>>(def: ICalcEvent): Promise<T> {
     const event = new CustomEvent(Event.CALC, { detail: def });
-    await this.#herald.dispatch(event);
+    await this.#herald.dispatch(event, { origin: this.#modules.core.meta.getCanvas() });
 
     return event.detail.values as T;
   }
