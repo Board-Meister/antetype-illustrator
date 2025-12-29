@@ -23,6 +23,8 @@ export const ResolveTextSize = (def: ITextDef): IArea => {
   };
 }
 
+const getColumnsDefault = (): ITextColumns => ({ amount: 1, gap: 0, tactic: "from-side" });
+
 export const ResolveTextCalc = async (
   def: ITextDef,
   modules: Modules,
@@ -65,7 +67,7 @@ export const ResolveTextCalc = async (
     def.text.outline.thickness = outlineThickness;
   }
 
-  def.text.columns = def.text.columns ?? { amount: 1, gap: 0 };
+  def.text.columns = def.text.columns ?? getColumnsDefault();
   def.text.columns.gap = gap;
 
   def.text.font = def.text.font ?? {};
@@ -111,7 +113,7 @@ const prepare = (
   ctx: Context,
   width: number,
 ): IPreparedTextProperties => {
-  const columns = def.text.columns ?? { gap: 0, amount: 1 },
+  const columns = def.text.columns ?? getColumnsDefault(),
     fontSize = getFontSize(def),
     { textBaseline = 'top' } = def.text
   ;

@@ -504,7 +504,11 @@ var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x: x3 } = def.start, lines = [], previousColumnsLines = 0;
-  const { start: { y: y2 }, size: { w }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
+  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
+  let linesAmount = Math.floor(h2 / lineHeight);
+  if (columns?.tactic == "evenly") {
+    linesAmount = Math.ceil(value.length / columns.amount);
+  }
   ctx.save();
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
@@ -1065,6 +1069,7 @@ var ResolveTextSize = (def) => {
     }
   };
 };
+var getColumnsDefault = () => ({ amount: 1, gap: 0, tactic: "from-side" });
 var ResolveTextCalc = async (def, modules, ctx) => {
   const illustrator = modules.illustrator;
   def.size = await illustrator.calc({
@@ -1098,7 +1103,7 @@ var ResolveTextCalc = async (def, modules, ctx) => {
   if (def.text.outline?.thickness) {
     def.text.outline.thickness = outlineThickness;
   }
-  def.text.columns = def.text.columns ?? { amount: 1, gap: 0 };
+  def.text.columns = def.text.columns ?? getColumnsDefault();
   def.text.columns.gap = gap;
   def.text.font = def.text.font ?? {};
   def.text.font.size = fontSize;
@@ -1123,7 +1128,7 @@ var ResolveTextCalc = async (def, modules, ctx) => {
   return def;
 };
 var prepare = (def, ctx, width2) => {
-  const columns = def.text.columns ?? { gap: 0, amount: 1 }, fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
+  const columns = def.text.columns ?? getColumnsDefault(), fontSize = getFontSize(def), { textBaseline = "top" } = def.text;
   let { value: text2 } = def.text;
   ctx.save();
   ctx.font = prepareFontShorthand(def, ctx, String(fontSize));

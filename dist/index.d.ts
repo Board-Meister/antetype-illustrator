@@ -269,6 +269,7 @@ declare type TextLines = {
 }[];
 export declare type VerticalAlign = "center" | "top" | "bottom";
 export declare type HorizontalAlign = "center" | "left" | "right" | "justify";
+export declare type TextColumnsTactics = "evenly" | "from-side";
 export interface ITextAlign {
 	vertical?: VerticalAlign;
 	horizontal?: HorizontalAlign;
@@ -276,6 +277,7 @@ export interface ITextAlign {
 export interface ITextColumns {
 	amount: number;
 	gap: number;
+	tactic: TextColumnsTactics;
 }
 export interface ITextFont {
 	style?: StandardLonghandProperties["fontStyle"];

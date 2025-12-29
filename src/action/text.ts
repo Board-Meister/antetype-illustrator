@@ -18,13 +18,16 @@ export const ResolveTextAction = (
     lines: TextLines = [],
     previousColumnsLines = 0
   ;
-  const { start: { y }, size: { w }, text } = def,
+  const { start: { y }, size: { w, h }, text } = def,
     { columns, transY, lineHeight } = text,
     value = [...text.lines as TextLines],
-    linesAmount = Math.ceil(value.length/columns!.amount),
     { textBaseline = 'top' } = def.text,
     fullW = w - (columns!.gap * (columns!.amount - 1))
   ;
+  let linesAmount = Math.floor(h / lineHeight!);
+  if (columns?.tactic == "evenly") {
+    linesAmount = Math.ceil(value.length/columns!.amount);
+  }
 
   ctx.save();
 
