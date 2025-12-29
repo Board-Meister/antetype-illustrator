@@ -1,11 +1,11 @@
 // ../antetype-core/dist/index.js
 var u = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded", CANVAS_CHANGE: "antetype.canvas.change" };
-var E = Symbol("original");
-var _ = Symbol("clone");
-var W = Symbol("layer");
-var Y = "core";
-var X = "0.0.5";
-var B = class {
+var x = Symbol("original");
+var Y = Symbol("clone");
+var X = Symbol("layer");
+var K = "core";
+var J = "0.0.5";
+var A = class {
   #n;
   #t = null;
   #e = false;
@@ -18,12 +18,12 @@ var B = class {
     return (await this.#r()).loadModules(d);
   }
   register(d) {
-    let { registration: I } = d.detail;
-    I[Y] = { load: async () => (!this.#t && !this.#e && (this.#e = new Promise((y) => {
-      this.#i("core.js").then((l) => {
-        this.#t = l.default, this.#e = false, y();
+    let { registration: g } = d.detail;
+    g[K] = { load: async () => (!this.#t && !this.#e && (this.#e = new Promise((p) => {
+      this.#i("core.js").then((c) => {
+        this.#t = c.default, this.#e = false, p();
       });
-    })), this.#e && await this.#e, console.log("load module3", this.#t), (y) => this.#t({ modules: y, herald: this.#n.herald })), version: X };
+    })), this.#e && await this.#e, console.log("load module3", this.#t), (p) => this.#t({ modules: p, herald: this.#n.herald })), version: J };
   }
   static subscriptions = { [u.MODULES]: "register" };
   #i(d) {

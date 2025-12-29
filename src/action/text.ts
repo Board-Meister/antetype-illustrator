@@ -37,7 +37,7 @@ export const ResolveTextAction = (
       const verticalMove = transY! + (text[1] - previousColumnsLines)*lineHeight!;
       fillText(ctx, text[0], def, x, y, w, verticalMove, isLast);
     });
-    previousColumnsLines += lines[lines.length - 1][1] + 1;
+    previousColumnsLines = lines[lines.length - 1][1] + 1;
     x += columns!.gap + w;
   }
 

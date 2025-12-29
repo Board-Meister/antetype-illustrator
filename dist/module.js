@@ -376,9 +376,9 @@ function generateFill(type, style) {
   };
   return (filTypes[type] || filTypes["default"])(style);
 }
-var generateLinearGradient = (colors, x2, y2, width2, height2) => {
+var generateLinearGradient = (colors, x3, y2, width2, height2) => {
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
-  const grd = ctx.createLinearGradient(x2, y2, width2, height2);
+  const grd = ctx.createLinearGradient(x3, y2, width2, height2);
   colors.forEach((color) => {
     grd.addColorStop(color.offset, color.color);
   });
@@ -387,8 +387,8 @@ var generateLinearGradient = (colors, x2, y2, width2, height2) => {
 
 // src/action/polygon.ts
 var Actions = {
-  line: (ctx, x2, y2) => {
-    ctx.lineTo(x2, y2);
+  line: (ctx, x3, y2) => {
+    ctx.lineTo(x3, y2);
   },
   curve: (ctx, cp1x, cp1y, cp2x, cp2y, curveX, curveY) => {
     ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curveX, curveY);
@@ -402,12 +402,12 @@ var Actions = {
     ctx.stroke();
     ctx.restore();
   },
-  begin: (ctx, x2, y2) => {
+  begin: (ctx, x3, y2) => {
     ctx.beginPath();
-    ctx.moveTo(x2, y2);
+    ctx.moveTo(x3, y2);
   },
-  move: (ctx, x2, y2) => {
-    ctx.moveTo(x2, y2);
+  move: (ctx, x3, y2) => {
+    ctx.moveTo(x3, y2);
   },
   fill: (ctx, fill) => {
     if (!fill.type) {
@@ -421,24 +421,24 @@ var Actions = {
   close: (ctx) => {
     ctx.closePath();
   },
-  default: (ctx, x2, y2) => Actions.line(ctx, x2, y2)
+  default: (ctx, x3, y2) => Actions.line(ctx, x3, y2)
 };
-function ResolvePolygonAction(ctx, action, x2, y2) {
+function ResolvePolygonAction(ctx, action, x3, y2) {
   const objSwitch = {
     fill: (action2) => {
       Actions.fill(ctx, action2.args);
     },
     line: (action2) => {
-      Actions.line(ctx, action2.args.x + x2, action2.args.y + y2);
+      Actions.line(ctx, action2.args.x + x3, action2.args.y + y2);
     },
     curve: (action2) => {
       Actions.curve(
         ctx,
-        action2.args.cp1x + x2,
+        action2.args.cp1x + x3,
         action2.args.cp1y + y2,
-        action2.args.cp2x + x2,
+        action2.args.cp2x + x3,
         action2.args.cp2y + y2,
-        action2.args.x + x2,
+        action2.args.x + x3,
         action2.args.y + y2
       );
     },
@@ -452,10 +452,10 @@ function ResolvePolygonAction(ctx, action, x2, y2) {
       );
     },
     begin: (action2) => {
-      Actions.begin(ctx, action2.args.x + x2, action2.args.y + y2);
+      Actions.begin(ctx, action2.args.x + x3, action2.args.y + y2);
     },
     move: (action2) => {
-      Actions.move(ctx, action2.args.x + x2, action2.args.y + y2);
+      Actions.move(ctx, action2.args.x + x3, action2.args.y + y2);
     },
     close: () => Actions.close(ctx)
   };
@@ -482,8 +482,8 @@ var ResolveImageAction = (ctx, def) => {
   if (!image2 || imageTimeoutReached(image2) || imageIsBeingLoaded(image2) || !(image2 instanceof CalculatedImage)) {
     return;
   }
-  const { start: { x: x2, y: y2 } } = def.area;
-  ctx.drawImage(image2.image, x2 + image2.coords.xDiff, y2 + image2.coords.yDiff, image2.coords.width, image2.coords.height);
+  const { start: { x: x3, y: y2 } } = def.area;
+  ctx.drawImage(image2.image, x3 + image2.coords.xDiff, y2 + image2.coords.yDiff, image2.coords.width, image2.coords.height);
 };
 var imageTimeoutReached = (image2) => {
   return image2 === IMAGE_TIMEOUT_STATUS;
@@ -497,7 +497,7 @@ var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
 var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
-  let { x: x2 } = def.start, lines = [], previousColumnsLines = 0;
+  let { x: x3 } = def.start, lines = [], previousColumnsLines = 0;
   const { start: { y: y2 }, size: { w }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
   ctx.save();
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
@@ -507,29 +507,29 @@ var ResolveTextAction = (ctx, def) => {
       const nextLine = lines[i + 1] || value[0] || [""];
       const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
       const verticalMove = transY + (text3[1] - previousColumnsLines) * lineHeight;
-      fillText(ctx, text3[0], def, x2, y2, w, verticalMove, isLast);
+      fillText(ctx, text3[0], def, x3, y2, w, verticalMove, isLast);
     });
-    previousColumnsLines += lines[lines.length - 1][1] + 1;
-    x2 += columns.gap + w;
+    previousColumnsLines = lines[lines.length - 1][1] + 1;
+    x3 += columns.gap + w;
   }
   ctx.restore();
 };
-var fillText = (ctx, text2, def, x2, y2, width2, transY, isLast) => {
+var fillText = (ctx, text2, def, x3, y2, width2, transY, isLast) => {
   const { color = "#000", outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || "left";
   if (horizontal != "left") {
-    ({ text: text2, x: x2 } = alignHorizontally(ctx, horizontal, text2, width2, isLast, x2));
+    ({ text: text2, x: x3 } = alignHorizontally(ctx, horizontal, text2, width2, isLast, x3));
   }
   if (transY > 0) {
     y2 = y2 + transY;
   }
   ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
   if (outline) {
-    outlineText(ctx, outline, text2, x2, y2, width2);
+    outlineText(ctx, outline, text2, x3, y2, width2);
   }
-  ctx.fillText(text2, x2, y2, width2);
+  ctx.fillText(text2, x3, y2, width2);
 };
-var outlineText = (ctx, outline, text2, x2, y2, width2) => {
+var outlineText = (ctx, outline, text2, x3, y2, width2) => {
   if (!outline.fill?.style) {
     return;
   }
@@ -537,22 +537,22 @@ var outlineText = (ctx, outline, text2, x2, y2, width2) => {
   ctx.lineWidth = outline.thickness;
   ctx.lineJoin = outline.lineJoin ?? "round";
   ctx.miterLimit = outline.miterLimit ?? 2;
-  ctx.strokeText(text2, x2, y2, width2);
+  ctx.strokeText(text2, x3, y2, width2);
 };
-var alignHorizontally = (ctx, horizontal, text2, width2, isLast, x2) => {
+var alignHorizontally = (ctx, horizontal, text2, width2, isLast, x3) => {
   const metrics = ctx.measureText(text2);
   const realWidth = metrics.width;
   if (horizontal == "center") {
     const transX = (width2 - realWidth) / 2;
     if (transX > 0) {
-      x2 = x2 + transX;
+      x3 = x3 + transX;
     }
   } else if (horizontal == "right") {
-    x2 = x2 + width2 - realWidth;
+    x3 = x3 + width2 - realWidth;
   } else if (horizontal == "justify" && !isLast) {
     text2 = justifyText(text2, metrics, width2, ctx);
   }
-  return { text: text2, x: x2 };
+  return { text: text2, x: x3 };
 };
 var justifyText = (text2, metrics, width2, ctx) => {
   if (metrics.width >= width2) {
@@ -942,11 +942,11 @@ var outlineImage = async (image2, def, asWidth, asHeight) => {
       newDArr.push(dArr[i]);
       const [cX, cY] = dArr[i], [dX, dY] = i + 1 === dArr.length ? dArr[0] : dArr[i + 1];
       const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
-      let x2 = cX, y2 = cY;
-      while ((trendX > 0 && x2 + bX < dX || trendX < 0 && x2 + bX > dX) && (trendY > 0 && y2 + bY < dY || trendY < 0 && y2 + bY > dY)) {
-        x2 += bX;
+      let x3 = cX, y2 = cY;
+      while ((trendX > 0 && x3 + bX < dX || trendX < 0 && x3 + bX > dX) && (trendY > 0 && y2 + bY < dY || trendY < 0 && y2 + bY > dY)) {
+        x3 += bX;
         y2 += bY;
-        between.push([x2, y2]);
+        between.push([x3, y2]);
       }
       newDArr = newDArr.concat(between);
     }
@@ -992,19 +992,19 @@ var canvasToWebp = async (canvas, dft) => {
 };
 var cropImage = async (image2, def) => {
   const { w: width2, h: height2 } = def.size;
-  let fitTo = def.image.fitTo ?? "auto", x2 = 0, y2 = 0;
+  let fitTo = def.image.fitTo ?? "auto", x3 = 0, y2 = 0;
   if (fitTo === "auto") {
     fitTo = height2 > width2 ? "height" : "width";
   }
   if (fitTo === "height") {
-    x2 = (width2 - image2.width * (height2 / image2.height)) / 2;
+    x3 = (width2 - image2.width * (height2 / image2.height)) / 2;
   } else if (fitTo === "width") {
     y2 = (height2 - image2.height * (width2 / image2.width)) / 2;
   }
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
   canvas.setAttribute("width", String(width2));
   canvas.setAttribute("height", String(height2));
-  ctx.drawImage(image2, x2, y2, width2 - x2 * 2, height2 - y2 * 2);
+  ctx.drawImage(image2, x3, y2, width2 - x3 * 2, height2 - y2 * 2);
   return canvasToWebp(canvas, image2);
 };
 var calculateAspectRatioFit = (fit, srcWidth, srcHeight, maxWidth, maxHeight) => {
@@ -1296,12 +1296,12 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
 
 // ../antetype-core/dist/index.js
 var u = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded", CANVAS_CHANGE: "antetype.canvas.change" };
-var E2 = Symbol("original");
-var _ = Symbol("clone");
-var W = Symbol("layer");
-var Y = "core";
-var X = "0.0.5";
-var B = class {
+var x2 = Symbol("original");
+var Y = Symbol("clone");
+var X = Symbol("layer");
+var K2 = "core";
+var J = "0.0.5";
+var A2 = class {
   #n;
   #t = null;
   #e = false;
@@ -1314,12 +1314,12 @@ var B = class {
     return (await this.#r()).loadModules(d2);
   }
   register(d2) {
-    let { registration: I2 } = d2.detail;
-    I2[Y] = { load: async () => (!this.#t && !this.#e && (this.#e = new Promise((y2) => {
-      this.#i("core.js").then((l2) => {
-        this.#t = l2.default, this.#e = false, y2();
+    let { registration: g2 } = d2.detail;
+    g2[K2] = { load: async () => (!this.#t && !this.#e && (this.#e = new Promise((p2) => {
+      this.#i("core.js").then((c2) => {
+        this.#t = c2.default, this.#e = false, p2();
       });
-    })), this.#e && await this.#e, console.log("load module3", this.#t), (y2) => this.#t({ modules: y2, herald: this.#n.herald })), version: X };
+    })), this.#e && await this.#e, console.log("load module3", this.#t), (p2) => this.#t({ modules: p2, herald: this.#n.herald })), version: J };
   }
   static subscriptions = { [u.MODULES]: "register" };
   #i(d2) {
@@ -1555,13 +1555,13 @@ var Illustrator = class {
     }
     def.area = ResolvePolygonSize(def);
   }
-  polygon({ polygon: { steps }, start: { x: x2, y: y2 } }) {
+  polygon({ polygon: { steps }, start: { x: x3, y: y2 } }) {
     const ctx = this.#ctx2();
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(x2, y2);
+    ctx.moveTo(x3, y2);
     for (const step of steps) {
-      ResolvePolygonAction(ctx, step, x2, y2);
+      ResolvePolygonAction(ctx, step, x3, y2);
     }
     ctx.closePath();
     ctx.restore();

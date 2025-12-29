@@ -1,7 +1,7 @@
-import { Event as CoreEvent, type ICore } from '@boardmeister/antetype-core';
+import { Event as CoreEvent, type Canvas, type CanvasChangeEvent, type ICore } from '@boardmeister/antetype-core';
 import Core from "@boardmeister/antetype-core/dist/core";
 import { Herald } from '@boardmeister/herald';
-import type { IGroupDef, IImageDef, ITextDef, ModulesWithCore } from '@src/index';
+import type { IGroupDef, IImageDef, ITextDef } from '@src/index';
 import Illustrator from '@src/module';
 import {
   initialize, close,
@@ -9,6 +9,7 @@ import {
 import textDrawnBase64 from 'test/asset/text-drawn.base64';
 import imageDrawnBase64 from 'test/asset/image-drawn.base64';
 import groupDrawnBase64 from 'test/asset/group-drawn.base64';
+import type { ModulesWithCore } from '@src/type/type';
 
 describe('Layer is properly drawn', () => {
   let illustrator: Illustrator, core: ICore;
@@ -19,28 +20,40 @@ describe('Layer is properly drawn', () => {
   canvas.style.height = '200px';
   canvas.style.width = '200px';
   document.body.appendChild(canvas)
-  beforeEach(() => {
+  beforeEach(async () => {
     core = Core({ herald }) as ICore;
     const modules = { core } as ModulesWithCore;
     illustrator = new Illustrator(modules, herald);
-    core.meta.setCanvas(canvas);
+    const registerEvents = (anchor: Canvas|null = null) => {
+      const unregister = herald.batch([
+        {
+          event: CoreEvent.CLOSE,
+          subscription: () => {
+            unregister();
+          },
+          anchor,
+        },
+        {
+          event: CoreEvent.CANVAS_CHANGE,
+          subscription: async ({ detail: { current } }: CanvasChangeEvent): Promise<void> => {
+            unregister();
+            registerEvents(current);
+          },
+          anchor,
+        },
+      ])
+    }
+    registerEvents(null);
+    await core.meta.setCanvas(canvas);
     modules.illustrator = illustrator;
-    const unregister = herald.batch([
-      {
-        event: CoreEvent.CLOSE,
-        subscription: () => {
-          unregister();
-        }
-      },
-    ])
   });
 
   afterEach(async () => {
-    await close(herald);
+    await close(canvas, herald);
   })
 
   it('text', async () => {
-    await initialize(herald, [
+    await initialize(canvas, herald, [
       {
         type: 'clear',
         start: { x: 0, y: 0 },
@@ -56,12 +69,12 @@ describe('Layer is properly drawn', () => {
             horizontal: 'center',
           },
           wrap: true,
-          value: 'text text text text',
+          value: 'text text text text text text text text text text text text text text text text',
           font: { size: 16 },
           lineHeight: 16,
           columns: {
             gap: 1,
-            amount: 2,
+            amount: 4,
           },
           color: {
             type: 'linear',
@@ -121,7 +134,7 @@ describe('Layer is properly drawn', () => {
   });
 
   it('image', async () => {
-    await initialize(herald, [
+    await initialize(canvas, herald, [
       {
         type: 'clear',
         start: { x: 0, y: 0 },
@@ -202,7 +215,7 @@ describe('Layer is properly drawn', () => {
   });
 
   it('group', async () => {
-    await initialize(herald, [
+    await initialize(canvas, herald, [
       {
         type: 'clear',
         start: { x: 0, y: 0 },

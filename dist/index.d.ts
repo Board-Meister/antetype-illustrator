@@ -142,6 +142,7 @@ interface ICore extends Module$1 {
 		redraw: (layout?: Layout) => void;
 		recalculate: (parent?: IParentDef, layout?: Layout, currentSession?: symbol | null) => Promise<Layout>;
 		redrawDebounce: (layout?: Layout) => void;
+		recalculateDebounce: (parent?: IParentDef, layout?: Layout, currentSession?: symbol | null) => Promise<Layout>;
 		move: (original: IBaseDef, newStart: IStart) => Promise<void>;
 		resize: (original: IBaseDef, newSize: ISize) => Promise<void>;
 	};

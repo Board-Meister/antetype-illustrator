@@ -1,8 +1,9 @@
-import { Event as CoreEvent, type ICore } from '@boardmeister/antetype-core';
+import { Event as CoreEvent, type Canvas, type CanvasChangeEvent, type ICore } from '@boardmeister/antetype-core';
 import { Event as WorkspaceEvent, ICalcEvent } from '@boardmeister/antetype-workspace';
 import Core from "@boardmeister/antetype-core/dist/core";
 import { Herald } from '@boardmeister/herald';
-import type { IGroupDef, IImageDef, ITextDef, ModulesWithCore } from '@src/index';
+import type { ModulesWithCore } from "@src/type/type.d";
+import type { IGroupDef, IImageDef, ITextDef } from '@src/index';
 import Illustrator from '@src/module';
 import {
   initialize, close,
@@ -14,35 +15,48 @@ describe('Values are properly calculated for', () => {
   const herald = new Herald();
   const canvas = document.createElement('canvas');
   const obj = jasmine.objectContaining;
-  beforeEach(() => {
+  beforeEach(async () => {
     core = Core({ herald }) as ICore;
     const modules = { core } as ModulesWithCore;
     illustrator = new Illustrator(modules, herald);
-    core.meta.setCanvas(canvas);
     modules.illustrator = illustrator;
-    const unregister = herald.batch([
-      {
-        event: CoreEvent.CLOSE,
-        subscription: () => {
-          unregister();
-        }
-      },
-      {
-        // Mock event handle to mark each send value (by adding one to it)
-        event: WorkspaceEvent.CALC,
-        subscription: (e: CustomEvent<ICalcEvent>) => {
-          const values = e.detail.values;
-          const keys = Object.keys(values);
-          for (const key of keys) {
-            values[key] = Number(values[key]) + 1;
-          }
-        }
-      }
-    ])
+    const registerEvents = (anchor: Canvas|null = null) => {
+      const unregister = herald.batch([
+        {
+          event: CoreEvent.CLOSE,
+          subscription: () => {
+            unregister();
+          },
+          anchor,
+        },
+        {
+          // Mock event handle to mark each send value (by adding one to it)
+          event: WorkspaceEvent.CALC,
+          subscription: (e: CustomEvent<ICalcEvent>) => {
+            const values = e.detail.values;
+            const keys = Object.keys(values);
+            for (const key of keys) {
+              values[key] = Number(values[key]) + 1;
+            }
+          },
+          anchor,
+        },
+        {
+          event: CoreEvent.CANVAS_CHANGE,
+          subscription: async ({ detail: { current } }: CanvasChangeEvent): Promise<void> => {
+            unregister();
+            registerEvents(current);
+          },
+          anchor,
+        },
+      ])
+    }
+    registerEvents(null);
+    await core.meta.setCanvas(canvas);
   });
 
   afterEach(async () => {
-    await close(herald);
+    await close(canvas, herald);
   })
 
   const generateMinimalTextDetails = () => ({
@@ -54,7 +68,7 @@ describe('Values are properly calculated for', () => {
   })
 
   it('text layer', async () => {
-    await initialize(herald, [
+    await initialize(canvas, herald, [
       {
         type: 'text',
         start: { x: 1, y: 1 },
@@ -130,7 +144,7 @@ describe('Values are properly calculated for', () => {
 
 
   it('image layer', async () => {
-    await initialize(herald, [
+    await initialize(canvas, herald, [
       {
         type: 'image',
         start: { x: 1, y: 1 },
@@ -170,7 +184,7 @@ describe('Values are properly calculated for', () => {
   });
 
   it('group layer', async () => {
-    await initialize(herald, [
+    await initialize(canvas, herald, [
       {
         type: 'group',
         start: { x: 0, y: 0 },

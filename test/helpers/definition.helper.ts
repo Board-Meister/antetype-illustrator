@@ -1,3 +1,4 @@
+import { Canvas } from './../../node_modules/@boardmeister/antetype-core/dist/index.d';
 import { IBaseDef, type InitEvent, type ISettings, type Layout } from '@boardmeister/antetype-core';
 import type { Herald } from '@boardmeister/herald';
 import { Event as CoreEvent } from "@boardmeister/antetype-core";
@@ -9,7 +10,7 @@ export const generateRandomLayer = (type: string): IBaseDef => ({
   _mark: Math.random(),
 });
 
-export const initialize = (herald: Herald, layout: Layout|null = null, settings: ISettings = {}): Promise<void> => {
+export const initialize = (canvas: Canvas, herald: Herald, layout: Layout|null = null, settings: ISettings = {}): Promise<void> => {
   return herald.dispatch(new CustomEvent<InitEvent>(CoreEvent.INIT, {
     detail: {
       base: layout ?? [
@@ -20,9 +21,13 @@ export const initialize = (herald: Herald, layout: Layout|null = null, settings:
       ],
       settings,
     }
-  }));
+  }), {
+    origin: canvas,
+  });
 }
 
-export const close = (herald: Herald): Promise<void> => {
-  return herald.dispatch(new CustomEvent<CloseEvent>(CoreEvent.CLOSE));
+export const close = (canvas: Canvas, herald: Herald): Promise<void> => {
+  return herald.dispatch(new CustomEvent<CloseEvent>(CoreEvent.CLOSE), {
+    origin: canvas,
+  });
 }
