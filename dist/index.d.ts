@@ -271,6 +271,7 @@ export declare type VerticalAlign = "center" | "top" | "bottom";
 export declare type HorizontalAlign = "center" | "left" | "right" | "justify";
 export declare type TextColumnsTactics = "evenly" | "from-side";
 export declare type TextDirection = "left" | "right";
+export declare type OverflowDirection = "vertical" | "horizontal";
 export interface ITextAlign {
 	vertical?: VerticalAlign;
 	horizontal?: HorizontalAlign;
@@ -307,6 +308,7 @@ export interface ITextArgs {
 	color?: FillStyle | FillTypes;
 	outline?: ITextOutline;
 	direction?: TextDirection;
+	overflow?: OverflowDirection;
 	// Calculated do not set!
 	transY?: number;
 	lines?: TextLines;

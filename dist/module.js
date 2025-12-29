@@ -498,7 +498,8 @@ var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x: x3 } = def.start, lines = [];
-  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, transY, lineHeight, direction } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
+  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, lineHeight, direction, overflow } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
+  let transY = text2.transY ?? 0;
   let linesAmount = Math.floor(h2 / lineHeight);
   if (columns?.tactic == "evenly") {
     linesAmount = Math.ceil(value.length / columns.amount);
@@ -513,6 +514,7 @@ var ResolveTextAction = (ctx, def) => {
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   const getStartFrom = (lines2, linesAmount2) => direction == "right" && lines2.length >= linesAmount2 ? lines2.length - linesAmount2 : 0;
+  const startingX = x3;
   while ((lines = value.splice(getStartFrom(value, linesAmount), linesAmount)).length) {
     lines.forEach((text3, i) => {
       const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [""];
@@ -521,13 +523,18 @@ var ResolveTextAction = (ctx, def) => {
       fillText(ctx, text3[0], def, x3, y2, fullW / columns.amount, verticalMove, isLast);
     });
     x3 += fullW / columns.amount + columns.gap;
+    if (x3 + (startingX < 0 ? Math.abs(startingX) : 0) >= w && (!overflow || overflow == "vertical")) {
+      x3 = startingX;
+      transY += lines.length * lineHeight + columns.gap;
+    }
   }
   ctx.restore();
 };
 var fillText = (ctx, text2, def, x3, y2, width2, transY, isLast) => {
   const { color = "#000", outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || "left";
-  ({ text: text2, x: x3 } = alignHorizontally(def, ctx, horizontal, text2, width2, isLast, x3));
+  let realWidth;
+  ({ text: text2, x: x3, realWidth } = alignHorizontally(def, ctx, horizontal, text2, width2, isLast, x3));
   if (transY > 0) {
     y2 = y2 + transY;
   }
@@ -536,6 +543,7 @@ var fillText = (ctx, text2, def, x3, y2, width2, transY, isLast) => {
     outlineText(ctx, outline, text2, x3, y2, width2);
   }
   ctx.fillText(text2, x3, y2, width2);
+  return realWidth;
 };
 var outlineText = (ctx, outline, text2, x3, y2, width2) => {
   if (!outline.fill?.style) {
@@ -563,7 +571,7 @@ var alignHorizontally = (def, ctx, horizontal, text2, width2, isLast, x3) => {
   } else if (isRight && realWidth < width2) {
     x3 -= width2 - realWidth;
   }
-  return { text: text2, x: x3 };
+  return { text: text2, x: x3, realWidth };
 };
 var justifyText = (text2, metrics, width2, ctx) => {
   if (metrics.width >= width2) {

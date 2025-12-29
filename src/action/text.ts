@@ -9,6 +9,7 @@ export const getSpaceChart = (): string => String.fromCharCode(8202);
 
 /*
  * More text effects https://stackoverflow.com/a/55790112/11495586
+For text on circle https://stackoverflow.com/a/28997410/11495586
  */
 export const ResolveTextAction = (
   ctx: Context,
@@ -18,11 +19,12 @@ export const ResolveTextAction = (
     lines: TextLines = []
   ;
   const { start: { y }, size: { w, h }, text } = def,
-    { columns, transY, lineHeight, direction } = text,
+    { columns, lineHeight, direction, overflow } = text,
     value = [...text.lines as TextLines],
     { textBaseline = 'top' } = def.text,
     fullW = w - (columns!.gap * (columns!.amount - 1))
   ;
+  let transY = text.transY ?? 0;
   let linesAmount = Math.floor(h / lineHeight!);
   if (columns?.tactic == "evenly") {
     linesAmount = Math.ceil(value.length/columns!.amount);
@@ -42,6 +44,7 @@ export const ResolveTextAction = (
   const getStartFrom = (lines: TextLines, linesAmount: number): number =>
     direction == "right" && lines.length >= linesAmount ? lines.length - linesAmount : 0;
 
+  const startingX = x;
   while ((lines = value.splice(getStartFrom(value, linesAmount), linesAmount)).length) {
     lines.forEach((text, i) => {
       const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [''];
@@ -50,6 +53,10 @@ export const ResolveTextAction = (
       fillText(ctx, text[0], def, x, y, fullW/columns!.amount, verticalMove, isLast);
     });
     x += fullW/columns!.amount + columns!.gap;
+    if (x + (startingX < 0 ? Math.abs(startingX) : 0) >= w && (!overflow || overflow == "vertical")) {
+      x = startingX;
+      transY += (lines.length*lineHeight!) + columns!.gap;
+    }
   }
 
   ctx.restore();
@@ -64,11 +71,12 @@ const fillText = (
   width: number,
   transY: number,
   isLast: boolean,
-): void => {
+): number => {
   const { color = '#000', outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || 'left';
+  let realWidth;
 
-  ({ text, x } = alignHorizontally(def, ctx, horizontal, text, width, isLast, x));
+  ({ text, x, realWidth } = alignHorizontally(def, ctx, horizontal, text, width, isLast, x));
 
   if (transY > 0) {
     y = y + transY;
@@ -81,6 +89,8 @@ const fillText = (
   }
 
   ctx.fillText(text, x, y, width);
+
+  return realWidth;
 }
 
 const outlineText = (
@@ -110,7 +120,7 @@ const alignHorizontally = (
   width: number,
   isLast: boolean,
   x: number,
-): { text: string, x: number } => {
+): { text: string, x: number, realWidth: number } => {
   const metrics = ctx.measureText(text);
   const realWidth = metrics.width;
   const isRight = def.text.direction === "right";
@@ -128,7 +138,7 @@ const alignHorizontally = (
     x -= (width - realWidth);
   }
 
-  return { text, x }
+  return { text, x, realWidth }
 }
 
 const justifyText = (
