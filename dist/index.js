@@ -517,7 +517,7 @@ var ResolveTextAction = (ctx, def) => {
       const nextLine = lines[i + 1] || value[0] || [""];
       const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
       const verticalMove = transY + (text3[1] - previousColumnsLines) * lineHeight;
-      fillText(ctx, text3[0], def, x3, y2, fullW, verticalMove, isLast);
+      fillText(ctx, text3[0], def, x3, y2, fullW / columns.amount, verticalMove, isLast);
     });
     previousColumnsLines = lines[lines.length - 1][1] + 1;
     x3 += fullW / columns.amount + columns.gap;
