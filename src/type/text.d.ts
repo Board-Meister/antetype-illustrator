@@ -6,6 +6,7 @@ import { TextLines } from "@src/action/text";
 export declare type VerticalAlign = 'center'|'top'|'bottom';
 export declare type HorizontalAlign = 'center'|'left'|'right'|'justify';
 export declare type TextColumnsTactics = 'evenly'|'from-side';
+export declare type TextDirection = 'left'|'right';
 
 export interface ITextAlign {
   vertical?: VerticalAlign;
@@ -15,7 +16,7 @@ export interface ITextAlign {
 export interface ITextColumns {
   amount: number;
   gap: number;
-  tactic: TextColumnsTactics;
+  tactic?: TextColumnsTactics;
 }
 
 export interface ITextFont {
@@ -46,6 +47,7 @@ export interface ITextArgs {
   lineHeight?: XValue;
   color?: FillStyle|FillTypes;
   outline?: ITextOutline;
+  direction?: TextDirection;
   // Calculated do not set!
   transY?: number;
   lines?: TextLines;

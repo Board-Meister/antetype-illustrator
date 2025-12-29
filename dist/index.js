@@ -503,23 +503,29 @@ var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
 var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
-  let { x: x3 } = def.start, lines = [], previousColumnsLines = 0;
-  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
+  let { x: x3 } = def.start, lines = [];
+  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, transY, lineHeight, direction } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
   let linesAmount = Math.floor(h2 / lineHeight);
   if (columns?.tactic == "evenly") {
     linesAmount = Math.ceil(value.length / columns.amount);
   }
   ctx.save();
+  if (direction == "right") {
+    ctx.direction = "rtl";
+    x3 += fullW / columns.amount;
+  } else {
+    ctx.direction = "ltr";
+  }
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
-  while ((lines = value.splice(0, linesAmount)).length) {
+  const getStartFrom = (lines2, linesAmount2) => direction == "right" && lines2.length >= linesAmount2 ? lines2.length - linesAmount2 : 0;
+  while ((lines = value.splice(getStartFrom(value, linesAmount), linesAmount)).length) {
     lines.forEach((text3, i) => {
-      const nextLine = lines[i + 1] || value[0] || [""];
+      const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [""];
       const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
-      const verticalMove = transY + (text3[1] - previousColumnsLines) * lineHeight;
+      const verticalMove = transY + i * lineHeight;
       fillText(ctx, text3[0], def, x3, y2, fullW / columns.amount, verticalMove, isLast);
     });
-    previousColumnsLines = lines[lines.length - 1][1] + 1;
     x3 += fullW / columns.amount + columns.gap;
   }
   ctx.restore();
@@ -527,9 +533,7 @@ var ResolveTextAction = (ctx, def) => {
 var fillText = (ctx, text2, def, x3, y2, width2, transY, isLast) => {
   const { color = "#000", outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || "left";
-  if (horizontal != "left") {
-    ({ text: text2, x: x3 } = alignHorizontally(ctx, horizontal, text2, width2, isLast, x3));
-  }
+  ({ text: text2, x: x3 } = alignHorizontally(def, ctx, horizontal, text2, width2, isLast, x3));
   if (transY > 0) {
     y2 = y2 + transY;
   }
@@ -549,18 +553,21 @@ var outlineText = (ctx, outline, text2, x3, y2, width2) => {
   ctx.miterLimit = outline.miterLimit ?? 2;
   ctx.strokeText(text2, x3, y2, width2);
 };
-var alignHorizontally = (ctx, horizontal, text2, width2, isLast, x3) => {
+var alignHorizontally = (def, ctx, horizontal, text2, width2, isLast, x3) => {
   const metrics = ctx.measureText(text2);
   const realWidth = metrics.width;
+  const isRight = def.text.direction === "right";
+  ctx.textAlign = "left";
   if (horizontal == "center") {
-    const transX = (width2 - realWidth) / 2;
-    if (transX > 0) {
-      x3 = x3 + transX;
-    }
+    ctx.textAlign = "center";
+    x3 += width2 / 2 * (isRight ? -1 : 1);
   } else if (horizontal == "right") {
-    x3 = x3 + width2 - realWidth;
+    ctx.textAlign = "right";
+    x3 += width2 * (isRight ? 0 : 1);
   } else if (horizontal == "justify" && !isLast) {
     text2 = justifyText(text2, metrics, width2, ctx);
+  } else if (isRight && realWidth < width2) {
+    x3 -= width2 - realWidth;
   }
   return { text: text2, x: x3 };
 };

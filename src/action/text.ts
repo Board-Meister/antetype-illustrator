@@ -15,11 +15,10 @@ export const ResolveTextAction = (
   def: ITextDef,
 ): void => {
   let { x } = def.start,
-    lines: TextLines = [],
-    previousColumnsLines = 0
+    lines: TextLines = []
   ;
   const { start: { y }, size: { w, h }, text } = def,
-    { columns, transY, lineHeight } = text,
+    { columns, transY, lineHeight, direction } = text,
     value = [...text.lines as TextLines],
     { textBaseline = 'top' } = def.text,
     fullW = w - (columns!.gap * (columns!.amount - 1))
@@ -31,17 +30,25 @@ export const ResolveTextAction = (
 
   ctx.save();
 
+  if (direction == "right") {
+    ctx.direction = "rtl";
+    x += fullW/columns!.amount;
+  } else {
+    ctx.direction = "ltr";
+  }
+
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
+  const getStartFrom = (lines: TextLines, linesAmount: number): number =>
+    direction == "right" && lines.length >= linesAmount ? lines.length - linesAmount : 0;
 
-  while ((lines = value.splice(0, linesAmount)).length) {
+  while ((lines = value.splice(getStartFrom(value, linesAmount), linesAmount)).length) {
     lines.forEach((text, i) => {
-      const nextLine = lines[i + 1] || value[0] || [''];
+      const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [''];
       const isLast = i + 1 == lines.length || nextLine[0] == '' || text[0][text[0].length - 1] == '\n';
-      const verticalMove = transY! + (text[1] - previousColumnsLines)*lineHeight!;
+      const verticalMove = transY! + i*lineHeight!;
       fillText(ctx, text[0], def, x, y, fullW/columns!.amount, verticalMove, isLast);
     });
-    previousColumnsLines = lines[lines.length - 1][1] + 1;
     x += fullW/columns!.amount + columns!.gap;
   }
 
@@ -61,9 +68,7 @@ const fillText = (
   const { color = '#000', outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || 'left';
 
-  if (horizontal != 'left') {
-    ({ text, x } = alignHorizontally(ctx, horizontal, text, width, isLast, x));
-  }
+  ({ text, x } = alignHorizontally(def, ctx, horizontal, text, width, isLast, x));
 
   if (transY > 0) {
     y = y + transY;
@@ -98,6 +103,7 @@ const outlineText = (
 }
 
 const alignHorizontally = (
+  def: ITextDef,
   ctx: Context,
   horizontal: HorizontalAlign,
   text: string,
@@ -107,15 +113,19 @@ const alignHorizontally = (
 ): { text: string, x: number } => {
   const metrics = ctx.measureText(text);
   const realWidth = metrics.width;
+  const isRight = def.text.direction === "right";
+
+  ctx.textAlign = 'left';
   if (horizontal == 'center') {
-    const transX = (width - realWidth)/2;
-    if (transX > 0) {
-      x = x + transX;
-    }
+    ctx.textAlign = 'center';
+    x += width/2 * (isRight ? -1 : 1);
   } else if (horizontal == 'right') {
-    x = x + width - realWidth;
+    ctx.textAlign = 'right';
+    x += width * (isRight ? 0 : 1);
   } else if (horizontal == 'justify' && !isLast) {
     text = justifyText(text, metrics, width, ctx);
+  } else if (isRight && realWidth < width) {
+    x -= (width - realWidth);
   }
 
   return { text, x }
