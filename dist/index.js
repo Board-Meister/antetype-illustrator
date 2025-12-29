@@ -504,7 +504,7 @@ var getFontSize = (def) => Number(def.text.font?.size ?? 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x: x3 } = def.start, lines = [], previousColumnsLines = 0;
-  const { start: { y: y2 }, size: { w }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text;
+  const { start: { y: y2 }, size: { w }, text: text2 } = def, { columns, transY, lineHeight } = text2, value = [...text2.lines], linesAmount = Math.ceil(value.length / columns.amount), { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
   ctx.save();
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
@@ -513,10 +513,10 @@ var ResolveTextAction = (ctx, def) => {
       const nextLine = lines[i + 1] || value[0] || [""];
       const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
       const verticalMove = transY + (text3[1] - previousColumnsLines) * lineHeight;
-      fillText(ctx, text3[0], def, x3, y2, w, verticalMove, isLast);
+      fillText(ctx, text3[0], def, x3, y2, fullW, verticalMove, isLast);
     });
     previousColumnsLines = lines[lines.length - 1][1] + 1;
-    x3 += columns.gap + w;
+    x3 += fullW / columns.amount + columns.gap;
   }
   ctx.restore();
 };
@@ -1108,7 +1108,6 @@ var ResolveTextCalc = async (def, modules, ctx) => {
   const {
     lines,
     lineHeight: preparedLineHeight,
-    width: width2,
     columns,
     fontSize: preparedFontSize
   } = prepare(def, ctx, def.size.w);
@@ -1119,7 +1118,6 @@ var ResolveTextCalc = async (def, modules, ctx) => {
   def.text.lineHeight = preparedLineHeight;
   def.text.font.size = preparedFontSize;
   def.text.columns = columns;
-  def.size.w = width2;
   def.text.lines = lines;
   def.area = ResolveTextSize(def);
   return def;

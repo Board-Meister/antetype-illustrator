@@ -73,7 +73,12 @@ describe('Values are properly calculated for', () => {
         type: 'text',
         start: { x: 1, y: 1 },
         size: { w: 100, h: 100 },
-        text: generateMinimalTextDetails(),
+        text: Object.assign(generateMinimalTextDetails(), {
+          columns: {
+            amount: 2,
+            gap: 1,
+          },
+        }),
       } as ITextDef,
       {
         type: 'text',

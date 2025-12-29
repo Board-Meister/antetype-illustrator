@@ -22,7 +22,8 @@ export const ResolveTextAction = (
     { columns, transY, lineHeight } = text,
     value = [...text.lines as TextLines],
     linesAmount = Math.ceil(value.length/columns!.amount),
-    { textBaseline = 'top' } = def.text
+    { textBaseline = 'top' } = def.text,
+    fullW = w - (columns!.gap * (columns!.amount - 1))
   ;
 
   ctx.save();
@@ -35,10 +36,10 @@ export const ResolveTextAction = (
       const nextLine = lines[i + 1] || value[0] || [''];
       const isLast = i + 1 == lines.length || nextLine[0] == '' || text[0][text[0].length - 1] == '\n';
       const verticalMove = transY! + (text[1] - previousColumnsLines)*lineHeight!;
-      fillText(ctx, text[0], def, x, y, w, verticalMove, isLast);
+      fillText(ctx, text[0], def, x, y, fullW, verticalMove, isLast);
     });
     previousColumnsLines = lines[lines.length - 1][1] + 1;
-    x += columns!.gap + w;
+    x += fullW/columns!.amount + columns!.gap;
   }
 
   ctx.restore();

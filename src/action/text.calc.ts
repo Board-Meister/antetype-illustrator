@@ -78,7 +78,6 @@ export const ResolveTextCalc = async (
   const {
     lines,
     lineHeight: preparedLineHeight,
-    width,
     columns,
     fontSize: preparedFontSize
   } = prepare(def, ctx, def.size.w);
@@ -92,7 +91,6 @@ export const ResolveTextCalc = async (
   def.text.lineHeight = preparedLineHeight;
   def.text.font.size = preparedFontSize;
   def.text.columns = columns;
-  def.size.w = width;
   def.text.lines = lines;
 
   def.area = ResolveTextSize(def);
