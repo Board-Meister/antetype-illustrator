@@ -5,12 +5,11 @@ import { IIllustrator } from "@src/module";
 import { getFontSize, getFontSizeForCalc, getSpaceChart, prepareFontShorthand, TextLines } from "@src/action/text";
 import type { Context } from "@src/type/type";
 
-export const ResolveTextSize = (def: ITextDef): IArea => {
-  let fontSize = def.text.font?.size;
-  if (!fontSize || typeof fontSize == 'string') {
-    fontSize = 0;
-  }
+const getLineHeight = (def:ITextDef): number => {
+  return def.text.lineHeight || getFontSize(def);
+}
 
+export const ResolveTextSize = (def: ITextDef): IArea => {
   return {
     start: {
       y: def.start.y,
@@ -18,7 +17,7 @@ export const ResolveTextSize = (def: ITextDef): IArea => {
     },
     size: {
       w: def.size.w,
-      h: def.size.h ?? ((def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0)),
+      h: def.size.h ?? (getLineHeight(def) * (def.text.lines?.length ?? 0)),
     }
   };
 }
@@ -53,7 +52,7 @@ export const ResolveTextCalc = async (
     purpose: 'prepare',
     values: {
       fontSize: getFontSizeForCalc(def),
-      lineHeight: def.text.lineHeight ?? 0,
+      lineHeight: getLineHeight(def),
       gap: def.text.columns?.gap ?? 0,
       outlineThickness: def.text.outline?.thickness ?? 0,
     },
@@ -130,7 +129,7 @@ const prepare = (
   return {
     lines,
     fontSize,
-    lineHeight: def.text.lineHeight ?? fontSize,
+    lineHeight: getLineHeight(def),
     width: colWidth,
     columns,
   }
@@ -188,7 +187,7 @@ const addSpacing = (def: ITextDef, text: string): string => {
 }
 
 const calcColumnWidth = (rWidth: number, columns: ITextColumns): number => {
-  return (rWidth - ((columns.amount - 1) * columns.gap))/columns.amount;
+  return (rWidth - (((columns.amount ?? 1) - 1) * (columns.gap ?? 0)))/(columns.amount ?? 1);
 }
 
 const isSafari = (): boolean => {

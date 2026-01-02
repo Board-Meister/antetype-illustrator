@@ -4,7 +4,7 @@ import type { Context } from "@src/type/type";
 
 export declare type TextLines = { 0: string, 1: number }[];
 export const getFontSizeForCalc = (def: ITextDef): string => String(def.text.font?.size ?? 10);
-export const getFontSize = (def: ITextDef): number => Number(def.text.font?.size ?? 10);
+export const getFontSize = (def: ITextDef): number => Number(def.text.font?.size || 10);
 export const getSpaceChart = (): string => String.fromCharCode(8202);
 
 /*
@@ -22,19 +22,22 @@ export const ResolveTextAction = (
     { columns, lineHeight, direction, overflow } = text,
     value = [...text.lines as TextLines],
     { textBaseline = 'top' } = def.text,
-    fullW = w - (columns!.gap * (columns!.amount - 1))
+    { gap = 0 , amount = 1 } = columns ?? {},
+    fullW = w - (gap * (amount - 1))
   ;
   let transY = text.transY ?? 0;
-  let linesAmount = Math.floor(h / lineHeight!);
+
+  // Must be visible at least one line!
+  let linesAmount = Math.floor(h / lineHeight!) || 1;
   if (columns?.tactic == "evenly") {
-    linesAmount = Math.ceil(value.length/columns!.amount);
+    linesAmount = Math.ceil(value.length/amount);
   }
 
   ctx.save();
 
   if (direction == "right") {
     ctx.direction = "rtl";
-    x += fullW/columns!.amount;
+    x += fullW/amount;
   } else {
     ctx.direction = "ltr";
   }
@@ -50,12 +53,12 @@ export const ResolveTextAction = (
       const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [''];
       const isLast = i + 1 == lines.length || nextLine[0] == '' || text[0][text[0].length - 1] == '\n';
       const verticalMove = transY! + i*lineHeight!;
-      fillText(ctx, text[0], def, x, y, fullW/columns!.amount, verticalMove, isLast);
+      fillText(ctx, text[0], def, x, y, fullW/amount, verticalMove, isLast);
     });
-    x += fullW/columns!.amount + columns!.gap;
+    x += fullW/amount + gap;
     if (x + (startingX < 0 ? Math.abs(startingX) : 0) >= w && (!overflow || overflow == "vertical")) {
       x = startingX;
-      transY += (lines.length*lineHeight!) + columns!.gap;
+      transY += (lines.length*lineHeight!) + gap;
     }
   }
 

@@ -494,20 +494,20 @@ var imageIsBeingLoaded = (image2) => {
 
 // src/action/text.ts
 var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
-var getFontSize = (def) => Number(def.text.font?.size ?? 10);
+var getFontSize = (def) => Number(def.text.font?.size || 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
   let { x: x3 } = def.start, lines = [];
-  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, lineHeight, direction, overflow } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, fullW = w - columns.gap * (columns.amount - 1);
+  const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, lineHeight, direction, overflow } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, { gap = 0, amount = 1 } = columns ?? {}, fullW = w - gap * (amount - 1);
   let transY = text2.transY ?? 0;
-  let linesAmount = Math.floor(h2 / lineHeight);
+  let linesAmount = Math.floor(h2 / lineHeight) || 1;
   if (columns?.tactic == "evenly") {
-    linesAmount = Math.ceil(value.length / columns.amount);
+    linesAmount = Math.ceil(value.length / amount);
   }
   ctx.save();
   if (direction == "right") {
     ctx.direction = "rtl";
-    x3 += fullW / columns.amount;
+    x3 += fullW / amount;
   } else {
     ctx.direction = "ltr";
   }
@@ -520,12 +520,12 @@ var ResolveTextAction = (ctx, def) => {
       const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [""];
       const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
       const verticalMove = transY + i * lineHeight;
-      fillText(ctx, text3[0], def, x3, y2, fullW / columns.amount, verticalMove, isLast);
+      fillText(ctx, text3[0], def, x3, y2, fullW / amount, verticalMove, isLast);
     });
-    x3 += fullW / columns.amount + columns.gap;
+    x3 += fullW / amount + gap;
     if (x3 + (startingX < 0 ? Math.abs(startingX) : 0) >= w && (!overflow || overflow == "vertical")) {
       x3 = startingX;
-      transY += lines.length * lineHeight + columns.gap;
+      transY += lines.length * lineHeight + gap;
     }
   }
   ctx.restore();
@@ -1062,11 +1062,10 @@ var getImageHorizontalDiff = (align, width2, asWidth) => {
 };
 
 // src/action/text.calc.ts
+var getLineHeight = (def) => {
+  return def.text.lineHeight || getFontSize(def);
+};
 var ResolveTextSize = (def) => {
-  let fontSize = def.text.font?.size;
-  if (!fontSize || typeof fontSize == "string") {
-    fontSize = 0;
-  }
   return {
     start: {
       y: def.start.y,
@@ -1074,7 +1073,7 @@ var ResolveTextSize = (def) => {
     },
     size: {
       w: def.size.w,
-      h: def.size.h ?? (def.text.lineHeight ?? fontSize) * (def.text.lines?.length ?? 0)
+      h: def.size.h ?? getLineHeight(def) * (def.text.lines?.length ?? 0)
     }
   };
 };
@@ -1101,7 +1100,7 @@ var ResolveTextCalc = async (def, modules, ctx) => {
     purpose: "prepare",
     values: {
       fontSize: getFontSizeForCalc(def),
-      lineHeight: def.text.lineHeight ?? 0,
+      lineHeight: getLineHeight(def),
       gap: def.text.columns?.gap ?? 0,
       outlineThickness: def.text.outline?.thickness ?? 0
     }
@@ -1149,7 +1148,7 @@ var prepare = (def, ctx, width2) => {
   return {
     lines,
     fontSize,
-    lineHeight: def.text.lineHeight ?? fontSize,
+    lineHeight: getLineHeight(def),
     width: colWidth,
     columns
   };
@@ -1193,7 +1192,7 @@ var addSpacing = (def, text2) => {
   return text2.split("").join(getSpaceChart().repeat(def.text.spacing));
 };
 var calcColumnWidth = (rWidth, columns) => {
-  return (rWidth - (columns.amount - 1) * columns.gap) / columns.amount;
+  return (rWidth - ((columns.amount ?? 1) - 1) * (columns.gap ?? 0)) / (columns.amount ?? 1);
 };
 var isSafari = () => {
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
