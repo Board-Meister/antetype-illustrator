@@ -229,12 +229,12 @@ var h = class {
   }
   #canvasToBlob(e = "image/webp", t = 0.9) {
     let { width: r, height: a } = this.getSize(), i = this.getTop(), n = this.getLeft(), s = this.#ctx.getImageData(n, i, r, a), o = document.createElement("canvas");
-    return o.width = r, o.height = a, o.getContext("2d").putImageData(s, 0, 0), new Promise((u2) => {
+    return o.width = r, o.height = a, o.getContext("2d").putImageData(s, 0, 0), new Promise((u) => {
       let w = setTimeout(() => {
-        u2(null);
+        u(null);
       }, 3e4);
       o.toBlob((b) => {
-        clearTimeout(w), u2(b);
+        clearTimeout(w), u(b);
       }, e, t);
     });
   }
@@ -382,9 +382,9 @@ function generateFill(type, style) {
   };
   return (filTypes[type] || filTypes["default"])(style);
 }
-var generateLinearGradient = (colors, x3, y2, width2, height2) => {
+var generateLinearGradient = (colors, x2, y2, width2, height2) => {
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
-  const grd = ctx.createLinearGradient(x3, y2, width2, height2);
+  const grd = ctx.createLinearGradient(x2, y2, width2, height2);
   colors.forEach((color) => {
     grd.addColorStop(color.offset, color.color);
   });
@@ -393,8 +393,8 @@ var generateLinearGradient = (colors, x3, y2, width2, height2) => {
 
 // src/action/polygon.ts
 var Actions = {
-  line: (ctx, x3, y2) => {
-    ctx.lineTo(x3, y2);
+  line: (ctx, x2, y2) => {
+    ctx.lineTo(x2, y2);
   },
   curve: (ctx, cp1x, cp1y, cp2x, cp2y, curveX, curveY) => {
     ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curveX, curveY);
@@ -408,12 +408,12 @@ var Actions = {
     ctx.stroke();
     ctx.restore();
   },
-  begin: (ctx, x3, y2) => {
+  begin: (ctx, x2, y2) => {
     ctx.beginPath();
-    ctx.moveTo(x3, y2);
+    ctx.moveTo(x2, y2);
   },
-  move: (ctx, x3, y2) => {
-    ctx.moveTo(x3, y2);
+  move: (ctx, x2, y2) => {
+    ctx.moveTo(x2, y2);
   },
   fill: (ctx, fill) => {
     if (!fill.type) {
@@ -427,24 +427,24 @@ var Actions = {
   close: (ctx) => {
     ctx.closePath();
   },
-  default: (ctx, x3, y2) => Actions.line(ctx, x3, y2)
+  default: (ctx, x2, y2) => Actions.line(ctx, x2, y2)
 };
-function ResolvePolygonAction(ctx, action, x3, y2) {
+function ResolvePolygonAction(ctx, action, x2, y2) {
   const objSwitch = {
     fill: (action2) => {
       Actions.fill(ctx, action2.args);
     },
     line: (action2) => {
-      Actions.line(ctx, action2.args.x + x3, action2.args.y + y2);
+      Actions.line(ctx, action2.args.x + x2, action2.args.y + y2);
     },
     curve: (action2) => {
       Actions.curve(
         ctx,
-        action2.args.cp1x + x3,
+        action2.args.cp1x + x2,
         action2.args.cp1y + y2,
-        action2.args.cp2x + x3,
+        action2.args.cp2x + x2,
         action2.args.cp2y + y2,
-        action2.args.x + x3,
+        action2.args.x + x2,
         action2.args.y + y2
       );
     },
@@ -458,10 +458,10 @@ function ResolvePolygonAction(ctx, action, x3, y2) {
       );
     },
     begin: (action2) => {
-      Actions.begin(ctx, action2.args.x + x3, action2.args.y + y2);
+      Actions.begin(ctx, action2.args.x + x2, action2.args.y + y2);
     },
     move: (action2) => {
-      Actions.move(ctx, action2.args.x + x3, action2.args.y + y2);
+      Actions.move(ctx, action2.args.x + x2, action2.args.y + y2);
     },
     close: () => Actions.close(ctx)
   };
@@ -488,8 +488,8 @@ var ResolveImageAction = (ctx, def) => {
   if (!image2 || imageTimeoutReached(image2) || imageIsBeingLoaded(image2) || !(image2 instanceof CalculatedImage)) {
     return;
   }
-  const { start: { x: x3, y: y2 } } = def.area;
-  ctx.drawImage(image2.image, x3 + image2.coords.xDiff, y2 + image2.coords.yDiff, image2.coords.width, image2.coords.height);
+  const { start: { x: x2, y: y2 } } = def.area;
+  ctx.drawImage(image2.image, x2 + image2.coords.xDiff, y2 + image2.coords.yDiff, image2.coords.width, image2.coords.height);
 };
 var imageTimeoutReached = (image2) => {
   return image2 === IMAGE_TIMEOUT_STATUS;
@@ -503,7 +503,7 @@ var getFontSizeForCalc = (def) => String(def.text.font?.size ?? 10);
 var getFontSize = (def) => Number(def.text.font?.size || 10);
 var getSpaceChart = () => String.fromCharCode(8202);
 var ResolveTextAction = (ctx, def) => {
-  let { x: x3 } = def.start, lines = [];
+  let { x: x2 } = def.start, lines = [];
   const { start: { y: y2 }, size: { w, h: h2 }, text: text2 } = def, { columns, lineHeight, direction, overflow } = text2, value = [...text2.lines], { textBaseline = "top" } = def.text, { gap = 0, amount = 1 } = columns ?? {}, fullW = w - gap * (amount - 1);
   let transY = text2.transY ?? 0;
   let linesAmount = Math.floor(h2 / lineHeight) || 1;
@@ -513,45 +513,45 @@ var ResolveTextAction = (ctx, def) => {
   ctx.save();
   if (direction == "right") {
     ctx.direction = "rtl";
-    x3 += fullW / amount;
+    x2 += fullW / amount;
   } else {
     ctx.direction = "ltr";
   }
   ctx.font = prepareFontShorthand(def, ctx, String(getFontSize(def)));
   ctx.textBaseline = textBaseline;
   const getStartFrom = (lines2, linesAmount2) => direction == "right" && lines2.length >= linesAmount2 ? lines2.length - linesAmount2 : 0;
-  const startingX = x3;
+  const startingX = x2;
   while ((lines = value.splice(getStartFrom(value, linesAmount), linesAmount)).length) {
     lines.forEach((text3, i) => {
       const nextLine = lines[i + 1] || value[getStartFrom(value, linesAmount)] || [""];
       const isLast = i + 1 == lines.length || nextLine[0] == "" || text3[0][text3[0].length - 1] == "\n";
       const verticalMove = transY + i * lineHeight;
-      fillText(ctx, text3[0], def, x3, y2, fullW / amount, verticalMove, isLast);
+      fillText(ctx, text3[0], def, x2, y2, fullW / amount, verticalMove, isLast);
     });
-    x3 += fullW / amount + gap;
-    if (x3 + (startingX < 0 ? Math.abs(startingX) : 0) >= w && (!overflow || overflow == "vertical")) {
-      x3 = startingX;
+    x2 += fullW / amount + gap;
+    if (x2 + (startingX < 0 ? Math.abs(startingX) : 0) >= w && (!overflow || overflow == "vertical")) {
+      x2 = startingX;
       transY += lines.length * lineHeight + gap;
     }
   }
   ctx.restore();
 };
-var fillText = (ctx, text2, def, x3, y2, width2, transY, isLast) => {
+var fillText = (ctx, text2, def, x2, y2, width2, transY, isLast) => {
   const { color = "#000", outline = null } = def.text;
   const horizontal = def.text.align?.horizontal || "left";
   let realWidth;
-  ({ text: text2, x: x3, realWidth } = alignHorizontally(def, ctx, horizontal, text2, width2, isLast, x3));
+  ({ text: text2, x: x2, realWidth } = alignHorizontally(def, ctx, horizontal, text2, width2, isLast, x2));
   if (transY > 0) {
     y2 = y2 + transY;
   }
   ctx.fillStyle = typeof color == "object" ? generateFill(color.type, color.style) : color;
   if (outline) {
-    outlineText(ctx, outline, text2, x3, y2, width2);
+    outlineText(ctx, outline, text2, x2, y2, width2);
   }
-  ctx.fillText(text2, x3, y2, width2);
+  ctx.fillText(text2, x2, y2, width2);
   return realWidth;
 };
-var outlineText = (ctx, outline, text2, x3, y2, width2) => {
+var outlineText = (ctx, outline, text2, x2, y2, width2) => {
   if (!outline.fill?.style) {
     return;
   }
@@ -559,25 +559,25 @@ var outlineText = (ctx, outline, text2, x3, y2, width2) => {
   ctx.lineWidth = outline.thickness;
   ctx.lineJoin = outline.lineJoin ?? "round";
   ctx.miterLimit = outline.miterLimit ?? 2;
-  ctx.strokeText(text2, x3, y2, width2);
+  ctx.strokeText(text2, x2, y2, width2);
 };
-var alignHorizontally = (def, ctx, horizontal, text2, width2, isLast, x3) => {
+var alignHorizontally = (def, ctx, horizontal, text2, width2, isLast, x2) => {
   const metrics = ctx.measureText(text2);
   const realWidth = metrics.width;
   const isRight = def.text.direction === "right";
   ctx.textAlign = "left";
   if (horizontal == "center") {
     ctx.textAlign = "center";
-    x3 += width2 / 2 * (isRight ? -1 : 1);
+    x2 += width2 / 2 * (isRight ? -1 : 1);
   } else if (horizontal == "right") {
     ctx.textAlign = "right";
-    x3 += width2 * (isRight ? 0 : 1);
+    x2 += width2 * (isRight ? 0 : 1);
   } else if (horizontal == "justify" && !isLast) {
     text2 = justifyText(text2, metrics, width2, ctx);
   } else if (isRight && realWidth < width2) {
-    x3 -= width2 - realWidth;
+    x2 -= width2 - realWidth;
   }
-  return { text: text2, x: x3, realWidth };
+  return { text: text2, x: x2, realWidth };
 };
 var justifyText = (text2, metrics, width2, ctx) => {
   if (metrics.width >= width2) {
@@ -967,11 +967,11 @@ var outlineImage = async (image2, def, asWidth, asHeight) => {
       newDArr.push(dArr[i]);
       const [cX, cY] = dArr[i], [dX, dY] = i + 1 === dArr.length ? dArr[0] : dArr[i + 1];
       const trendX = cX > dX ? -1 : 1, trendY = cY > dY ? -1 : 1, bX = Math.abs(cX - dX) / granularity * trendX, bY = Math.abs(cY - dY) / granularity * trendY, between = [];
-      let x3 = cX, y2 = cY;
-      while ((trendX > 0 && x3 + bX < dX || trendX < 0 && x3 + bX > dX) && (trendY > 0 && y2 + bY < dY || trendY < 0 && y2 + bY > dY)) {
-        x3 += bX;
+      let x2 = cX, y2 = cY;
+      while ((trendX > 0 && x2 + bX < dX || trendX < 0 && x2 + bX > dX) && (trendY > 0 && y2 + bY < dY || trendY < 0 && y2 + bY > dY)) {
+        x2 += bX;
         y2 += bY;
-        between.push([x3, y2]);
+        between.push([x2, y2]);
       }
       newDArr = newDArr.concat(between);
     }
@@ -1017,19 +1017,19 @@ var canvasToWebp = async (canvas, dft) => {
 };
 var cropImage = async (image2, def) => {
   const { w: width2, h: height2 } = def.size;
-  let fitTo = def.image.fitTo ?? "auto", x3 = 0, y2 = 0;
+  let fitTo = def.image.fitTo ?? "auto", x2 = 0, y2 = 0;
   if (fitTo === "auto") {
     fitTo = height2 > width2 ? "height" : "width";
   }
   if (fitTo === "height") {
-    x3 = (width2 - image2.width * (height2 / image2.height)) / 2;
+    x2 = (width2 - image2.width * (height2 / image2.height)) / 2;
   } else if (fitTo === "width") {
     y2 = (height2 - image2.height * (width2 / image2.width)) / 2;
   }
   const canvas = document.createElement("canvas"), ctx = canvas.getContext("2d");
   canvas.setAttribute("width", String(width2));
   canvas.setAttribute("height", String(height2));
-  ctx.drawImage(image2, x3, y2, width2 - x3 * 2, height2 - y2 * 2);
+  ctx.drawImage(image2, x2, y2, width2 - x2 * 2, height2 - y2 * 2);
   return canvasToWebp(canvas, image2);
 };
 var calculateAspectRatioFit = (fit, srcWidth, srcHeight, maxWidth, maxHeight) => {
@@ -1318,40 +1318,10 @@ var ResolveGroupCalc = async (modules, def, sessionId) => {
 };
 
 // ../antetype-core/dist/index.js
-var u = { INIT: "antetype.init", CLOSE: "antetype.close", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded", CANVAS_CHANGE: "antetype.canvas.change" };
-var x2 = Symbol("original");
-var Y = Symbol("clone");
-var X = Symbol("layer");
-var K2 = "core";
-var J = "0.0.5";
-var A2 = class {
-  #n;
-  #t = null;
-  #e = false;
-  #o = null;
-  static inject = { marshal: "boardmeister/marshal", herald: "boardmeister/herald" };
-  inject(d2) {
-    this.#n = d2;
-  }
-  async loadModules(d2) {
-    return (await this.#r()).loadModules(d2);
-  }
-  register(d2) {
-    let { registration: g2 } = d2.detail;
-    g2[K2] = { load: async () => (!this.#t && !this.#e && (this.#e = new Promise((p2) => {
-      this.#i("core.js").then((c2) => {
-        this.#t = c2.default, this.#e = false, p2();
-      });
-    })), this.#e && await this.#e, console.log("load module3", this.#t), (p2) => this.#t({ modules: p2, herald: this.#n.herald })), version: J };
-  }
-  static subscriptions = { [u.MODULES]: "register" };
-  #i(d2) {
-    return import(this.#n.marshal.getResourceUrl(this, d2));
-  }
-  async #r() {
-    return this.#o ??= (await this.#i("helper.js")).default, new this.#o(this.#n.herald);
-  }
-};
+var l2 = { INIT: "antetype.init", CLOSE: "antetype.close", SAVE: "antetype.save", DRAW: "antetype.draw", CALC: "antetype.calc", RECALC_FINISHED: "antetype.recalc.finished", MODULES: "antetype.modules", SETTINGS: "antetype.settings.definition", TYPE_DEFINITION: "antetype.layer.type.definition", FONTS_LOADED: "antetype.font.loaded", CANVAS_CHANGE: "antetype.canvas.change", SERIALIZE: "antetype.meta.serialize" };
+var T2 = Symbol("original");
+var X = Symbol("clone");
+var $ = Symbol("layer");
 
 // src/definition/group.ts
 var group = () => ({
@@ -1465,10 +1435,8 @@ var text_default = text;
 // src/module.ts
 var Illustrator = class {
   #modules2;
-  #herald2;
-  constructor(modules, herald) {
+  constructor(modules) {
     this.#modules2 = modules;
-    this.#herald2 = herald;
     this.#registerEvents();
   }
   #ctx2() {
@@ -1478,25 +1446,10 @@ var Illustrator = class {
     }
     return canvas.getContext("2d");
   }
-  #registerEvents(anchor = null) {
-    const unregister = this.#herald2.batch([
+  #registerEvents() {
+    this.#modules2.core.event.batch([
       {
-        event: u.CLOSE,
-        subscription: () => {
-          unregister();
-        },
-        anchor
-      },
-      {
-        event: u.CANVAS_CHANGE,
-        subscription: async ({ detail: { current } }) => {
-          unregister();
-          this.#registerEvents(current);
-        },
-        anchor
-      },
-      {
-        event: u.DRAW,
+        event: l2.DRAW,
         subscription: async (event) => {
           const { element } = event.detail;
           const typeToAction = {
@@ -1510,11 +1463,10 @@ var Illustrator = class {
           if (typeof el == "function") {
             await el(element);
           }
-        },
-        anchor
+        }
       },
       {
-        event: u.CALC,
+        event: l2.CALC,
         subscription: async (event) => {
           if (event.detail.element === null) {
             return;
@@ -1530,19 +1482,17 @@ var Illustrator = class {
           if (typeof el == "function") {
             await el(element, sessionId);
           }
-        },
-        anchor
+        }
       },
       {
-        event: u.TYPE_DEFINITION,
+        event: l2.TYPE_DEFINITION,
         subscription: (event) => {
           const definitions = event.detail.definitions;
           definitions.text = text_default();
           definitions.group = group_default();
           definitions.image = image_default();
           definitions.polygon = polygon_default();
-        },
-        anchor
+        }
       }
     ]);
   }
@@ -1578,13 +1528,13 @@ var Illustrator = class {
     }
     def.area = ResolvePolygonSize(def);
   }
-  polygon({ polygon: { steps }, start: { x: x3, y: y2 } }) {
+  polygon({ polygon: { steps }, start: { x: x2, y: y2 } }) {
     const ctx = this.#ctx2();
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(x3, y2);
+    ctx.moveTo(x2, y2);
     for (const step of steps) {
-      ResolvePolygonAction(ctx, step, x3, y2);
+      ResolvePolygonAction(ctx, step, x2, y2);
     }
     ctx.closePath();
     ctx.restore();
@@ -1603,7 +1553,7 @@ var Illustrator = class {
   }
   async calc(def) {
     const event = new CustomEvent(d.CALC, { detail: def });
-    await this.#herald2.dispatch(event, { origin: this.#modules2.core.meta.getCanvas() });
+    await this.#modules2.core.event.dispatch(event);
     return event.detail.values;
   }
   generateText(value) {
@@ -1715,13 +1665,13 @@ var AntetypeIllustrator = class {
           const module = this.#injected.marshal.getResourceUrl(this, "module.js");
           this.#module = (await import(module)).default;
         }
-        return (modules) => new this.#module(modules, this.#injected.herald);
+        return (modules) => new this.#module(modules);
       },
       version: VERSION
     };
   }
   static subscriptions = {
-    [u.MODULES]: "register"
+    [l2.MODULES]: "register"
   };
 };
 export {

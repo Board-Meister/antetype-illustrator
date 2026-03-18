@@ -1,4 +1,4 @@
-import type { Canvas, CanvasChangeEvent, IStart, Layout, Module, TypeDefinitionEvent } from "@boardmeister/antetype-core";
+import type { IStart, Layout, Module, TypeDefinitionEvent } from "@boardmeister/antetype-core";
 import { Event } from "@boardmeister/antetype-workspace";
 import { ResolvePolygonAction } from "@src/action/polygon";
 import { IPolygonArgs, IPolygonDef, PolygonActions } from "@src/type/polygon.d";
@@ -14,7 +14,6 @@ import { ResolveCalcPolygon, ResolvePolygonSize } from "@src/action/polygon.calc
 import { ResolveImageCalc } from "@src/action/image.calc";
 import { ResolveTextCalc } from "@src/action/text.calc";
 import { ResolveGroupCalc } from "@src/action/group.calc";
-import type { Herald } from "@boardmeister/herald";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type { DrawEvent, CalcEvent, IBaseDef, IParentDef } from "@boardmeister/antetype-core"
 import getGroupDefinition from "@src/definition/group";
@@ -48,14 +47,11 @@ export interface IIllustrator extends Module {
 
 export default class Illustrator implements IIllustrator {
   #modules: ModulesWithCore;
-  #herald: Herald;
 
   constructor(
     modules: ModulesWithCore,
-    herald: Herald,
   ) {
     this.#modules = modules;
-    this.#herald = herald;
     this.#registerEvents();
   }
 
@@ -68,23 +64,8 @@ export default class Illustrator implements IIllustrator {
     return canvas.getContext('2d')!;
   }
 
-  #registerEvents(anchor: Canvas|null = null): void {
-    const unregister = this.#herald.batch([
-      {
-        event: AntetypeCoreEvent.CLOSE,
-        subscription: (): void => {
-          unregister();
-        },
-        anchor,
-      },
-      {
-        event: AntetypeCoreEvent.CANVAS_CHANGE,
-        subscription: async ({ detail: { current } }: CanvasChangeEvent): Promise<void> => {
-          unregister();
-          this.#registerEvents(current);
-        },
-        anchor,
-      },
+  #registerEvents(): void {
+    this.#modules.core.event.batch([
       {
         event: AntetypeCoreEvent.DRAW,
         subscription: async (event: CustomEvent<DrawEvent>): Promise<void> => {
@@ -102,7 +83,6 @@ export default class Illustrator implements IIllustrator {
             await el(element as GenericBaseDef);
           }
         },
-        anchor,
       },
       {
         event: AntetypeCoreEvent.CALC,
@@ -123,7 +103,6 @@ export default class Illustrator implements IIllustrator {
             await el(element as GenericBaseDef, sessionId);
           }
         },
-        anchor,
       },
       {
         event: AntetypeCoreEvent.TYPE_DEFINITION,
@@ -134,7 +113,6 @@ export default class Illustrator implements IIllustrator {
           definitions.image = getImageDefinition();
           definitions.polygon = getPolygonDefinition();
         },
-        anchor,
       }
     ])
   }
@@ -210,7 +188,7 @@ export default class Illustrator implements IIllustrator {
 
   async calc<T = Record<string, unknown>>(def: ICalcEvent): Promise<T> {
     const event = new CustomEvent(Event.CALC, { detail: def });
-    await this.#herald.dispatch(event, { origin: this.#modules.core.meta.getCanvas() });
+    await this.#modules.core.event.dispatch(event);
 
     return event.detail.values as T;
   }

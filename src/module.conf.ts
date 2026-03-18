@@ -44,7 +44,7 @@ export class AntetypeIllustrator {
           this.#module = ((await import(module)) as { default: typeof Illustrator }).default;
         }
 
-        return modules => new this.#module!(modules as ModulesWithCore, this.#injected!.herald);
+        return modules => new this.#module!(modules as ModulesWithCore);
       },
       version: VERSION,
     };
