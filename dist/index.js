@@ -919,6 +919,7 @@ var loadImage = async (def, src, modules) => {
       view.redrawDebounce();
       resolve();
     };
+  }).catch((error) => {
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
   await promise;
