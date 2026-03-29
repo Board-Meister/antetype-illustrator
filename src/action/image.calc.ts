@@ -198,7 +198,7 @@ const loadImage = async (def: IImageDef, src: string, modules: ModulesWithCore):
       view.redrawDebounce();
       resolve();
     };
-  }).catch(error => {
+  }).catch(() => {
     // For now do nothing
   });
   loadedImages[src] = IMAGE_LOADING_STATUS;
