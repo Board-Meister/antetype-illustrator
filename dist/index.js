@@ -835,7 +835,7 @@ var ResolveImageCalc = async (modules, def) => {
     return;
   }
   const source = def.image.src;
-  if (typeof source != "string" || !source.startsWith("blob:http") && !source.startsWith("http") && !source.startsWith("/")) {
+  if (typeof source != "string" || !source.startsWith("blob:http") && !source.startsWith("http") && !source.startsWith("/") && !/^data:.*;base64,/.test(source)) {
     console.warn("Image `" + source + "` has invalid source");
     return;
   }

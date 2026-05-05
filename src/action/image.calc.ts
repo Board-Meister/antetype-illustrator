@@ -73,7 +73,12 @@ export const ResolveImageCalc = async (
   const source = def.image.src;
   if (
     typeof source != 'string'
-    || (!source.startsWith('blob:http') && !source.startsWith('http') && !source.startsWith('/'))
+    || (
+      !source.startsWith('blob:http')
+      && !source.startsWith('http')
+      && !source.startsWith('/')
+      && !/^data:.*;base64,/.test(source)
+    )
   ) {
     console.warn('Image `' + source + '` has invalid source');
     return;
