@@ -98,10 +98,14 @@ const drawLayersRelatively = (
         layer.def.area.start.y = currentHeight;
       }
       modules.core!.view.draw(layer.def);
-      xShift += layer.def.size.w + vertical;
+      if (layer.def.size.w > 0) {
+        xShift += layer.def.size.w + vertical;
+      }
     });
     xShift = 0;
-    currentHeight += row.height + horizontal;
+    if (row.height > 0) {
+      currentHeight += row.height + horizontal;
+    }
   });
 }
 
